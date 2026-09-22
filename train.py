@@ -1,6 +1,7 @@
-from dataclasses import asdict, dataclass
+import argparse
 import math
-from typing import Optional
+import os
+import time
 
 import torch
 from torch import nn
@@ -144,22 +145,23 @@ class LocalGPT(nn.Module):
             logits = logits[:, -1, :] / max(temperature, 1e-5)
 
             if top_k is not None and top_k > 0:
-                top_v, top_i = torch.topk(logits, min(top_k, logits.size(-1)))
-                logits = torch.full_like(logits, float("-inf"))
-                logits.scatter_(1, top_i, top_v)
+                top_values, top_indices = torch.topk(logits, min(top_k, logits.size(-1)))
+                filtered_logits = torch.full_like(logits, float("-inf"))
+                filtered_logits.scatter_(1, top_indices, top_values)
+                logits = filtered_logits
 
             if top_p < 1.0:
                 probs = torch.softmax(logits, dim=-1)
-                sorted_probs, sorted_ids = torch.sort(probs, descending=True)
-                cumulative = sorted_probs.cumsum(dim=-1)
+                sorted_probs, sorted_indices = torch.sort(probs, descending=True)
+                cumulative = torch.cumsum(sorted_probs, dim=-1)
                 mask = cumulative > top_p
-                if mask.any():
-                    mask[..., 1:] = mask[..., :-1].clone()
-                    mask[..., 0] = False
-                    sorted_probs[mask] = 0.0
-                    sorted_probs = sorted_probs / sorted_probs.sum(dim=-1, keepdim=True)
-                    next_id = torch.multinomial(sorted_probs, 1)
-                    next_id = sorted_ids.gather(1, next_id)
+                if torch.any(mask):
+                    mask = torch.cat([torch.zeros_like(mask[:, :1]), mask[:, :-1]], dim=-1)
+                    sorted_probs = sorted_probs.masked_fill(mask, 0.0)
+                    total = sorted_probs.sum(dim=-1, keepdim=True).clamp_min(1e-9)
+                    sorted_probs = sorted_probs / total
+                    sampled = torch.multinomial(sorted_probs, 1)
+                    next_id = sorted_indices.gather(1, sampled)
                     idx = torch.cat((idx, next_id), dim=1)
                     continue
 
@@ -169,6 +171,7 @@ class LocalGPT(nn.Module):
         return idx
 
     def config_dict(self):
+        from dataclasses import asdict
         return asdict(self.cfg)
 
 
@@ -187,3 +190,12 @@ def load_checkpoint(path: str, device: str = "cpu") -> LocalGPT:
     model.load_state_dict(checkpoint["model_state"])
     model.eval()
     return model
+
+
+__all__ = [
+    "ByteTokenizer",
+    "GPTConfig",
+    "LocalGPT",
+    "save_checkpoint",
+    "load_checkpoint",
+]

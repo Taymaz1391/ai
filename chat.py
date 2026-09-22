@@ -1,5 +1,4 @@
 import argparse
-import math
 import os
 import time
 
@@ -8,11 +7,11 @@ import torch
 from model import ByteTokenizer, GPTConfig, LocalGPT, save_checkpoint
 
 
-def chunked_train_data(text: str, block_size: int):
+def build_tokens(text: str, block_size: int):
     tokenizer = ByteTokenizer()
     tokens = torch.tensor(tokenizer.encode(text), dtype=torch.long)
     if len(tokens) <= block_size:
-        raise ValueError("The text is too short for the configured block size.")
+        raise ValueError("The corpus is too short for the selected block size.")
     return tokens
 
 
@@ -24,9 +23,9 @@ def get_batch(data: torch.Tensor, batch_size: int, block_size: int, device: str)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Train a local GPT from a UTF-8 text file.")
-    parser.add_argument("--input", required=True, help="Path to a UTF-8 text corpus")
-    parser.add_argument("--output", default="checkpoints/local_model.pt", help="Where to save the checkpoint")
+    parser = argparse.ArgumentParser(description="Train a local GPT model from a UTF-8 text file.")
+    parser.add_argument("--input", required=True, help="UTF-8 corpus path")
+    parser.add_argument("--output", default="checkpoints/local_model.pt", help="Output checkpoint")
     parser.add_argument("--steps", type=int, default=3000)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--block-size", type=int, default=256)
@@ -43,7 +42,7 @@ def main():
     with open(args.input, "r", encoding="utf-8") as f:
         text = f.read()
 
-    tokens = chunked_train_data(text, args.block_size)
+    tokens = build_tokens(text, args.block_size)
     cfg = GPTConfig(
         vocab_size=256,
         block_size=args.block_size,
@@ -52,12 +51,13 @@ def main():
         n_embd=args.embed,
         dropout=0.1,
     )
+
     model = LocalGPT(cfg).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, betas=(0.9, 0.95), weight_decay=0.1)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.steps)
 
     os.makedirs(os.path.dirname(args.output) or ".", exist_ok=True)
-    start_time = time.time()
+    start = time.time()
 
     model.train()
     for step in range(1, args.steps + 1):
@@ -70,11 +70,13 @@ def main():
         scheduler.step()
 
         if step % 50 == 0 or step == args.steps:
-            print(f"step={step:05d}/{args.steps} loss={loss.item():.4f} lr={optimizer.param_groups[0]['lr']:.3e}")
+            lr = optimizer.param_groups[0]["lr"]
+            print(f"step={step:05d}/{args.steps} loss={loss.item():.4f} lr={lr:.3e}")
 
     save_checkpoint(model, args.output)
-    elapsed = time.time() - start_time
-    print(f"Training complete in {elapsed:.1f}s. Model saved to {args.output}")
+    elapsed = time.time() - start
+    print(f"Training complete in {elapsed:.1f}s")
+    print(f"Model saved to: {args.output}")
 
 
 if __name__ == "__main__":
