@@ -145,17 +145,13 @@ That is how a small model stays honest about what it learned.
 
 ---
 
-## 5. English
+## 5. Language scope
 
-The interface now has a full English surface (`/en`, `/en/docs`) with proper
-`hreflang` and a language switcher. The **checkpoint** is Persian-only, so
-English answers are not available. Two honest paths:
-
-- **Today:** English UI, Persian answers, clearly labelled.
-- **Later:** train a bilingual tokenizer and a mixed Persian/English corpus.
-  That is a new model generation, not a translation layer.
-
----
+The product is Persian-only by design: every page is `lang="fa"` and `dir="rtl"`,
+there is no English mirror, no language switch and no language auto-detection.
+One language also means one set of promo assets, one sitemap and one copy deck,
+which keeps the surface small and honest — the model answers in Persian because
+it was trained on Persian only.
 
 ## 6. Security posture (summary)
 

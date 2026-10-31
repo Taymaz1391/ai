@@ -27,11 +27,8 @@ PAGES = {
     "docs.html": "docs.html",
     "download.html": "download.html",
     "course.html": "course.html",
-    "en-course.html": "en-course.html",
     "offline.html": "offline.html",
     "summary.html": "summary.html",
-    "en.html": "en.html",
-    "en-docs.html": "en-docs.html",
 }
 
 # مسیرهای سرور → فایل‌های استاتیک
@@ -44,13 +41,10 @@ ROUTES = {
     "/docs": "docs.html",
     "/download": "download.html",
     "/course": "course.html",
-    "/en/course": "en-course.html",
     "/login": "login.html",
     "/signup": "signup.html",
     "/offline": "offline.html",
     "/summary": "summary.html",
-    "/en": "en.html",
-    "/en/docs": "en-docs.html",
 }
 
 NOT_FOUND_HTML = """<!doctype html>
@@ -169,10 +163,6 @@ def build(out: Path) -> dict:
     (out / "sw.js").write_text(sw, encoding="utf-8")
 
     # مانیفست با مسیرهای نسبی
-    en_css = STATIC / "en.css"
-    if en_css.exists():
-        (out / "static" / "en.css").write_text(read(en_css), encoding="utf-8")
-
     manifest = json.loads(read(STATIC / "manifest.webmanifest"))
     manifest["start_url"] = "chat.html"
     manifest["scope"] = "./"

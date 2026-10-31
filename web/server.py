@@ -569,11 +569,7 @@ def _with_lang_cookie(response: Response, request: Request) -> Response:
 
 @app.get("/")
 def landing(request: Request):
-    info = locale_module.detect(request)
-    # نخستین بازدید انگلیسی‌زبان: به نسخهٔ انگلیسی هدایت می‌شود (قابل بازگشت با ?lang=fa)
-    if (info["lang"] == "en" and info["source"] in ("geo", "accept-language", "timezone")
-            and not request.cookies.get("rayan_lang")):
-        return RedirectResponse("/en?lang=en", status_code=307)
+    # سایت تک‌زبانه است: همیشه فارسی و راست‌چین
     return _with_lang_cookie(_page("index.html"), request)
 
 
@@ -633,19 +629,12 @@ def summary_page() -> FileResponse:
     return _page("summary.html")
 
 
-@app.get("/en", response_class=HTMLResponse)
-def english_home(request: Request):
-    return _with_lang_cookie(_page("en.html"), request)
-
-
-@app.get("/en/course", response_class=HTMLResponse)
-def english_course(request: Request):
-    return _with_lang_cookie(_page("en-course.html"), request)
-
-
-@app.get("/en/docs", response_class=HTMLResponse)
-def english_docs(request: Request):
-    return _with_lang_cookie(_page("en-docs.html"), request)
+@app.get("/en")
+@app.get("/en/course")
+@app.get("/en/docs")
+def english_removed() -> RedirectResponse:
+    """نسخهٔ انگلیسی حذف شده است؛ همه‌چیز فارسی و راست‌چین است."""
+    return RedirectResponse("/", status_code=302)
 
 
 @app.get("/academy")
@@ -709,8 +698,7 @@ def robots() -> Response:
 @app.get("/sitemap.xml")
 def sitemap(request: Request) -> Response:
     base = os.environ.get("RAYAN_PUBLIC_URL", str(request.base_url).rstrip("/"))
-    pages = ["", "chat", "pricing", "models", "about", "docs", "course", "download", "summary",
-             "en", "en/course", "en/docs"]
+    pages = ["", "chat", "pricing", "models", "about", "docs", "course", "download", "summary"]
     urls = "".join(f"<url><loc>{base}/{p}</loc></url>" for p in pages)
     xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
     return Response(xml, media_type="application/xml")

@@ -237,3 +237,31 @@
 .course-table th { background: var(--bg-2); color: var(--text); font-weight: 700; }
 .course-table tbody tr:nth-child(even) { background: rgba(26, 99, 240, .03); }
 @media print { .course-table { font-size: 11px; } }
+
+/* --------------------------------------------- ویدیوی معرفی تمام‌صفحه (پس از ثبت‌نام) */
+.welcome-reel {
+  position: fixed; inset: 0; z-index: 300;
+  display: grid; grid-template-rows: 1fr auto;
+  background: radial-gradient(900px 600px at 50% -10%, rgba(24, 96, 220, 0.35), transparent 70%), #050d1e;
+  animation: reelIn 0.45s var(--ease) both;
+}
+.welcome-reel[hidden] { display: none; }
+body.reel-open { overflow: hidden; }
+.welcome-video { width: 100%; height: 100%; min-height: 0; object-fit: contain; background: #050d1e; }
+.welcome-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 14px clamp(16px, 4vw, 44px) calc(14px + env(safe-area-inset-bottom));
+  background: linear-gradient(0deg, rgba(5, 13, 30, 0.96), rgba(5, 13, 30, 0.55));
+  border-top: 1px solid color-mix(in srgb, var(--blue) 26%, transparent);
+}
+.welcome-copy { display: grid; gap: 3px; color: #eaf3ff; font-size: 14px; }
+.welcome-copy b { font-size: 15px; }
+.welcome-copy span { color: #a9c6ea; display: inline-flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+.welcome-copy .wm-inline { filter: brightness(0) invert(1); }
+.welcome-actions { display: flex; gap: 10px; align-items: center; }
+@keyframes reelIn { from { opacity: 0; transform: scale(1.02); } to { opacity: 1; transform: none; } }
+@media (max-width: 560px) {
+  .welcome-bar { flex-direction: column; align-items: stretch; gap: 10px; text-align: center; }
+  .welcome-copy { justify-items: center; }
+  .welcome-actions { justify-content: center; }
+}

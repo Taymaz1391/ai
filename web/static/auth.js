@@ -16,6 +16,69 @@
   const identifierHint = $("#identifier-hint");
   const identifierInput = $("#email");
 
+
+  // ------------------------------------------------ ویدیوی معرفی پس از ثبت‌نام
+  function playWelcomeReel(next) {
+    const reel = $("#welcome-reel");
+    const vid = $("#welcome-video");
+    const skip = $("#welcome-skip");
+    const sound = $("#welcome-sound");
+    if (!reel || !vid || !isSignup) {
+      location.replace(next);
+      return;
+    }
+    let done = false;
+    const go = () => {
+      if (done) return;
+      done = true;
+      try { vid.pause(); } catch { /* نادیده */ }
+      location.replace(next);
+    };
+    reel.hidden = false;
+    document.body.classList.add("reel-open");
+    // نسخهٔ عمودی برای گوشی، افقی برای دسکتاپ
+    const vertical = window.matchMedia("(max-width: 760px)").matches;
+    const src = vertical
+      ? "/static/assets/video/promo-fa-9x16.mp4"
+      : "/static/assets/video/promo-fa-16x9.mp4";
+    const source = vid.querySelector("source");
+    if (source) source.setAttribute("src", src);
+    vid.setAttribute("poster", vertical
+      ? "/static/assets/video/promo-fa-9x16-poster.jpg"
+      : "/static/assets/video/promo-fa-16x9-poster.jpg");
+    vid.load();
+    if (skip) {
+      skip.setAttribute("href", next);
+      skip.addEventListener("click", (event) => {
+        event.preventDefault();
+        go();
+      });
+    }
+    vid.addEventListener("ended", go, { once: true });
+    vid.addEventListener("error", go, { once: true });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") go();
+    }, { once: true });
+    // صدا روشن؛ اگر مرورگر اجازه نداد، بی‌صدا پخش می‌شود
+    vid.muted = false;
+    const attempt = vid.play();
+    if (attempt && typeof attempt.catch === "function") {
+      attempt.catch(() => {
+        vid.muted = true;
+        if (sound) sound.setAttribute("aria-pressed", "false");
+        vid.play().catch(go);
+      });
+    }
+    if (sound) {
+      sound.addEventListener("click", () => {
+        vid.muted = !vid.muted;
+        sound.setAttribute("aria-pressed", vid.muted ? "false" : "true");
+        sound.textContent = vid.muted ? "صدا" : "بی‌صدا";
+        if (!vid.muted) vid.play().catch(() => {});
+      });
+    }
+  }
+
   if (isSignup) {
     document.title = "ساخت حساب · رایان";
     title.textContent = "ساخت حساب رایگان";
@@ -102,6 +165,10 @@
       if (data.admin) {
         toast("دسترسی مدیریت فعال شد.", "ok");
         setTimeout(() => location.replace(safeNext || "/admin"), 420);
+        return;
+      }
+      if (isSignup && !safeNext) {
+        setTimeout(() => playWelcomeReel("/chat"), 320);
         return;
       }
       setTimeout(() => location.replace(safeNext || "/chat"), 420);

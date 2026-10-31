@@ -45,7 +45,7 @@
     <main class="auth-main">
       <div class="auth-card card card-pad">
         <div class="auth-head">
-          <h2 id="auth-title">ورود به رایان</h2>
+          <h2 id="auth-title">ورود به <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="122" height="64" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="122" height="64" decoding="async"> </h2>
           <p id="auth-sub">خوش برگشتی! ادامه بده از همان‌جایی که بودی.</p>
         </div>
 
@@ -91,6 +91,25 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- ویدیوی معرفی تمام‌صفحه، بعد از ساخت حساب -->
+  <div id="welcome-reel" class="welcome-reel" hidden role="dialog" aria-modal="true" aria-label="ویدیوی معرفی">
+    <video id="welcome-video" class="welcome-video" playsinline preload="none"
+           poster="/static/assets/video/promo-fa-16x9-poster.jpg">
+      <source src="/static/assets/video/promo-fa-16x9.mp4" type="video/mp4">
+      <track kind="captions" src="/static/assets/video/promo-fa.vtt" srclang="fa" label="فارسی" default>
+    </video>
+    <div class="welcome-bar">
+      <div class="welcome-copy">
+        <b>حسابت ساخته شد — خوش آمدی!</b>
+        <span>یک دقیقه نگاه کن تا ببینی <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="122" height="64" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="122" height="64" decoding="async"> چه می‌کند.</span>
+      </div>
+      <div class="welcome-actions">
+        <button class="btn btn-sm" type="button" id="welcome-sound" aria-pressed="false">صدا</button>
+        <a class="btn btn-primary btn-sm" id="welcome-skip" href="/chat">رد کردن</a>
+      </div>
+    </div>
   </div>
 
   <script src="/static/config.js"></script>

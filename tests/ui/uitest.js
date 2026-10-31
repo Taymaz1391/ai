@@ -147,7 +147,36 @@ async function testAuth() {
   await wait(120);
   check("signup: validation error", /معتبر|۸/.test(doc.querySelector("#auth-error")?.textContent || ""),
     doc.querySelector("#auth-error")?.textContent);
+  // ویدیوی معرفی تمام‌صفحه: آماده ولی پنهان تا لحظهٔ ساخت حساب
+  const reel = doc.querySelector("#welcome-reel");
+  check("signup: welcome reel hidden", !!reel && reel.hidden === true, String(!!reel));
+  const reelVideo = doc.querySelector("#welcome-video");
+  check("signup: reel video source", /promo-fa-16x9\.mp4/.test(
+    reelVideo?.querySelector("source")?.getAttribute("src") || ""),
+    reelVideo?.querySelector("source")?.getAttribute("src"));
+  check("signup: reel captions", !!reelVideo?.querySelector('track[src="/static/assets/video/promo-fa.vtt"]'));
   return { window };
+}
+
+async function testSignupReel() {
+  const { window } = await loadPage("/signup");
+  const doc = window.document;
+  // jsdom عناصر رسانه را پیاده نکرده؛ فقط برای این آزمون ساکتشان می‌کنیم
+  window.HTMLMediaElement.prototype.load = function () {};
+  window.HTMLMediaElement.prototype.play = function () { return Promise.resolve(); };
+  window.HTMLMediaElement.prototype.pause = function () {};
+  const email = `reel${Date.now()}@example.com`;
+  doc.querySelector("#name").value = "آزمون ویدیو";
+  doc.querySelector("#email").value = email;
+  doc.querySelector("#password").value = "Secret12345";
+  doc.querySelector("#auth-form").dispatchEvent(new window.Event("submit", { cancelable: true, bubbles: true }));
+  await wait(1500);
+  const reel = doc.querySelector("#welcome-reel");
+  check("signup: reel shown after register", !!reel && reel.hidden === false, String(reel && reel.hidden));
+  const src = doc.querySelector("#welcome-video source")?.getAttribute("src") || "";
+  check("signup: reel source chosen", /promo-fa-(16x9|9x16)\.mp4/.test(src), src);
+  const loc = window.location.pathname;
+  check("signup: stays on page during reel", loc.startsWith("/signup"), loc);
 }
 
 async function testChat() {
@@ -157,8 +186,10 @@ async function testChat() {
   check("chat: empty state", doc.querySelector("#empty-state")?.hidden === false);
   check("chat: suggestions", doc.querySelectorAll("#suggestions .suggestion").length >= 4,
     String(doc.querySelectorAll("#suggestions .suggestion").length));
-  check("chat: models loaded", doc.querySelector("#model-label")?.textContent?.includes("رایان") === true,
-    doc.querySelector("#model-label")?.textContent);
+  const modelLabel = doc.querySelector("#model-label");
+  check("chat: models loaded",
+    /کوچک/.test(modelLabel?.textContent || "") && !!modelLabel?.querySelector(".model-logo"),
+    modelLabel?.innerHTML?.slice(0, 80));
 
   // نام کاربر (مهمان)
   const uname = doc.querySelector("[data-user-name]")?.textContent;
@@ -201,6 +232,12 @@ async function testChat() {
   const bubbles = [...doc.querySelectorAll(".msg.bot .bubble")].map((b) => b.textContent.trim());
   const answer = bubbles[bubbles.length - 1] || "";
   check("chat: answer streamed", answer.length > 3, JSON.stringify(answer.slice(0, 60)));
+  const botOrb = doc.querySelector(".msg.bot .who-orb");
+  check("chat: answer orb present", !!botOrb, String(!!botOrb));
+  check("chat: orb has face layer", !!botOrb?.querySelector(".face .lid"),
+    botOrb?.innerHTML?.slice(0, 60) || "missing");
+  check("chat: orb state settles", ["", "happy"].includes(botOrb?.dataset.state || ""),
+    botOrb?.dataset.state);
   const userBubble = doc.querySelector(".msg.user .bubble")?.textContent || "";
   check("chat: user bubble", userBubble.includes("خودت"), userBubble);
   const convs = doc.querySelectorAll(".conv-item").length;
@@ -335,28 +372,14 @@ async function testCourse() {
   check("course: toc", doc.querySelectorAll(".course-toc a").length >= 10);
 }
 
-async function testEnglishAndSummary() {
-  const en = await loadPage("/en");
-  const enDoc = en.window.document;
-  check("en: title", /Rayan/.test(enDoc.title), enDoc.title);
-  check("en: html lang", enDoc.documentElement.lang === "en", enDoc.documentElement.lang);
-  check("en: dir ltr", enDoc.documentElement.dir === "ltr", enDoc.documentElement.dir);
-  check("en: features", enDoc.querySelectorAll(".feature").length >= 4,
-    String(enDoc.querySelectorAll(".feature").length));
-  check("en: video", !!enDoc.querySelector("#promo-video source"));
-  check("en: autoplay muted", enDoc.getElementById("promo-video")?.hasAttribute("muted") === true
-    && enDoc.getElementById("promo-video")?.hasAttribute("autoplay") === true);
-  check("en: wordmark", enDoc.querySelectorAll(".brand-wordmark").length >= 2);
-
-  const enCourse = await loadPage("/en/course");
-  const enCourseDoc = enCourse.window.document;
-  check("en course: syllabus", enCourseDoc.querySelectorAll(".lesson").length >= 10,
-    String(enCourseDoc.querySelectorAll(".lesson").length));
-  check("en course: fa switch", !!enCourseDoc.querySelector('a[href="/course"]'));
-
-  const docs = await loadPage("/en/docs");
-  check("en docs: sections", docs.window.document.querySelectorAll(".prose h2").length >= 5,
-    String(docs.window.document.querySelectorAll(".prose h2").length));
+async function testPersianOnlyAndSummary() {
+  const home = await loadPage("/");
+  const homeDoc = home.window.document;
+  check("fa: html lang", homeDoc.documentElement.lang === "fa", homeDoc.documentElement.lang);
+  check("fa: dir rtl", homeDoc.documentElement.dir === "rtl", homeDoc.documentElement.dir);
+  check("fa: no english switch", !homeDoc.querySelector('a[href="/en"]'));
+  check("fa: promo video", !!homeDoc.querySelector("#promo-video source"));
+  check("fa: brand mark is an image", !!homeDoc.querySelector('.brand img[alt="رایان"]'));
 
   const sum = await loadPage("/summary");
   const sumDoc = sum.window.document;
@@ -370,6 +393,7 @@ async function testEnglishAndSummary() {
   try {
     await testLanding();
     await testAuth();
+    await testSignupReel();
     await testChat();
     await testPages();
     await testAdminGate();
@@ -377,7 +401,7 @@ async function testEnglishAndSummary() {
     await testToolChip();
     await testThemeToggle();
     await testCourse();
-    await testEnglishAndSummary();
+    await testPersianOnlyAndSummary();
   } catch (err) {
     errors.push(`FATAL: ${err.stack}`);
   }

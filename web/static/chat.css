@@ -251,6 +251,8 @@
 }
 .picker-btn:hover { border-color: var(--line-strong); background: var(--surface-2); }
 .picker-btn img { border-radius: 50%; }
+.picker-btn .model-logo { height: 1.05em; width: auto; aspect-ratio: 122 / 64; border-radius: 0; vertical-align: -0.18em; margin-inline-end: 4px; }
+.model-item .model-logo { height: 1em; width: auto; aspect-ratio: 122 / 64; border-radius: 0; vertical-align: -0.16em; margin-inline-end: 5px; }
 .picker-btn svg { color: var(--text-3); }
 .menu {
   position: absolute;
@@ -348,6 +350,7 @@
   white-space: pre-wrap;
 }
 .msg.bot .bubble { padding: 2px 0 0; }
+.bubble.streaming { white-space: pre-wrap; }
 .bubble.streaming::after {
   content: "";
   display: inline-block;
@@ -514,6 +517,7 @@
   .app-top { padding: 0 10px; height: 54px; }
   .picker-btn #model-tag { display: none; }
   .picker-btn span#model-label { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .picker-btn .model-logo { height: 1.02em; }
   .tool-btn span { display: none; }
   .tool-btn { padding: 6px 9px; }
   .bubble { font-size: 15px; }

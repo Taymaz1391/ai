@@ -313,6 +313,16 @@
       orb.dataset.ready = "1";
       orb.setAttribute("role", "img");
       orb.setAttribute("aria-label", "رایان");
+      // چشم‌ها در یک لایه جمع می‌شوند تا هنگام «نوشتن» کل چهره بچرخد
+      if (!orb.querySelector(".face")) {
+        const lids = [...orb.querySelectorAll(".lid")];
+        if (lids.length) {
+          const face = document.createElement("span");
+          face.className = "face";
+          lids[0].before(face);
+          lids.forEach((lid) => face.append(lid));
+        }
+      }
       const blink = () => orb.classList.add("is-blinking");
       orb.addEventListener("animationend", () => orb.classList.remove("is-blinking"));
       orb.addEventListener("click", () => {
@@ -343,7 +353,7 @@
     const splash = document.createElement("div");
     splash.className = "splash";
     splash.innerHTML =
-      '<img class="splash-art" src="' + asset("brand/lockup-glow.png") + '" alt="رایان" />' +
+      '<img class="splash-art" src="' + asset("brand/logotype-stack-white.png") + '" alt="رایان" />' +
       '<div class="splash-bar"><i></i></div>';
     document.body.append(splash);
     window.setTimeout(() => splash.classList.add("is-out"), 1250);

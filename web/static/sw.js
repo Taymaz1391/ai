@@ -1,5 +1,5 @@
 /* رایان — سرویس‌ورکر: دارایی‌های ایستا کش، صفحه‌ها شبکه-اول، آفلاین‌پذیر */
-const VERSION = "rayan-v8";
+const VERSION = "rayan-v10";
 const SHELL = [
   "/static/styles.css",
   "/static/pages.css",
@@ -14,8 +14,10 @@ const SHELL = [
   "/static/assets/brand/orb-128.png",
   "/static/assets/brand/wordmark-ink.png",
   "/static/assets/brand/wordmark-white.png",
-  "/static/assets/brand/lockup-ink.png",
-  "/static/assets/brand/lockup-glow.png",
+  "/static/assets/brand/logotype-stack-ink.png",
+  "/static/assets/brand/logotype-stack-white.png",
+  "/static/assets/brand/mark-ink.png",
+  "/static/assets/brand/mark-white.png",
   "/static/assets/fonts/Vazirmatn-Regular.woff2",
   "/static/assets/fonts/Vazirmatn-Bold.woff2",
 ];
@@ -35,7 +37,7 @@ const OFFLINE_HTML = `<!doctype html><html lang="fa" dir="rtl"><head><meta chars
 </style></head><body><div class="card">
  <img src="/static/assets/brand/orb-128.png" alt="رایان">
  <h1>فعلاً اتصال برقرار نیست</h1>
- <p>رایان بدون اینترنت هم باز می‌شود، اما برای پاسخ‌دادن به سرور نیاز دارد.
+ <p>این صفحه بدون اینترنت هم باز می‌شود، اما برای پاسخ‌دادن به سرور نیاز دارد.
     اتصال را بررسی کن؛ گفتگوهای ذخیره‌شده پس از وصل‌شدن برمی‌گردند.</p>
  <button onclick="location.reload()">تلاش دوباره</button>
  <br><a href="/">بازگشت به خانه</a>

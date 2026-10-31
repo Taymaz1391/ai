@@ -65,7 +65,7 @@ TEXT = {
         "chat_bot": "شب است و پنجره باز؛ باران برایت شعر می‌گوید.",
         "chat_hint": "پیامت را بنویس",
         "stats_title": "اندازه‌گیری روی همین سرور",
-        "stats": [("۶٬۵۷۴٬۸۴۸", "پارامتر"), ("۳۴۸", "توکن بر ثانیه"), ("۰٫۰۴", "ثانیه، میانهٔ پاسخ")],
+        "stats": [("۶٬۵۷۴٬۸۴۸", "پارامتر"), ("۸۴", "توکن بر ثانیه"), ("۰٫۰۴", "ثانیه، میانهٔ پاسخ")],
         "stats_note": "بدون GPU، بدون سرویس بیرونی، هزینهٔ صفر",
         "cta": "همین حالا امتحان کن",
         "url": "github.com/Taymaz1391/ai",
@@ -81,7 +81,7 @@ TEXT = {
         "chat_bot": "The night is open; the rain writes you a poem.",
         "chat_hint": "Message Rayan",
         "stats_title": "Measured on this server",
-        "stats": [("6,574,848", "parameters"), ("348", "tokens / sec"), ("0.04", "s median reply")],
+        "stats": [("6,574,848", "parameters"), ("84", "tokens / sec"), ("0.04", "s median reply")],
         "stats_note": "no GPU, no external service, zero cost",
         "cta": "Try it now",
         "url": "github.com/Taymaz1391/ai",
@@ -197,6 +197,7 @@ class Renderer:
         tint.putalpha(base.getchannel("A").point(lambda v: int(v * 0.85)))
         base.alpha_composite(tint)
         self.wordmark = base
+        self.mark = Image.open(os.path.join(BRAND, "mark-white.png")).convert("RGBA")
         self._bg: dict[tuple[int, int], Image.Image] = {}
         self._vig: dict[tuple[int, int], Image.Image] = {}
         self._noise: dict[tuple[int, int], list[Image.Image]] = {}
@@ -357,6 +358,51 @@ class Renderer:
             sprite.putalpha(sprite.getchannel("A").point(lambda v: int(v * alpha)))
         return paste_alpha(img, sprite, (cx - size / 2, cy - size / 2))
 
+    def mark_at(self, img, cx: float, y: float, width: float, alpha: float = 1.0) -> float:
+        """لوگوتایپ «رایان» (بدون کره) — همیشه تصویر، هرگز متن."""
+        scale = width / self.mark.width
+        sprite = self.mark.resize((max(2, int(self.mark.width * scale)),
+                                   max(2, int(self.mark.height * scale))), Image.LANCZOS)
+        if alpha < 0.999:
+            sprite = sprite.copy()
+            sprite.putalpha(sprite.getchannel("A").point(lambda v: int(v * alpha)))
+        paste_alpha(img, sprite, (cx - sprite.width / 2, y))
+        return sprite.height
+
+    def orb_face(self, img, cx: float, cy: float, size: float, alpha: float = 1.0,
+                 rot: float = 0.0, wink: float = 0.0) -> Image.Image:
+        """کرهٔ برند با چرخش نرم و چشمک: پلک با رنگ خودِ کره کشیده می‌شود."""
+        size = max(8, int(size))
+        sprite = (self.orb512 if size > 170 else self.orb256).resize((size, size), Image.LANCZOS).convert("RGBA")
+        if wink > 0.015:
+            # چشمک: دو پلک هم‌رنگِ کره از بالا و پایین به هم می‌رسند
+            ex, ey = size * 0.5938, size * 0.4990
+            er = size * 0.055
+            band = er * 2 * (1.0 - 0.92 * min(1.0, wink))
+            layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+            px_layer = layer.load()
+            x0, x1 = int(ex - er * 1.16), int(ex + er * 1.16)
+            xl, xr = max(0, x0 - 3), min(size - 1, x1 + 3)
+            ys = range(int(ey - er * 1.08), int(ey + er * 1.08) + 1)
+            for y in ys:
+                if abs(y - ey) <= band / 2:
+                    continue
+                yy = min(size - 1, max(0, y))
+                cl = sprite.getpixel((xl, yy))
+                cr = sprite.getpixel((xr, yy))
+                span = max(1, xr - xl)
+                for x in range(x0, x1 + 1):
+                    t = (x - xl) / span
+                    px_layer[x, y] = (int(cl[0] + (cr[0] - cl[0]) * t),
+                                      int(cl[1] + (cr[1] - cl[1]) * t),
+                                      int(cl[2] + (cr[2] - cl[2]) * t), 255)
+            sprite = Image.alpha_composite(sprite, layer)
+        if abs(rot) > 0.05:
+            sprite = sprite.rotate(rot, resample=Image.BICUBIC, center=(size / 2, size / 2))
+        if alpha < 0.999:
+            sprite.putalpha(sprite.getchannel("A").point(lambda v: int(v * alpha)))
+        return paste_alpha(img, sprite, (cx - size / 2, cy - size / 2))
+
     def wordmark_at(self, img, cx: float, y: float, width: float, alpha: float = 1.0) -> float:
         scale = width / self.wordmark.width
         sprite = self.wordmark.resize((max(2, int(self.wordmark.width * scale)),
@@ -400,15 +446,21 @@ class Renderer:
             img = over(img, ring.filter(ImageFilter.GaussianBlur(2.0 * s)))
 
         pulse = 0.9 + 0.1 * math.sin(local * 2.4)
-        orb_r = min(w, h) * (0.235 if not portrait else 0.255)
-        orb_cy = h * (0.33 if not portrait else 0.31)
+        orb_r = min(w, h) * (0.235 if not portrait else 0.245)
+        orb_cy = h * (0.33 if not portrait else 0.355)
         img = over(img, self.glow(w, h, [
             (w / 2, orb_cy, orb_r * 2.3 * pulse, orb_r * 2.3 * pulse, (32, 128, 255, 108)),
             (w / 2, orb_cy, orb_r * 1.2, orb_r * 1.2, (86, 212, 255, 84)),
         ], 0.085))
 
-        img = self.orb_at(img, w / 2, orb_cy, orb_r * 2 * (0.4 + 0.6 * spring(local / 0.95)),
-                          clamp01(local / 0.32))
+        sway = 3.4 * math.sin(local * 1.7) * clamp01((local - 0.5) / 0.8)
+        wink = 0.0
+        for start in (1.8, 4.0, 6.0):
+            phase = (local - start) / 0.34
+            if 0 <= phase <= 1:
+                wink = max(wink, math.sin(math.pi * phase))
+        img = self.orb_face(img, w / 2, orb_cy, orb_r * 2 * (0.4 + 0.6 * spring(local / 0.95)),
+                            clamp01(local / 0.32), rot=sway, wink=wink)
 
         # مدار چرخان
         orbit = Image.new("RGBA", (w, h), (0, 0, 0, 0))
@@ -422,18 +474,18 @@ class Renderer:
         img = over(img, orbit)
 
         # لوگوتایپ (تصویر، نه متن)
-        wm_w = min(w * (0.48 if not portrait else 0.66), 470 * s)
-        wm_h = wm_w * self.wordmark.height / self.wordmark.width
-        wm_y = orb_cy + orb_r + h * 0.07
+        wm_w = min(w * (0.30 if not portrait else 0.58), (300 if not portrait else 420) * s)
+        wm_h = wm_w * self.mark.height / self.mark.width
+        wm_y = orb_cy + orb_r + h * (0.055 if not portrait else 0.042)
         wa = clamp01((local - 0.55) / 0.7)
         if wa > 0:
-            self.wordmark_at(img, w / 2, wm_y + (1 - ease_out(wa)) * 24 * s, wm_w, wa)
+            self.mark_at(img, w / 2, wm_y + (1 - ease_out(wa)) * 24 * s, wm_w, wa)
 
         ta = clamp01((local - 1.1) / 0.75)
         if ta > 0:
             d = ImageDraw.Draw(img, "RGBA")
             txt = cfg["tagline"] if lang != "fa" else _fa(cfg["tagline"])
-            put(d, (w / 2, wm_y + wm_h + 40 * s), txt, font("Medium", 30 * s),
+            put(d, (w / 2, wm_y + wm_h + 34 * s), txt, font("Medium", 26 * s),
                 (192, 218, 247, int(242 * ta)))
 
         return self.sweep(img, clamp01((local - 1.35) / 1.35))
@@ -451,9 +503,9 @@ class Renderer:
             f = font("Black", f.size * (w * 0.80) / longest)
             longest = max((d.textlength(_fa(x) if lang == "fa" else x, font=f) for x in lines))
         block_h = lh(f) * len(lines)
-        top = h * (0.30 if not portrait else 0.26)
+        top = h * (0.30 if not portrait else 0.315)
         for i, line in enumerate(lines):
-            p = clamp01((local - 0.2 - i * 0.24) / 0.7)
+            p = clamp01((local - i * 0.22) / 0.62)
             if p <= 0:
                 continue
             dy = (1 - ease_out(p)) * 40 * s
@@ -488,7 +540,7 @@ class Renderer:
                 p = clamp01((local - 1.05 - i * 0.14) / 0.55)
                 if p <= 0:
                     continue
-                cy = h * 0.56 + i * 58 * s
+                cy = h * 0.575 + i * 62 * s
                 cw = min(widths[i] + 8 * s, w * 0.84)
                 box = [w / 2 - cw / 2, cy - 23 * s + (1 - ease_out(p)) * 16 * s,
                        w / 2 + cw / 2, cy + 23 * s + (1 - ease_out(p)) * 16 * s]
@@ -521,10 +573,10 @@ class Renderer:
         img = self.base(w, h, local + 6.8, 0.55)
 
         p = ease_out(clamp01(local / 0.7))
-        cw = min(w * (0.88 if not portrait else 0.92), 860 * s)
-        ch = min(h * (0.47 if not portrait else 0.44), (330 if not portrait else 520) * s)
+        cw = min(w * (0.72 if not portrait else 0.90), 660 * s)
+        ch = min(h * 0.46, (306 if not portrait else 400) * s)
         x0 = w / 2 - cw / 2
-        y0 = h / 2 - ch / 2 + (1 - p) * 60 * s
+        y0 = h * (0.50 if not portrait else 0.485) - ch / 2 + (1 - p) * 60 * s
         x1 = x0 + cw
         # لبهٔ شروع (راست در فارسی، چپ در انگلیسی)
         start_x = x1 if rtl else x0
@@ -572,8 +624,11 @@ class Renderer:
         bf = font("Medium", 20 * s)
         ax = start_x + sign * 38 * s
         bx = start_x + sign * 68 * s
-        by = uy + 76 * s
-        img = self.orb_at(img, ax, by + 11 * s, 30 * s, clamp01((local - 0.75) / 0.4))
+        by = uy + 84 * s
+        speaking = 0.75 <= local <= 2.9
+        wink_here = max(0.0, math.sin((local - 1.0) / 0.3 * math.pi)) if 1.0 <= local <= 1.3 else 0.0
+        img = self.orb_face(img, ax, by + 11 * s, 30 * s, clamp01((local - 0.75) / 0.4),
+                            rot=(2.8 * math.sin(local * 3.1) if speaking else 0.0), wink=wink_here)
         d = ImageDraw.Draw(img, "RGBA")
         text_w = cw - 120 * s
         total_words = len(cfg["chat_bot"].split())
@@ -646,8 +701,12 @@ class Renderer:
         d = ImageDraw.Draw(img, "RGBA")
 
         big = cfg["stats"][0]
-        put(d, (cx, cy - 6 * s), num(big[0], lang), font("Black", (54 if not portrait else 60) * s),
-            (255, 255, 255, 255))
+        bf_big = font("Black", (54 if not portrait else 60) * s)
+        big_txt = num(big[0], lang)
+        room = r * 1.62
+        if d.textlength(big_txt, font=bf_big) > room:
+            bf_big = font("Black", bf_big.size * room / d.textlength(big_txt, font=bf_big))
+        put(d, (cx, cy - 6 * s), big_txt, bf_big, (255, 255, 255, 255))
         put(d, (cx, cy + 52 * s), _fa(big[1]) if lang == "fa" else big[1], font("Medium", 20 * s),
             (176, 208, 245, 235))
 
@@ -702,19 +761,24 @@ class Renderer:
         portrait = h > w * 1.12
         img = self.base(w, h, local + 13.4, 0.4)
         cx = w / 2
+        oy = h * (0.085 if portrait else 0.0)   # در قاب عمودی بلوک را وسط می‌کشیم
         p = ease_out(clamp01(local / 0.8))
         img = over(img, self.glow(w, h, [
-            (cx, h * 0.36, min(w, h) * 0.62, min(w, h) * 0.46, (30, 118, 255, int(112 * p))),
+            (cx, h * 0.36 + oy, min(w, h) * 0.62, min(w, h) * 0.46, (30, 118, 255, int(112 * p))),
         ], 0.10))
         d = ImageDraw.Draw(img, "RGBA")
 
-        wm_w = min(w * (0.34 if not portrait else 0.62), 380 * s)
-        wm_top = h * (0.135 if not portrait else 0.175)
-        self.wordmark_at(img, cx, wm_top, wm_w, p)
+        orb_s = 84 * s if not portrait else 104 * s
+        img = self.orb_face(img, cx, h * (0.105 if not portrait else 0.125) + oy, orb_s * (0.6 + 0.4 * p),
+                            p, rot=2.6 * math.sin(local * 1.9),
+                            wink=max(0.0, math.sin(max(0.0, local - 0.9) / 0.3 * math.pi)) if 0.9 <= local <= 1.2 else 0.0)
+        wm_w = min(w * (0.31 if not portrait else 0.54), 340 * s)
+        wm_top = h * (0.182 if not portrait else 0.205) + oy
+        self.mark_at(img, cx, wm_top, wm_w, p)
 
         ta = clamp01((local - 0.3) / 0.7)
         if ta > 0:
-            put(d, (cx, h * (0.42 if not portrait else 0.40)),
+            put(d, (cx, h * (0.472 if not portrait else 0.445) + oy),
                 _fa(cfg["tagline"]) if lang == "fa" else cfg["tagline"],
                 font("Black", (38 if not portrait else 40) * s), (255, 255, 255, int(252 * ta)))
 
@@ -724,15 +788,25 @@ class Renderer:
             label = _fa(cfg["cta"]) if lang == "fa" else cfg["cta"]
             bw = d.textlength(label, font=bf) + 100 * s
             bh = 62 * s
-            bx, by = cx - bw / 2, h * (0.525 if not portrait else 0.515) + (1 - bp) * 22 * s
+            bx, by = cx - bw / 2, h * (0.578 if not portrait else 0.552) + oy + (1 - bp) * 22 * s
             img = over(img, self.glow(w, h, [(cx, by + bh / 2, bw * 0.62, bh * 1.2, (46, 150, 255, int(150 * bp)))], 0.05))
             layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))
             ld = ImageDraw.Draw(layer, "RGBA")
             ld.rounded_rectangle([bx, by, bx + bw, by + bh], radius=bh / 2, fill=(40, 132, 255, int(248 * bp)))
-            ld.rounded_rectangle([bx + 5, by + 5, bx + bw - 5, by + bh * 0.46], radius=bh / 2,
-                                 fill=(255, 255, 255, int(16 * bp)))
+            # براقیت شیشه‌ای: گرادیان عمودی که با جرم دکمه بریده می‌شود
+            gloss = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+            gd = ImageDraw.Draw(gloss, "RGBA")
+            for i in range(int(bh)):
+                t = i / max(1.0, bh)
+                a = int(38 * bp * max(0.0, 1 - t / 0.62) ** 1.5)
+                if a <= 0:
+                    continue
+                gd.rectangle([bx, by + i, bx + bw, by + i + 1], fill=(255, 255, 255, a))
+            mask = Image.new("L", (w, h), 0)
+            ImageDraw.Draw(mask).rounded_rectangle([bx, by, bx + bw, by + bh], radius=bh / 2, fill=255)
+            gloss.putalpha(Image.composite(gloss.getchannel("A"), Image.new("L", (w, h), 0), mask))
             ld.text((cx, by + bh / 2 + 1), label, font=bf, fill=(255, 255, 255, int(255 * bp)), anchor="mm")
-            img = over(img, layer)
+            img = over(img, Image.alpha_composite(layer, gloss))
             sheen = (local * 0.85) % 1.9
             if sheen < 0.55:
                 sh = Image.new("RGBA", (w, h), (0, 0, 0, 0))
@@ -745,14 +819,13 @@ class Renderer:
 
         ua = clamp01((local - 1.0) / 0.7)
         if ua > 0:
-            put(d, (cx, h * (0.665 if not portrait else 0.625)), cfg["url"], font("Bold", 22 * s),
+            put(d, (cx, h * (0.706 if not portrait else 0.652) + oy), cfg["url"], font("Bold", 22 * s),
                 (128, 216, 255, int(246 * ua)))
         fa_ = clamp01((local - 1.3) / 0.7)
         if fa_ > 0:
-            put(d, (cx, h * (0.745 if not portrait else 0.70)),
+            put(d, (cx, h * (0.762 if not portrait else 0.705)),
                 _fa(cfg["final_note"]) if lang == "fa" else cfg["final_note"],
                 font("Regular", 17 * s), (150, 186, 228, int(222 * fa_)))
-        img = self.orb_at(img, cx, h * (0.865 if not portrait else 0.80), 46 * s, clamp01((local - 1.05) / 0.7))
         return img
 
     def scene(self, index: int, w: int, h: int, t: float, lang: str) -> Image.Image:
@@ -772,20 +845,17 @@ class Renderer:
         img = self.scene(index, w, h, t, lang)
 
         if index > 0 and (t - BOUNDS[index]) < TRANS:
-            p = ease_in_out((t - BOUNDS[index]) / TRANS)
+            # گذار نرم + یک تیغهٔ نور مورب که صحنه را عوض می‌کند
             prev = self.scene(index - 1, w, h, BOUNDS[index] - 0.001, lang)
-            xs = np.arange(w, dtype=np.float32)[None, :] / w
-            ys = np.arange(h, dtype=np.float32)[:, None] / h
-            edge = p * 1.4 - 0.2
-            mask = np.clip(((xs + 0.24 * ys) - edge) * 8 + 0.5, 0, 1)
-            img = Image.composite(img, prev, Image.fromarray((mask * 255).astype(np.uint8), "L"))
-            edge_x = int((edge - 0.10) * w)
+            u = min(1.0, (t - BOUNDS[index]) / 0.24)
+            img = Image.blend(prev, img, ease_in_out(u))
+            x = (-0.30 + 1.60 * min(1.0, (t - BOUNDS[index]) / TRANS)) * w
             bar = Image.new("RGBA", (w, h), (0, 0, 0, 0))
             bd = ImageDraw.Draw(bar, "RGBA")
-            bd.polygon([(edge_x, 0), (edge_x + w * 0.11, 0),
-                        (edge_x + w * 0.11 - h * 0.34, h), (edge_x - h * 0.34, h)],
-                       fill=(150, 225, 255, int(86 * math.sin(math.pi * p))))
-            img = over(img, bar.filter(ImageFilter.GaussianBlur(16 * min(w, h) / 720)))
+            bd.polygon([(x, 0), (x + w * 0.03, 0),
+                        (x + w * 0.03 - h * 0.20, h), (x - h * 0.20, h)],
+                       fill=(168, 232, 255, int(96 * math.sin(math.pi * min(1.0, (t - BOUNDS[index]) / TRANS)) ** 0.8)))
+            img = over(img, bar.filter(ImageFilter.GaussianBlur(6 * min(w, h) / 720)))
 
         img = over(img, self.noise(w, h)[int(t * 12) % 3])
         img = over(img, self.vignette(w, h))

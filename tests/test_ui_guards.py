@@ -89,24 +89,32 @@ class BrandTest(unittest.TestCase):
 
 
 class LanguageTest(unittest.TestCase):
-    def test_english_pages_are_english(self):
-        for name in ("en.html", "en-docs.html", "en-course.html"):
-            html = (STATIC / name).read_text(encoding="utf-8")
-            hits = [line.strip()[:70] for line in html.splitlines() if FA.search(line)]
-            self.assertEqual(hits, [], f"{name} متن فارسی دارد")
+    """سایت تک‌زبانه است: همهٔ صفحه‌ها فارسی و راست‌چین، بدون نسخهٔ انگلیسی."""
+
+    FA_PAGES = ("index.html", "app.html", "auth.html", "about.html", "course.html", "docs.html",
+                "download.html", "models.html", "offline.html", "pricing.html", "share.html",
+                "summary.html", "admin.html")
 
     def test_persian_is_default(self):
-        for name in ("index.html", "app.html", "models.html", "pricing.html"):
+        for name in self.FA_PAGES:
             html = (STATIC / name).read_text(encoding="utf-8")
             self.assertIn('lang="fa"', html, name)
             self.assertIn('dir="rtl"', html, name)
+
+    def test_no_english_pages_left(self):
+        for name in ("en.html", "en-docs.html", "en-course.html", "en.css"):
+            self.assertFalse((STATIC / name).exists(), name)
+        for page in STATIC.glob("*.html"):
+            html = page.read_text(encoding="utf-8")
+            self.assertNotIn('href="/en"', html, page.name)
+            self.assertNotIn('hreflang="en"', html, page.name)
 
 
 class VideoTest(unittest.TestCase):
     RATIOS = ("16x9", "9x16", "1x1")
 
     def test_all_versions_exist(self):
-        for lang in ("fa", "en"):
+        for lang in ("fa",):
             self.assertTrue((VIDEO / f"promo-{lang}-poster.jpg").exists(), lang)
             for ratio in self.RATIOS:
                 clip = VIDEO / f"promo-{lang}-{ratio}.mp4"
@@ -134,6 +142,66 @@ class VideoTest(unittest.TestCase):
         self.assertIn("promo-modal-video", html)
         js = (STATIC / "app.js").read_text(encoding="utf-8")
         self.assertIn("promo-${promoLang}-${ratio}.mp4", js)
+
+
+class WelcomeReelTest(unittest.TestCase):
+    """بعد از ساخت حساب، ویدیوی معرفی باید تمام‌صفحه پخش شود."""
+
+    def setUp(self):
+        self.html = (STATIC / "auth.html").read_text(encoding="utf-8")
+        self.js = (STATIC / "auth.js").read_text(encoding="utf-8")
+        self.css = (STATIC / "pages.css").read_text(encoding="utf-8")
+
+    def test_markup_has_fullscreen_reel(self):
+        self.assertIn('id="welcome-reel"', self.html)
+        self.assertIn("promo-fa-16x9.mp4", self.html)
+        self.assertIn("promo-fa.vtt", self.html)
+        self.assertIn('id="welcome-skip"', self.html)
+
+    def test_signup_triggers_reel(self):
+        self.assertIn("function playWelcomeReel", self.js)
+        self.assertIn('playWelcomeReel("/chat")', self.js)
+        self.assertIn("ended", self.js)
+
+    def test_reel_covers_viewport(self):
+        block = re.search(r"\.welcome-reel\s*\{([^}]*)\}", self.css)
+        self.assertIsNotNone(block)
+        self.assertIn("position: fixed", block.group(1))
+        self.assertIn("inset: 0", block.group(1))
+
+
+class StingTest(unittest.TestCase):
+    """ویدیوی کوتاه برند: فایل واقعی و آمادهٔ پخش در دسترس باشد."""
+
+    def test_stings_exist(self):
+        for lang in ("fa",):
+            for ratio in ("16x9", "1x1"):
+                clip = VIDEO / f"sting-{lang}-{ratio}.mp4"
+                self.assertTrue(clip.exists(), clip.name)
+                self.assertGreater(clip.stat().st_size, 120_000, clip.name)
+                self.assertTrue((VIDEO / f"sting-{lang}-{ratio}-poster.jpg").exists(), clip.name)
+
+
+class OrbMotionTest(unittest.TestCase):
+    """حالت «در حال نوشتن» باید کره را چشمک‌زن و تاب‌خوران کند."""
+
+    def setUp(self):
+        self.css = (STATIC / "styles.css").read_text(encoding="utf-8")
+        self.js = (STATIC / "app.js").read_text(encoding="utf-8")
+        self.ui = (STATIC / "ui.js").read_text(encoding="utf-8")
+
+    def test_writing_state_has_motion(self):
+        self.assertIn('data-state="writing"', self.css)
+        self.assertIn("orbSway", self.css)
+        self.assertIn("@keyframes orbWink", self.css)
+
+    def test_app_sets_writing_while_streaming(self):
+        self.assertIn('setOrbState("writing")', self.js)
+        self.assertIn("streamOrb", self.js)
+
+    def test_face_wrapper_is_built(self):
+        self.assertIn('"face"', self.ui)
+        self.assertIn('"face"', self.js)
 
 
 class PaletteTest(unittest.TestCase):

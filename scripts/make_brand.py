@@ -214,72 +214,8 @@ def _on_canvas(art: Image.Image, bg: tuple[int, int, int], pad_ratio: float = 0.
     return canvas
 
 
-def lockups() -> dict[str, tuple[int, int]]:
-    os.makedirs(BRAND_DIR, exist_ok=True)
-    white, ink = _extract()
-    out: dict[str, tuple[int, int]] = {}
-
-    variants = {
-        "lockup-glow.png": (_fit(white, 1000), None, 0.0),      # شفاف برای پس‌زمینهٔ تیره
-        "lockup-ink.png": (_fit(ink, 1000), None, 0.0),         # شفاف برای پس‌زمینهٔ روشن
-        "lockup-dark.png": (_fit(white, 1000), NAVY, 0.10),     # کارت تیره
-        "lockup-light.png": (_fit(ink, 1000), PAPER, 0.10),     # کارت روشن
-        "lockup-stacked.png": (_fit(ink, 760), PAPER, 0.12),
-    }
-    for name, (art, bg, pad) in variants.items():
-        if bg is None:
-            img = art
-        else:
-            img = _on_canvas(art, bg, pad_ratio=pad or 0.1, glow=(bg == NAVY))
-        img.save(os.path.join(BRAND_DIR, name), optimize=True)
-        out[name] = img.size
-
-    # نسخهٔ تک‌رنگ برای مهر و فوتر
-    mono_white = Image.new("RGBA", white.size, (255, 255, 255, 0))
-    mono_white.putalpha(white.getchannel("A"))
-    mono_white.save(os.path.join(BRAND_DIR, "lockup-mono-white.png"), optimize=True)
-    mono_ink = Image.new("RGBA", ink.size, INK + (0,))
-    mono_ink.putalpha(ink.getchannel("A"))
-    mono_ink.save(os.path.join(BRAND_DIR, "lockup-mono-ink.png"), optimize=True)
-    out["lockup-mono-white.png"] = mono_white.size
-    out["lockup-mono-ink.png"] = mono_ink.size
-    return out
-
-
-# --------------------------------------------------------------- تصویر اشتراک
-def og_image(path: str) -> None:
-    W, H = 1200, 630
-    white, _ink = _extract()
-    # قفل لوگو را در کادر بالا-چپ جا می‌دهیم تا متن فارسی کنارش جا شود
-    art = _fit(white, 430)
-    if art.height > 380:
-        art = art.resize((int(art.width * 380 / art.height), 380), Image.LANCZOS)
-    bg = Image.new("RGBA", (W, H), NAVY + (255,))
-    glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    d = ImageDraw.Draw(glow)
-    d.ellipse([W * 0.42, -H * 0.45, W * 0.95, H * 0.55], fill=(14, 66, 160, 150))
-    d.ellipse([-W * 0.1, H * 0.5, W * 0.55, H * 1.1], fill=(10, 48, 120, 120))
-    glow = glow.filter(ImageFilter.GaussianBlur(95))
-    bg = Image.alpha_composite(bg, glow)
-    grid = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    gd = ImageDraw.Draw(grid)
-    for x in range(0, W, 40):
-        for y in range(0, H, 40):
-            gd.point((x, y), fill=(120, 190, 255, 24))
-    bg = Image.alpha_composite(bg, grid)
-    bg.alpha_composite(art, ((W - art.width) // 2, 28))
-    d = ImageDraw.Draw(bg)
-    _center_text(d, (0, H - 196, W, H - 130), _fa("هوش مصنوعی، به زبان فارسی"),
-                 _font("Vazirmatn-Black.ttf", 48), (255, 255, 255))
-    _center_text(d, (0, H - 138, W, H - 96),
-                 "from scratch · numpy · 6.57M params · persian ai",
-                 _font("Vazirmatn-Medium.ttf", 23), (124, 172, 222))
-    _center_text(d, (0, H - 84, W, H - 34), "taymaz1391.github.io/ai",
-                 _font("Vazirmatn-Bold.ttf", 25), (86, 156, 255))
-    bg.convert("RGB").save(path, quality=92, optimize=True)
-
-
 def avatar(path: str, size: int, bg_color: tuple[int, int, int] | None) -> None:
+    """آیکون برنامه: فقط کرهٔ برند (بدون هیچ نام تایپ‌شده)."""
     canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0) if bg_color is None else bg_color + (255,))
     if bg_color is not None:
         d = ImageDraw.Draw(canvas)
@@ -288,6 +224,42 @@ def avatar(path: str, size: int, bg_color: tuple[int, int, int] | None) -> None:
     ball = orb(size - 2 * pad)
     canvas.alpha_composite(ball, (pad, pad))
     canvas.save(path, optimize=True)
+
+
+def og_image(path: str) -> None:
+    """تصویر اشتراک‌گذاری با لوگوتایپ تازه (کره بالای «رایان») — بدون نام تایپ‌شده."""
+    W, H = 1200, 630
+    stack_path = os.path.join(BRAND_DIR, "logotype-stack-white.png")
+    bg = Image.new("RGBA", (W, H), NAVY + (255,))
+    glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(glow)
+    d.ellipse([W * 0.30, -H * 0.55, W * 0.70, H * 0.42], fill=(16, 78, 186, 165))
+    d.ellipse([-W * 0.12, H * 0.55, W * 0.45, H * 1.2], fill=(10, 48, 120, 120))
+    d.ellipse([W * 0.62, H * 0.62, W * 1.05, H * 1.15], fill=(12, 92, 168, 110))
+    glow = glow.filter(ImageFilter.GaussianBlur(90))
+    bg = Image.alpha_composite(bg, glow)
+    grid = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(grid)
+    for x in range(0, W, 40):
+        for y in range(0, H, 40):
+            gd.point((x, y), fill=(120, 190, 255, 22))
+    bg = Image.alpha_composite(bg, grid)
+
+    if os.path.exists(stack_path):
+        art = Image.open(stack_path).convert("RGBA")
+        target_h = 340
+        art = art.resize((int(art.width * target_h / art.height), target_h), Image.LANCZOS)
+        bg.alpha_composite(art, ((W - art.width) // 2, 24))
+
+    d = ImageDraw.Draw(bg)
+    _center_text(d, (0, H - 240, W, H - 186), _fa("هوش مصنوعی، به زبان فارسی"),
+                 _font("Vazirmatn-Black.ttf", 44), (255, 255, 255))
+    _center_text(d, (0, H - 168, W, H - 126),
+                 "from scratch · numpy · 6.57M params · persian ai",
+                 _font("Vazirmatn-Medium.ttf", 23), (128, 176, 226))
+    _center_text(d, (0, H - 104, W, H - 54), "taymaz1391.github.io/ai",
+                 _font("Vazirmatn-Bold.ttf", 25), (86, 156, 255))
+    bg.convert("RGB").save(path, quality=92, optimize=True)
 
 
 def main() -> None:
@@ -301,10 +273,7 @@ def main() -> None:
     avatar(os.path.join(ICON_DIR, "favicon-192.png"), 192, NAVY)
     avatar(os.path.join(ICON_DIR, "apple-touch-icon.png"), 180, NAVY)
     avatar(os.path.join(ICON_DIR, "maskable-512.png"), 512, NAVY)
-    sizes = lockups()
     og_image(os.path.join(BRAND_DIR, "og-image.png"))
-    for name, size in sorted(sizes.items()):
-        print(f"  {name:28s} {size[0]}×{size[1]}")
     print("brand assets written to", BRAND_DIR, "and", ICON_DIR)
 
 

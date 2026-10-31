@@ -38,6 +38,19 @@
     .dl-en { direction: ltr; text-align: left; }
     .dl-en h2 { font-size: 18px; color: var(--text); }
     .dl-en p { color: var(--text-2); font-size: 13.5px; line-height: 1.9; }
+    .press-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin: 16px 0 18px; }
+    .press-card { display: grid; gap: 10px; text-decoration: none; border: 1px solid var(--line);
+      border-radius: 18px; padding: 10px; background: var(--surface); box-shadow: var(--shadow-soft);
+      transition: transform .3s var(--ease), border-color .3s var(--ease), box-shadow .3s var(--ease); }
+    .press-card:hover { transform: translateY(-3px); border-color: var(--line-strong); box-shadow: var(--shadow-lg); }
+    .press-card img { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 12px;
+      background: var(--bg-2); }
+    .press-card:nth-child(2) img { aspect-ratio: 9 / 16; max-height: 420px; margin-inline: auto; }
+    .press-card:nth-child(3) img { aspect-ratio: 1 / 1; }
+    .press-meta { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 0 4px 4px; }
+    .press-meta b { font-size: 13.5px; color: var(--text); }
+    .press-meta small { font-size: 12px; color: var(--text-3); }
+    .press-links { display: flex; flex-wrap: wrap; gap: 10px; }
     .dl-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
       background: var(--accent-soft); color: var(--accent-solid); font-size: 12px; font-weight: 600; }
   </style>
@@ -62,7 +75,6 @@
         <a class="nav-link" href="/about">درباره</a>
       </nav>
       <div class="nav-actions">
-        <a class="btn btn-ghost btn-sm" href="/en" hreflang="en" lang="en" title="English site">EN</a>
         <a class="btn btn-primary btn-sm" href="/chat">شروع گفتگو</a>
       </div>
     </div>
@@ -84,7 +96,7 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="7" y="2.5" width="10" height="19" rx="2.4"/><path d="M11 18.4h2"/></svg>
           </div>
           <h2>اندروید — APK</h2>
-          <p>نصب مستقیم، تمام‌صفحه، بدون نوار نشانی. صفحهٔ همان سرور رایان را نشان می‌دهد.</p>
+          <p>نصب مستقیم، تمام‌صفحه، بدون نوار نشانی. صفحهٔ همان سرور <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="122" height="64" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="122" height="64" decoding="async"> را نشان می‌دهد.</p>
           <span class="dl-meta">اندروید ۷ به بالا · امضاشده · حدود ۲ مگابایت</span>
           <a class="btn btn-primary" id="dl-apk"
              href="https://github.com/Taymaz1391/ai/releases/latest/download/rayan-android.apk"
@@ -151,6 +163,31 @@
         <code>RAYAN_SERVER_URL</code> را ست کن و دوباره بساز.
         <a href="/docs">مستندات کامل</a>
       </div>
+
+      <section class="press-kit" style="margin-top:36px">
+        <h2>کیت رسانه</h2>
+        <p class="dl-lede" style="margin-top:6px">ویدیوی رسمی، پوستر و نشان برند — همه محلی ساخته شده‌اند، بدون هیچ سرویس بیرونی.</p>
+        <div class="press-grid">
+          <a class="press-card" href="/static/assets/video/promo-fa-16x9.mp4" download>
+            <img src="/static/assets/video/promo-fa-16x9-poster.jpg" alt="پوستر ویدیوی معرفی، قاب افقی" width="1280" height="720" loading="lazy" decoding="async">
+            <span class="press-meta"><b>معرفی · ۱۶:۹</b><small>MP4 · ۱۶ ثانیه</small></span>
+          </a>
+          <a class="press-card" href="/static/assets/video/promo-fa-9x16.mp4" download>
+            <img src="/static/assets/video/promo-fa-9x16-poster.jpg" alt="پوستر ویدیوی معرفی، قاب عمودی" width="720" height="1280" loading="lazy" decoding="async">
+            <span class="press-meta"><b>معرفی · ۹:۱۶</b><small>MP4 · استوری</small></span>
+          </a>
+          <a class="press-card" href="/static/assets/video/sting-fa-1x1.mp4" download>
+            <img src="/static/assets/video/sting-fa-1x1-poster.jpg" alt="پوستر ویدیوی کوتاه نشان برند" width="1080" height="1080" loading="lazy" decoding="async">
+            <span class="press-meta"><b>نشان · ۱:۱</b><small>MP4 · ۶ ثانیه</small></span>
+          </a>
+        </div>
+        <div class="press-links">
+          <a class="btn btn-sm" href="/static/assets/brand/logotype-stack-ink.png" download>لوگوتایپ (PNG)</a>
+          <a class="btn btn-sm" href="/static/assets/brand/mark-ink.png" download>نشانه (PNG)</a>
+          <a class="btn btn-sm" href="/static/assets/brand/orb-512.png" download>کره (PNG)</a>
+          <a class="btn btn-sm" href="/static/assets/video/promo-en-16x9.mp4" download>نسخهٔ انگلیسی (MP4)</a>
+        </div>
+      </section>
 
       <section class="dl-en" style="margin-top:36px">
         <h2>کلاینت‌ها چطور کار می‌کنند؟</h2>

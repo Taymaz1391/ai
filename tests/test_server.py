@@ -242,80 +242,31 @@ class V3Test(unittest.TestCase):
         self.assertTrue(any(c["name"] == "database" and c["ok"] for c in data["checks"]))
         self.client.post("/api/admin/logout")
 
-    def test_geoip_table_override(self):
-        """جدول GeoIP محلی باید بدون هیچ سرویس بیرونی زبان را تعیین کند."""
-        import json
-        from unittest import mock
-        tmp = tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w", encoding="utf-8")
-        json.dump({"default": "", "ranges": [{"cidr": "203.0.113.0/24", "lang": "en"}]}, tmp)
-        tmp.close()
-        try:
-            with mock.patch.dict(os.environ, {"RAYAN_GEOIP": tmp.name}):
-                data = self.client.get("/api/locale",
-                                       headers={"x-forwarded-for": "203.0.113.9"}).json()
-            self.assertEqual((data["lang"], data["source"]), ("en", "geo"))
-        finally:
-            os.unlink(tmp.name)
-            os.environ.pop("RAYAN_GEOIP", None)
-
-    def test_locale_detection_and_cookie(self):
-        plain = self.client.get("/api/locale")
-        self.assertEqual(plain.status_code, 200)
-        self.assertIn(plain.json()["lang"], ("fa", "en"))
+    def test_locale_is_persian_only(self):
+        """سایت تک‌زبانه است: حتی مرورگر یا IP خارجی هم نسخهٔ فارسی می‌گیرد."""
         en = self.client.get("/api/locale", headers={"accept-language": "en-US,en;q=0.9"}).json()
-        self.assertEqual(en["lang"], "en")
-        self.assertEqual(en["dir"], "ltr")
-        self.assertTrue(en["videos"]["landscape"].endswith("promo-en-16x9.mp4"))
-        # جغرافیا: کشور از سرصفحهٔ پراکسی میزبان (بدون سرویس بیرونی)
+        self.assertEqual((en["lang"], en["dir"]), ("fa", "rtl"))
+        self.assertTrue(en["videos"]["landscape"].endswith("promo-fa-16x9.mp4"))
         de = self.client.get("/api/locale", headers={"cf-ipcountry": "DE"}).json()
-        self.assertEqual((de["lang"], de["source"]), ("en", "geo"))
-        ir = self.client.get("/api/locale",
-                              headers={"cf-ipcountry": "IR", "accept-language": "de"}).json()
-        self.assertEqual((ir["lang"], ir["source"]), ("fa", "geo"))
-        # منطقهٔ زمانی مرورگر به‌عنوان سیگنال جایگزین
-        tz = self.client.get("/api/locale", params={"tz": "America/New_York"}).json()
-        self.assertEqual((tz["lang"], tz["source"]), ("en", "timezone"))
-        redir = self.client.get("/", headers={"cf-ipcountry": "DE"}, follow_redirects=False)
-        self.assertEqual(redir.status_code, 307)
-        self.assertEqual(redir.headers["location"], "/en?lang=en")
-
-        forced = self.client.get("/api/locale", params={"lang": "fa"},
-                                 headers={"accept-language": "en"}).json()
-        self.assertEqual(forced["lang"], "fa")
-        # بازدید انگلیسی‌زبان بدون کوکی به نسخهٔ انگلیسی هدایت می‌شود
-        fresh = TestClient(self.server.app)
-        r = fresh.get("/", headers={"accept-language": "en-GB,en"}, follow_redirects=False)
-        self.assertEqual(r.status_code, 307)
-        self.assertEqual(r.headers["location"], "/en?lang=en")
-        # پس از انتخاب زبان، دیگر هدایت نمی‌شود
-        chosen = fresh.get("/?lang=fa", headers={"accept-language": "en"}, follow_redirects=False)
-        self.assertEqual(chosen.status_code, 200)
-        self.assertEqual(chosen.cookies.get("rayan_lang"), "fa")
-        again = fresh.get("/", headers={"accept-language": "en"}, follow_redirects=False)
-        self.assertEqual(again.status_code, 200)
+        self.assertEqual(de["lang"], "fa")
+        home = self.client.get("/", headers={"accept-language": "en-GB,en"}, follow_redirects=False)
+        self.assertEqual(home.status_code, 200)
+        self.assertNotIn('lang="en"', home.text)
+        # مسیرهای قدیمی انگلیسی به خانه می‌روند
+        for path in ("/en", "/en/docs", "/en/course"):
+            res = self.client.get(path, follow_redirects=False)
+            self.assertEqual(res.status_code, 302, path)
+            self.assertEqual(res.headers["location"], "/")
 
     def test_promo_assets_exist(self):
         from pathlib import Path as _Path
         video_dir = _Path(ROOT) / "web" / "static" / "assets" / "video"
         for name in ("promo-fa-16x9.mp4", "promo-fa-9x16.mp4", "promo-fa-1x1.mp4",
-                     "promo-en-16x9.mp4", "promo-fa-poster.jpg"):
+                     "promo-fa-poster.jpg", "sting-fa-16x9.mp4", "sting-fa-1x1.mp4"):
             self.assertTrue((video_dir / name).exists(), name)
         res = self.client.get("/static/assets/video/promo-fa-16x9.mp4")
         self.assertEqual(res.status_code, 200)
         self.assertGreater(int(res.headers.get("content-length", "0")), 50_000)
-
-    def test_english_pages(self):
-        home = self.client.get("/en")
-        self.assertEqual(home.status_code, 200)
-        self.assertIn('lang="en"', home.text)
-        self.assertIn("Persian-first", home.text)
-        docs = self.client.get("/en/docs")
-        self.assertEqual(docs.status_code, 200)
-        self.assertIn("Quickstart", docs.text)
-        sitemap = self.client.get("/sitemap.xml").text
-        self.assertIn("/en/docs", sitemap)
-        # نسخهٔ فارسی هم پیوند انگلیسی دارد
-        self.assertIn('hreflang="en"', self.client.get("/").text)
 
     def test_new_pages(self):
         for path in ("/admin", "/offline", "/privacy"):
@@ -455,7 +406,8 @@ class V3Test(unittest.TestCase):
         self.assertEqual(offenders, [])
 
     def test_shared_static_assets_exist(self):
-        for path in ("/static/assets/brand/lockup-ink.png", "/static/assets/brand/og-image.png",
+        for path in ("/static/assets/brand/logotype-stack-ink.png", "/static/assets/brand/og-image.png",
+                     "/static/assets/brand/mark-ink.png",
                      "/static/assets/video/promo-fa-16x9.mp4"):
             self.assertEqual(self.client.get(path).status_code, 200, path)
 

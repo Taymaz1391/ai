@@ -145,6 +145,21 @@
     return out.join("");
   }
 
+  // لوگوتایپ برند به‌صورت data URI تا داخل SVG بماند و بوم «آلوده» نشود
+  let BRAND_MARK = "";
+  function preloadBrandMark() {
+    if (BRAND_MARK || !window.fetch) return;
+    fetch("/static/assets/brand/mark-white.png")
+      .then((r) => (r.ok ? r.blob() : null))
+      .then((blob) => {
+        if (!blob) return;
+        const reader = new FileReader();
+        reader.onload = () => { BRAND_MARK = String(reader.result || ""); };
+        reader.readAsDataURL(blob);
+      })
+      .catch(() => { /* بدون لوگو هم پوستر ساخته می‌شود */ });
+  }
+
   /** ساخت SVG پوستر/کارت از متن — قطعی، آفلاین و بدون هیچ سرویس بیرونی */
   function makeArt(prompt, options = {}) {
     const kind = options.kind && THEMES[options.kind] ? options.kind : "poster";
@@ -153,8 +168,8 @@
     const motif = options.motif || chooseMotif(prompt);
     const seed = hash(prompt + kind + palette.id);
     const rand = rngFrom(seed);
-    const title = (options.title || prompt || "رایان").trim().slice(0, 90);
-    const tagline = (options.tagline || "ساخته‌شده با رایان").trim().slice(0, 120);
+    const title = (options.title || prompt || "پوستر تازه").trim().slice(0, 90);
+    const tagline = (options.tagline || "هوش مصنوعی، به زبان فارسی").trim().slice(0, 120);
     const w = size.w;
     const h = size.h;
     const isWide = w > h * 1.4;
@@ -197,8 +212,9 @@
     <circle cx="${pad + titleSize * 0.52}" cy="${h - pad - titleSize * 0.52}" r="${titleSize * 0.44}" fill="url(#orbGrad)"/>
     <circle cx="${pad + titleSize * 0.42}" cy="${h - pad - titleSize * 0.55}" r="${titleSize * 0.075}" fill="#ffffff"/>
     <circle cx="${pad + titleSize * 0.62}" cy="${h - pad - titleSize * 0.55}" r="${titleSize * 0.075}" fill="#ffffff"/>
-    <text x="${pad + titleSize * 0.52}" y="${h - pad + titleSize * 0.02}" text-anchor="middle"
-          font-family="Vazirmatn, Tahoma" font-size="${Math.round(titleSize * 0.2)}" font-weight="700" fill="${palette.ink}">رایان · RAYAN</text>
+    ${BRAND_MARK ? `<image href="${BRAND_MARK}" x="${pad + titleSize * 1.02}" y="${h - pad - titleSize * 0.62}"
+           width="${titleSize * 2.4}" height="${titleSize * 2.4 * 64 / 122}" opacity="0.92"
+           preserveAspectRatio="xMinYMid meet"/>` : ""}
   </g>
 </svg>`;
     return { svg, palette, motif, kind, width: w, height: h, title };
@@ -369,7 +385,7 @@
       modal.innerHTML = `
         <div class="modal-card studio-card" role="dialog" aria-modal="true" aria-labelledby="studio-title">
           <header class="modal-head">
-            <h3 id="studio-title">استودیو رایان — ساخت تصویر</h3>
+            <h3 id="studio-title">استودیو تصویر</h3>
             <button type="button" class="icon-btn" data-studio="close">${R.icon ? R.icon("close", 18) : "✕"}</button>
           </header>
           <div class="studio-grid">
@@ -422,7 +438,7 @@
     modal.hidden = false;
     const input = modal.querySelector("#studio-prompt");
     if (prefill) input.value = prefill;
-    if (!input.value) input.value = "پوستر رایان — هوش مصنوعی فارسی";
+    if (!input.value) input.value = "پوستر — هوش مصنوعی فارسی";
     renderStudio();
     input.focus();
   }
@@ -435,7 +451,7 @@
   function renderStudio() {
     const modal = document.getElementById("studio-modal");
     if (!modal) return;
-    const prompt = modal.querySelector("#studio-prompt").value.trim() || "رایان";
+    const prompt = modal.querySelector("#studio-prompt").value.trim() || "پوستر — هوش مصنوعی فارسی";
     const kind = modal.querySelector("#studio-kind").value;
     const palette = modal.querySelector("#studio-palette").value;
     const tagline = modal.querySelector("#studio-tagline").value;
@@ -450,6 +466,7 @@
   window.RAYAN_STUDIO = { makeArt, svgUrl, download, svgToPng, extractArtifacts, openArtifact, closePanel, openStudio, PALETTES, THEMES };
 
   document.addEventListener("DOMContentLoaded", () => {
+    preloadBrandMark();
     attachToChat();
     // جایگاه‌های تبلیغ
     if (window.RAYAN_ADS) window.RAYAN_ADS.loadAll();

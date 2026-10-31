@@ -9,44 +9,37 @@
 | کمپین | نوع | هدف | بودجهٔ آزمایشی |
 |---|---|---|---|
 | Rayan — Search FA | Search | ترافیک به `/` و `/course` | ۵ دلار در روز، ۲ هفته |
-| Rayan — Search EN | Search | ترافیک به `/en` | ۵ دلار در روز، ۲ هفته |
-| Rayan — Video | Demand Gen / Video | نمایش ویدیوی ۱۲ثانیه‌ای | ۳ دلار در روز |
+| Rayan — Video | Demand Gen / Video | نمایش ویدیوی ۱۶ثانیه‌ای و نشان ۶ثانیه‌ای | ۳ دلار در روز |
 
-- برای ویدیو از `web/static/assets/video/promo-fa-16x9.mp4` و نسخهٔ انگلیسی آن استفاده کن؛ نسخهٔ
+- برای ویدیو از `web/static/assets/video/promo-fa-16x9.mp4` استفاده کن؛ نسخهٔ
   ۹:۱۶ برای YouTube Shorts و ۱:۱ برای نمایشگرهای مربعی.
 - پوستر `promo-fa-poster.jpg` تصویر اصلی کمپین باشد.
 
 ## تیترها (حداکثر ۳۰ نویسه)
 
-| فارسی | انگلیسی |
-|---|---|
-| هوش مصنوعی فارسی، از صفر | Persian AI, built from scratch |
-| چت فارسی بدون API خارجی | Chat in Persian, no APIs |
-| مدل ۶٫۵ میلیون پارامتری | A 6.5M-parameter model |
-| آموزش کامل ۵ ساعته | A free five-hour course |
-| همه‌چیز روی سرور خودت | Everything self-hosted |
-| ۱۰ درس، از داده تا محصول | From data to product |
-| ویدیوی ۱۶ ثانیه‌ای ببین | Watch the 16-second film |
-| بدون ثبت‌نام امتحان کن | Try it, no sign-up |
-| کد باز، MIT | Open source, MIT |
-| ساخته‌شده با NumPy | Built with NumPy |
+| تیتر |
+|---|
+| هوش مصنوعی فارسی، از صفر |
+| چت فارسی بدون API خارجی |
+| مدل ۶٫۵ میلیون پارامتری |
+| آموزش کامل ۵ ساعته |
+| همه‌چیز روی سرور خودت |
+| ۱۰ درس، از داده تا محصول |
+| ویدیوی ۱۶ ثانیه‌ای ببین |
+| بدون ثبت‌نام امتحان کن |
+| کد باز، MIT |
+| ساخته‌شده با NumPy |
 
 ## توضیح‌ها (حداکثر ۹۰ نویسه)
 
-- **فا:** مدل زبانی فارسی که از صفر آموزش دیده؛ گفتگو، ابزار، استودیو تصویر و پنل مدیریت.
-- **فا:** دورهٔ ۵ ساعتهٔ رایگان: پیکره، توکنایزر، ترنسفورمر، آموزش، امنیت و استقرار.
-- **فا:** هیچ API خارجی؛ فونت، تصویر، ویدیو و استنتاج همه از همین مخزن سرو می‌شوند.
-- **EN:** A Persian-first model trained from zero with NumPy. Chat, tools, image studio, admin.
-- **EN:** A free five-hour course: corpus, tokeniser, transformer, training, security, deploy.
-- **EN:** No external AI APIs. Fonts, video and inference served by one Python process.
+- مدل زبانی فارسی که از صفر آموزش دیده؛ گفتگو، ابزار، استودیو تصویر و پنل مدیریت.
+- دورهٔ ۵ ساعتهٔ رایگان: پیکره، توکنایزر، ترنسفورمر، آموزش، امنیت و استقرار.
+- هیچ API خارجی؛ فونت، تصویر، ویدیو و استنتاج همه از همین مخزن سرو می‌شوند.
 
 ## کلمات کلیدی
 
 **فارسی:** هوش مصنوعی فارسی، چت‌بات فارسی، مدل زبانی فارسی، آموزش هوش مصنوعی، ساخت چت‌بات،
 ترنسفورمر از صفر، یادگیری ماشین با پایتون، دوره رایگان هوش مصنوعی، جایگزین چت‌جی‌پی‌تی فارسی
-
-**انگلیسی:** persian language model, persian chatbot, train llm from scratch, numpy transformer,
-self-hosted ai chat, free ai course, llm without api, persian nlp
 
 **کلمات منفی:** رایگان دانلود فیلم، استخدام، خرید GPU، crypto, casino, porn, wallpaper
 
@@ -59,11 +52,10 @@ self-hosted ai chat, free ai course, llm without api, persian nlp
 - مدل و سنجه‌ها → `/models`
 - تعرفهٔ شفاف → `/pricing`
 - مستندات API → `/docs`
-- نسخهٔ انگلیسی → `/en`
 
 ## Calloutها
 
-بدون API خارجی · کد باز MIT · اجرا روی CPU · فارسی و انگلیسی · افکت و موسیقی اختصاصی · بدون ثبت‌نام
+بدون API خارجی · کد باز MIT · اجرا روی CPU · فارسی از صفر · افکت و موسیقی اختصاصی · بدون ثبت‌نام
 
 ## اندازه‌گیری
 

@@ -260,6 +260,19 @@
     } catch { /* آفلاین */ }
   }
 
+  // نام برند همیشه تصویر است: پیشوند «رایان» از دادهٔ سرور جدا و با لوگوتایپ
+  // نمایش داده می‌شود، بقیهٔ نام (مثلاً «۱ — کوچک») متن می‌ماند.
+  const MODEL_LOGO = (
+    '<img class="wm-inline model-logo wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="122" height="64" decoding="async">' +
+    '<img class="wm-inline model-logo wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="122" height="64" decoding="async">'
+  );
+  function modelNameCore(name) {
+    return String(name || "").replace(/^\s*(رایان|Rayan)\s*/u, "").trim();
+  }
+  function modelNameHtml(name) {
+    return `${MODEL_LOGO} ${escapeHtml(modelNameCore(name))}`;
+  }
+
   // ------------------------------------------------------------ مدل‌ها
   async function loadModels() {
     try {
@@ -268,7 +281,7 @@
       renderModelMenu();
       const active = state.models.find((m) => m.id === state.model) || state.models[0];
       if (active) {
-        el.modelLabel.textContent = active.name;
+        el.modelLabel.innerHTML = modelNameHtml(active.name);
         el.modelTag.textContent = active.badge;
       }
     } catch { /* از پیش‌فرض استفاده می‌کنیم */ }
@@ -277,7 +290,7 @@
   function renderModelMenu() {
     el.modelMenu.innerHTML = "";
     const list = state.models.length ? state.models : [{
-      id: "rayan-1-small", name: "رایان ۱ — کوچک", tagline: "مدل فعال", status: "ready",
+      id: "rayan-1-small", name: "۱ — کوچک", tagline: "مدل فعال", status: "ready",
       desc: "مدل ۶٫۵۷ میلیون پارامتری روی CPU", context: 256,
     }];
     list.forEach((model) => {
@@ -288,7 +301,7 @@
       item.setAttribute("aria-disabled", model.status === "ready" ? "false" : "true");
       item.innerHTML = `
         <span class="mi-body">
-          <b>${escapeHtml(model.name)}</b>
+          <b>${modelNameHtml(model.name)}</b>
           <small>${escapeHtml(model.tagline || "")} · ${model.context ? nf(model.context) + " توکن زمینه" : "—"}</small>
         </span>
         <span class="mi-side"><span class="tag ${model.status === "ready" ? "tag-blue" : ""}">${escapeHtml(model.badge || "")}</span></span>`;
@@ -298,11 +311,11 @@
           return;
         }
         state.model = model.id;
-        el.modelLabel.textContent = model.name;
+        el.modelLabel.innerHTML = modelNameHtml(model.name);
         el.modelTag.textContent = model.badge;
         el.modelMenu.hidden = true;
         renderModelMenu();
-        toast(`مدل از این به بعد: ${model.name}`, "ok");
+        toast(`مدل از این به بعد: ${modelNameCore(model.name)}`, "ok");
       });
       el.modelMenu.append(item);
     });
@@ -526,10 +539,28 @@
     scrollToBottom(false);
   }
 
+  // اسکرول و رندر استریم هر دو در یک فریم جمع می‌شوند؛ توکن‌های پشت‌سرهم
+  // دیگر باعث بازسازی چندبارهٔ DOM نمی‌شوند.
+  let scrollQueued = false;
+  let scrollSmooth = true;
   function scrollToBottom(smooth = true) {
+    scrollSmooth = smooth;
+    if (scrollQueued) return;
+    scrollQueued = true;
     requestAnimationFrame(() => {
-      el.scroll.scrollTo({ top: el.scroll.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+      scrollQueued = false;
+      el.scroll.scrollTo({ top: el.scroll.scrollHeight, behavior: scrollSmooth ? "smooth" : "auto" });
     });
+  }
+
+  // آیا متن تا اینجا نشانهٔ مارک‌داون دارد؟ اگر نه، مسیر سریع متن ساده.
+  const MD_HINT = /(^|\n)(#{1,6} |[-*+] |\d+\. |> |```|\|)|`[^`]+`|\*\*[^*]+\*\*/;
+  function paintStreaming(bubble, text, done) {
+    if (!done && !MD_HINT.test(text)) {
+      bubble.textContent = text;
+      return;
+    }
+    bubble.innerHTML = renderMarkdown(text);
   }
 
   function buildMessage(msg) {
@@ -551,9 +582,11 @@
       img.alt = "رایان";
       img.width = 32;
       img.height = 32;
+      const face = document.createElement("span"); face.className = "face";
       const l = document.createElement("i"); l.className = "lid l";
       const r = document.createElement("i"); r.className = "lid r";
-      orb.append(img, l, r);
+      face.append(l, r);
+      orb.append(img, face);
       who.append(orb);
       if (window.RAYAN && window.RAYAN.initOrbs) window.RAYAN.initOrbs(who);
     }
@@ -710,10 +743,13 @@
   function appendBotShell() {
     const msg = { role: "assistant", content: "", streaming: true };
     state.messages.push(msg);
+    state.streamOrb = null;
     const node = buildMessage(msg);
     const bubble = node.querySelector(".bubble");
     bubble.classList.add("streaming");
     bubble.innerHTML = '<span class="typing" aria-label="در حال نوشتن"><i></i><i></i><i></i></span>';
+    state.streamOrb = node.querySelector(".who-orb");
+    if (state.streamOrb) state.streamOrb.dataset.state = "writing";
     setOrbState("thinking");
     el.messages.append(node);
     scrollToBottom();
@@ -734,15 +770,19 @@
   }
 
   function setOrbState(next) {
-    const orb = document.querySelector(".empty-orb .orb-live") || document.querySelector(".who-orb");
+    // اول کرهٔ پیامِ در حال پخش، بعد آخرین کرهٔ گفتگو، و فقط در گفتگوی خالی کرهٔ خوش‌آمد
+    const orbs = [...document.querySelectorAll(".who-orb")];
+    let orb = state.streamOrb && state.streamOrb.isConnected ? state.streamOrb : null;
+    if (!orb) orb = orbs[orbs.length - 1] || document.querySelector(".empty-orb .orb-live");
     if (orb) orb.dataset.state = next || "";
-    document.querySelectorAll(".who-orb").forEach((node) => {
+    orbs.forEach((node) => {
       if (node !== orb) node.dataset.state = "";
     });
   }
 
   function setBusy(busy) {
     state.sending = busy;
+    if (busy) setOrbState("writing");
     if (!busy) setOrbState("happy");
     if (!busy) setTimeout(() => setOrbState(""), 1200);
     el.send.hidden = busy;
@@ -752,7 +792,7 @@
   }
 
   function updateHint() {
-    if (state.sending) { el.hint.textContent = "رایان در حال نوشتن است…"; return; }
+    if (state.sending) { el.hint.textContent = "دستیار در حال نوشتن است…"; return; }
     const usage = state.usage || {};
     const chat = usage.chat || {};
     if (chat.limit) {
@@ -857,6 +897,7 @@
       const decoder = new Decoder();
       let buffer = "";
       let first = true;
+      let paintQueued = false;
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
@@ -869,16 +910,24 @@
           try { event = JSON.parse(line); } catch { continue; }
           if (event.type === "token") {
             answer += event.text;
-            bubble.innerHTML = renderMarkdown(answer);
             if (first) { bubble.classList.add("streaming"); first = false; }
-            scrollToBottom();
+            if (!paintQueued) {
+              paintQueued = true;
+              requestAnimationFrame(() => {
+                paintQueued = false;
+                if (!msg.streaming) return;          // «done» زودتر آمده؛ نقاشی نهایی کافی است
+                paintStreaming(bubble, answer, false);
+                scrollToBottom(false);
+              });
+            }
           } else if (event.type === "done") {
             msg.content = event.answer || answer;
             msg.id = event.message_id;
             msg.meta = { stats: event.stats, tool: event.tool, deep: false };
             msg.streaming = false;
             bubble.classList.remove("streaming");
-            bubble.innerHTML = renderMarkdown(msg.content);
+            if (state.streamOrb) { state.streamOrb.dataset.state = "happy"; state.streamOrb = null; }
+            paintStreaming(bubble, msg.content, true);
             if (event.tool) bubble.parentElement.append(toolEl(event.tool));
             if (event.stats) bubble.parentElement.append(statsEl(event.stats, false));
             bubble.parentElement.append(toolsFor(msg));
@@ -893,6 +942,7 @@
         msg.content = answer;
         msg.streaming = false;
         bubble.classList.remove("streaming");
+        if (state.streamOrb) { state.streamOrb.dataset.state = ""; state.streamOrb = null; }
         bubble.innerHTML = renderMarkdown(answer || "…");
       }
     } catch (err) {
@@ -913,6 +963,7 @@
 
   function failShell(bubble, err, partial = "") {
     bubble.classList.remove("streaming");
+    if (state.streamOrb) { state.streamOrb.dataset.state = ""; state.streamOrb = null; }
     bubble.innerHTML = renderMarkdown(partial) || "";
     const alert = document.createElement("div");
     alert.className = "form-alert";
@@ -1021,10 +1072,10 @@
 
   $("#export-btn").addEventListener("click", () => {
     if (!state.messages.length) { toast("گفتگویی برای خروجی نیست.", ""); return; }
-    const title = state.conversations.find((c) => c.id === state.currentId)?.title || "گفتگوی رایان";
-    const markdown = [`# ${title}`, "", `_رایان ۱ — کوچک · ${new Date().toLocaleString("fa-IR")}_`, ""];
+    const title = state.conversations.find((c) => c.id === state.currentId)?.title || "گفتگوی من";
+    const markdown = [`# ${title}`, "", `_مدل ۱ — کوچک · ${new Date().toLocaleString("fa-IR")}_`, ""];
     state.messages.forEach((m) => {
-      markdown.push(m.role === "user" ? "## تو" : "## رایان");
+      markdown.push(m.role === "user" ? "## تو" : "## دستیار");
       markdown.push(m.content, "");
     });
     download(`rayan-${Date.now()}.md`, markdown.join("\n"), "text/markdown;charset=utf-8");
@@ -1080,8 +1131,8 @@
   // ---------------------------------------------------------- ویدیوی معرفی
   const promoVideo = $("#promo-modal-video");
   if (promoVideo) {
-    // نسخهٔ زبان صفحه (فارسی/انگلیسی) و نسبت تصویر درست
-    const promoLang = (document.documentElement.lang || "fa").slice(0, 2).toLowerCase() === "en" ? "en" : "fa";
+    // سایت تک‌زبانه است؛ فقط نسبت تصویر عوض می‌شود
+    const promoLang = "fa";
     const portrait = window.matchMedia("(max-width: 560px)");
     function syncPromoSource() {
       const ratio = portrait.matches ? "9x16" : "16x9";
