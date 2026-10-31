@@ -456,7 +456,7 @@ class V3Test(unittest.TestCase):
 
     def test_shared_static_assets_exist(self):
         for path in ("/static/assets/brand/lockup-ink.png", "/static/assets/brand/og-image.png",
-                     "/static/assets/video/rayan-intro.mp4"):
+                     "/static/assets/video/promo-fa-16x9.mp4"):
             self.assertEqual(self.client.get(path).status_code, 200, path)
 
 
