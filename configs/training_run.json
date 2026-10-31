@@ -1,0 +1,28 @@
+{
+  "name": "parsia-1-small",
+  "steps": 1800,
+  "batch_size": 24,
+  "block_size": 256,
+  "tokens_per_step": 6144,
+  "target_tokens": 11059200,
+  "layers": 5,
+  "heads": 4,
+  "embed": 256,
+  "vocab": 10000,
+  "params": 6574848,
+  "lr": 0.0012,
+  "min_lr": 0.0001,
+  "warmup": 150,
+  "hardware": "2 vCPU · NumPy · no GPU",
+  "started_at": "2026-10-31T03:52:00Z",
+  "dataset": {
+    "train_docs": 15651,
+    "train_chars": 29252182,
+    "train_tokens": 3944980,
+    "val_docs": 319,
+    "val_tokens": 86886,
+    "news_docs": 10159,
+    "poetry_docs": 4371,
+    "chat_docs": 1440
+  }
+}

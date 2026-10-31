@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>پارسیا | هوش زبانی فارسی، از صفر</title>
+  <meta name="description" content="پارسیا، مدل زبانی فارسی ساخته‌شده از صفر: توکنایزر BPE فارسی، ترنسفورمر NumPy با پس‌انتشار دستی و آموزش واقعی روی پیکرهٔ فارسی. بدون API بیرونی.">
+  <meta name="theme-color" content="#070b14">
+  <meta property="og:title" content="پارسیا | هوش زبانی فارسی، از صفر">
+  <meta property="og:description" content="مدل زبانی فارسی با ۶٫۵ میلیون پارامتر؛ از توکنایزر تا رابط کاربری، همه از صفر.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="preload" href="/static/assets/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/assets/Vazirmatn-Bold.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true">
+    <div class="grid-layer"></div>
+    <div class="glow glow-a"></div>
+    <div class="glow glow-b"></div>
+    <div class="glow glow-c"></div>
+    <svg class="star-field" viewBox="0 0 900 900" aria-hidden="true">
+      <defs>
+        <linearGradient id="starStroke" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#5eead4" stop-opacity=".5"/>
+          <stop offset="1" stop-color="#f5b74a" stop-opacity=".28"/>
+        </linearGradient>
+      </defs>
+      <g fill="none" stroke="url(#starStroke)" stroke-width="1">
+        <path d="M450 90 545 265 738 265 620 430 700 640 450 540 200 640 280 430 162 265 355 265Z"/>
+        <path d="M450 170 512 290 650 290 570 410 626 560 450 490 274 560 330 410 250 290 388 290Z" stroke-opacity=".55"/>
+      </g>
+    </svg>
+  </div>
+
+  <header class="topbar">
+    <a class="brand" href="#chat" aria-label="پارسیا، خانه">
+      <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+        <defs>
+          <linearGradient id="markGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#5eead4"/>
+            <stop offset="1" stop-color="#f5b74a"/>
+          </linearGradient>
+        </defs>
+        <rect x="13" y="13" width="38" height="38" rx="9" fill="none" stroke="url(#markGrad)" stroke-width="2.2"/>
+        <rect x="13" y="13" width="38" height="38" rx="9" fill="none" stroke="url(#markGrad)" stroke-width="2.2" transform="rotate(45 32 32)"/>
+        <circle cx="32" cy="32" r="4.5" fill="url(#markGrad)"/>
+      </svg>
+      <span class="brand-text">
+        <strong>پارسیا</strong>
+        <small>هوش زبانی فارسی</small>
+      </span>
+    </a>
+
+    <nav class="nav" aria-label="بخش‌ها">
+      <button class="nav-link is-active" data-view="chat">گفتگو</button>
+      <button class="nav-link" data-view="model">مدل</button>
+      <button class="nav-link" data-view="training">آموزش زنده</button>
+      <button class="nav-link" data-view="about">درباره</button>
+    </nav>
+
+    <div class="status-pill" id="status-pill" title="وضعیت موتور محلی">
+      <span class="status-dot"></span>
+      <span id="status-text">در حال اتصال…</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- ======================================================= گفتگو -->
+    <section class="view is-active" id="view-chat">
+      <div class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="eyebrow-line"></span> پروژهٔ متن‌باز · نسخهٔ ۱٫۰</p>
+          <h1>پارسیا<span class="hero-dot">.</span></h1>
+          <p class="lead">یک مدل زبانی فارسی که از <em>هیچ</em> ساخته شد؛ توکن‌های فارسی، ترنسفورمر دست‌نویس و آموزش واقعی — بدون هیچ API بیرونی.</p>
+          <div class="hero-meta">
+            <div class="meta-chip"><span class="meta-value" data-model-params>۶٫۵۷ میلیون</span><span>پارامتر</span></div>
+            <div class="meta-chip"><span class="meta-value" data-model-vocab>۱۰٬۰۰۰</span><span>توکن واژگان</span></div>
+            <div class="meta-chip"><span class="meta-value" data-model-loss>—</span><span>خطای اعتبارسنجی</span></div>
+            <div class="meta-chip"><span class="meta-value" data-model-tokens>۳٫۹ میلیون</span><span>توکن در هر دوره</span></div>
+          </div>
+        </div>
+        <div class="hero-aside">
+          <div class="live-note" id="hero-live">
+            <span class="live-dot"></span>
+            <div>
+              <strong>آموزش زنده</strong>
+              <span id="hero-live-text">در حال خواندن وضعیت آموزش…</span>
+            </div>
+          </div>
+          <p class="hero-quote">«فارسی فقط زبانی برای حرف زدن نیست؛ ساختاری برای اندیشیدن است.»</p>
+          <span class="hero-quote-by">از یادداشت‌های پروژه</span>
+        </div>
+      </div>
+
+      <div class="workspace">
+        <div class="chat-card card">
+          <div class="chat-head">
+            <div class="mode-tabs" role="tablist" aria-label="حالت تولید">
+              <button class="mode-tab is-active" data-mode="chat" role="tab" aria-selected="true">گفتگو</button>
+              <button class="mode-tab" data-mode="continue" role="tab" aria-selected="false">ادامهٔ متن</button>
+              <button class="mode-tab" data-mode="poetry" role="tab" aria-selected="false">شعر</button>
+            </div>
+            <div class="chat-tools">
+              <span class="model-tag">پارسیا ۱ · کوچک</span>
+              <button class="icon-button" id="export-chat" title="دانلود گفتگو" aria-label="دانلود گفتگو">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10m0 0 4-4m-4 4-4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <button class="icon-button" id="new-chat" title="گفتگوی تازه" aria-label="گفتگوی تازه">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="chat-log" id="chat-log" aria-live="polite">
+            <div class="welcome" id="welcome">
+              <div class="welcome-mark" aria-hidden="true">
+                <svg viewBox="0 0 64 64"><rect x="14" y="14" width="36" height="36" rx="8" fill="none" stroke="#5eead4" stroke-width="1.6"/><rect x="14" y="14" width="36" height="36" rx="8" fill="none" stroke="#f5b74a" stroke-width="1.6" transform="rotate(45 32 32)"/><circle cx="32" cy="32" r="3.6" fill="#5eead4"/></svg>
+              </div>
+              <h2>سلام! من پارسیا هستم.</h2>
+              <p>مدل زبانی کوچک این پروژه. همه‌چیزِ من از صفر ساخته شده؛ از توکن‌ها تا همین گفتگو. گاهی اشتباه می‌کنم، اما فارسی را با تمام جزئیاتش دوست دارم.</p>
+              <div class="suggestions" id="suggestions"></div>
+            </div>
+          </div>
+
+          <form class="composer" id="composer" autocomplete="off">
+            <button class="send" id="send" type="submit" aria-label="ارسال پیام">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12h14M12 4.5l7.5 7.5-7.5 7.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" transform="scale(-1 1) translate(-24 0)"/></svg>
+            </button>
+            <label class="sr-only" for="input">پیام</label>
+            <textarea id="input" rows="1" placeholder="به فارسی بنویس…" maxlength="2000"></textarea>
+            <button class="icon-button stop" id="stop" type="button" title="توقف" aria-label="توقف تولید" hidden>
+              <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>
+            </button>
+          </form>
+
+          <div class="chat-foot">
+            <label class="switch" title="تولید چند مسیر موازی و انتخاب بهترین">
+              <input type="checkbox" id="deep-toggle">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+              <span class="switch-label">اندیشهٔ ژرف <span class="beta">آزمایشی</span></span>
+            </label>
+            <div class="slider-wrap">
+              <label for="temp">خلاقیت</label>
+              <input id="temp" type="range" min="0.45" max="1.25" step="0.05" value="0.82">
+              <output id="temp-out">۰٫۸۲</output>
+            </div>
+            <span class="hint">Enter ارسال · Shift+Enter خط تازه</span>
+          </div>
+        </div>
+
+        <aside class="sidebar">
+          <div class="card stat-card">
+            <div class="card-head">
+              <h3>وضعیت مدل</h3>
+              <span class="tag" id="stat-step">گام —</span>
+            </div>
+            <div class="stat-main">
+              <div>
+                <span class="stat-number" id="stat-loss">—</span>
+                <span class="stat-label">خطای اعتبارسنجی (nats/token)</span>
+              </div>
+              <div class="ring" id="ppl-ring">
+                <svg viewBox="0 0 120 120" aria-hidden="true">
+                  <circle cx="60" cy="60" r="50" class="ring-track"/>
+                  <circle cx="60" cy="60" r="50" class="ring-value" id="ring-value"/>
+                </svg>
+                <div class="ring-center"><strong id="stat-ppl">—</strong><span>perplexity</span></div>
+              </div>
+            </div>
+            <div class="sparkline-wrap">
+              <canvas id="mini-chart" width="360" height="72" aria-label="نمودار کوچک خطای اعتبارسنجی"></canvas>
+              <span class="sparkline-label">روند یادگیری</span>
+            </div>
+            <div class="stat-grid">
+              <div><span id="stat-tokens">—</span><small>توکن دیده‌شده</small></div>
+              <div><span id="stat-bpc">—</span><small>بیت بر نویسه</small></div>
+              <div><span id="stat-tps">—</span><small>توکن بر ثانیه</small></div>
+            </div>
+          </div>
+
+          <div class="card train-mini">
+            <div class="card-head">
+              <h3>آموزش زنده</h3>
+              <span class="live-badge" id="train-badge"><span></span>زنده</span>
+            </div>
+            <p id="train-mini-text" class="muted">در حال دریافت داده‌های آموزش…</p>
+            <div class="progress"><span id="train-progress-bar" style="width:0%"></span></div>
+            <div class="progress-meta"><span id="train-step-label">—</span><span id="train-eta">—</span></div>
+            <button class="text-link" data-view-link="training">تماشای آموزش زنده ←</button>
+          </div>
+
+          <div class="card glance-card">
+            <div class="card-head"><h3>در یک نگاه</h3></div>
+            <ul class="glance-list">
+              <li><span>معماری</span><b>Transformer رمزگشا</b></li>
+              <li><span>لایه‌ها / سرها</span><b>۵ / ۴</b></li>
+              <li><span>بُعد مدل</span><b>۲۵۶</b></li>
+              <li><span>طول زمینه</span><b>۲۵۶ توکن</b></li>
+              <li><span>توکنایزر</span><b>BPE فارسی</b></li>
+              <li><span>پیکرهٔ آموزش</span><b>خبر + شعر + گفتگو</b></li>
+            </ul>
+          </div>
+
+          <div class="card honesty">
+            <div class="honesty-mark">!</div>
+            <p>پارسیا یک مدل پژوهشی کوچک است، نه رقیب مدل‌های بزرگ. پاسخ‌ها می‌توانند نادرست یا ناقص باشند؛ آن‌ها را باور مطلق نکن.</p>
+            <button class="text-link" data-view-link="model">چرا؟ ←</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ======================================================= مدل -->
+    <section class="view" id="view-model">
+      <div class="page-head">
+        <p class="eyebrow"><span class="eyebrow-line"></span> کالبدشناسی مدل</p>
+        <h2>از یک نویسه تا یک جمله</h2>
+        <p class="lead narrow">هر بخش پارسیا در این مخزن نوشته شده است: از شکستن متن به توکن‌های فارسی تا پس‌انتشار دستی، حافظهٔ KV، نمونه‌گیری و همین رابط.</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card arch-card">
+          <div class="card-head"><h3>مسیر داده</h3><span class="tag">RTL</span></div>
+          <div class="arch-flow">
+            <div class="arch-node"><span class="arch-icon">م</span><b>متن فارسی</b><small>نرمال‌سازی و پاک‌سازی</small></div>
+            <div class="arch-arrow">←</div>
+            <div class="arch-node"><span class="arch-icon">ت</span><b>توکنایزر BPE</b><small>۱۰٬۰۰۰ توکن · نیم‌فاصله‌آگاه</small></div>
+            <div class="arch-arrow">←</div>
+            <div class="arch-node"><span class="arch-icon">ج</span><b>جای‌گذاری</b><small>امبدینگ واژه + موقعیت</small></div>
+          </div>
+          <div class="arch-transformer">
+            <div class="arch-transformer-head">
+              <b>۵ بلوک ترنسفورمر</b>
+              <span>پس‌انتشار دستی · SiLU · اتصال باقی‌مانده</span>
+            </div>
+            <div class="arch-inner">
+              <div class="arch-mini">
+                <b>توجه چندسری</b>
+                <small>۴ سر · ماسک علّی · مقیاس ۱/√d</small>
+              </div>
+              <div class="arch-mini">
+                <b>شبکهٔ پیش‌خور</b>
+                <small>۲۵۶ → ۱۰۲۴ → ۲۵۶ · SiLU</small>
+              </div>
+              <div class="arch-mini">
+                <b>LayerNorm</b>
+                <small>پیش از هر زیرلایه</small>
+              </div>
+              <div class="arch-mini">
+                <b>اتصال باقی‌مانده</b>
+                <small>جریان گرادیان پایدار</small>
+              </div>
+            </div>
+          </div>
+          <div class="arch-flow">
+            <div class="arch-node"><span class="arch-icon">ن</span><b>LayerNorm پایانی</b><small>خروجی بلوک آخر</small></div>
+            <div class="arch-arrow">←</div>
+            <div class="arch-node accent"><span class="arch-icon">و</span><b>پیش‌بینی واژه</b><small>وزن مشترک با امبدینگ</small></div>
+            <div class="arch-arrow">←</div>
+            <div class="arch-node accent"><span class="arch-icon">ه</span><b>نمونه‌گیری</b><small>دما · top-k · top-p</small></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>شناسنامه</h3><button class="copy-json" id="copy-config" title="کپی پیکربندی">JSON</button></div>
+          <table class="spec-table">
+            <tbody>
+              <tr><th>پارامترها</th><td data-spec="params">۶٬۵۷۴٬۸۴۸</td></tr>
+              <tr><th>واژگان</th><td data-spec="vocab">۱۰٬۰۰۰</td></tr>
+              <tr><th>لایه‌ها</th><td>۵</td></tr>
+              <tr><th>سرهای توجه</th><td>۴</td></tr>
+              <tr><th>بُعد امبدینگ</th><td>۲۵۶</td></tr>
+              <tr><th>طول زمینه</th><td>۲۵۶ توکن</td></tr>
+              <tr><th>بهینه‌ساز</th><td>AdamW · cosine · warmup ۱۵۰</td></tr>
+              <tr><th>داده</th><td id="spec-data">۳٫۹۴ میلیون توکن</td></tr>
+              <tr><th>دقت</th><td>float32 روی CPU</td></tr>
+              <tr><th>هیچ API</th><td class="ok">بدون هیچ سرویس بیرونی</td></tr>
+            </tbody>
+          </table>
+          <div class="spec-foot">
+            <span>مرجع کد:</span>
+            <code>parsia/model.py</code>
+            <code>parsia/tokenizer.py</code>
+          </div>
+          <div class="spec-links">
+            <a class="ghost-button" href="/api/download/checkpoint">دانلود وزن‌ها · NPZ</a>
+            <a class="ghost-button" href="https://github.com/Taymaz1391/ai" target="_blank" rel="noopener">مخزن کد در گیت‌هاب ↗</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-3 built-grid">
+        <div class="card mini-card"><span class="mini-num">۰۱</span><h3>توکنایزر از صفر</h3><p>الگوریتم BPE با ایندکس معکوس و سبدهای شمارشی؛ نیم‌فاصله جزئی از واژه می‌ماند.</p></div>
+        <div class="card mini-card"><span class="mini-num">۰۲</span><h3>پس‌انتشار دستی</h3><p>هیچ PyTorch یا JAXای در آموزش نیست؛ گرادیان‌ها با NumPy نوشته و با گرادیان عددی آزموده شده‌اند.</p></div>
+        <div class="card mini-card"><span class="mini-num">۰۳</span><h3>حافظهٔ KV</h3><p>استنتاج هر توکن را یک‌بار محاسبه می‌کند تا گفتگو روی CPU سریع و ممکن باشد.</p></div>
+        <div class="card mini-card"><span class="mini-num">۰۴</span><h3>نمونه‌گیر فارسی</h3><p>ترکیب دما، top-k، top-p و جریمهٔ تکرار؛ به‌همراه توقف روی نشانه‌های گفتگو.</p></div>
+        <div class="card mini-card"><span class="mini-num">۰۵</span><h3>اندیشهٔ ژرف</h3><p>چند مسیر موازی با دماهای متفاوت ساخته و با اطمینان، تکرار و پایان جمله امتیازدهی می‌شود.</p></div>
+        <div class="card mini-card"><span class="mini-num">۰۶</span><h3>پیکره و رابط</h3><p>پاک‌سازی ۲۹ مگابایت متن فارسی، ساخت گفتگوهای آغازین و همین رابط بدون هیچ کتابخانهٔ ظاهری.</p></div>
+      </div>
+
+      <div class="card showcase" id="showcase" hidden>
+        <div class="card-head">
+          <h3>نمونه‌های واقعی، بدون ویرایش</h3>
+          <span class="tag">از همین مدل</span>
+        </div>
+        <div class="showcase-grid" id="showcase-list"></div>
+        <p class="fineprint">این متن‌ها با نمونه‌گیری تصادفی و بدون بازنویسی دستی تولید شده‌اند؛ ضعف‌ها هم بخشی از نتیجه‌اند.</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card limits">
+          <div class="card-head"><h3>این مدل چه نیست</h3></div>
+          <ul class="checks">
+            <li><span class="x">×</span> رقیب GPT-4 یا حتی مدل‌های ۷ میلیاردی نیست؛ ۶٫۵ میلیون پارامتر دارد.</li>
+            <li><span class="x">×</span> به اینترنت، خبر تازه و جست‌وجو دسترسی ندارد.</li>
+            <li><span class="x">×</span> همیشه درست نمی‌گوید؛ زبان را تقلید می‌کند، واقعیت را تضمین نمی‌کند.</li>
+            <li><span class="x">×</span> روی GPU آموزش ندیده؛ زمان آموزش آن محدود بوده است.</li>
+          </ul>
+          <div class="quote-box">ساختن مدلی که واقعاً با مدل‌های امروزی رقابت کند، به داده، توان محاسباتی و سال‌ها کار نیاز دارد. پارسیا گام اولِ یک مسیر واقعی است.</div>
+        </div>
+        <div class="card sources">
+          <div class="card-head"><h3>منابع داده</h3><span class="tag">متن‌باز</span></div>
+          <ul class="source-list">
+            <li><b>Persian News Dataset</b><span>بیش از ۱۷۵ هزار خبر فارسی از خبرگزاری‌ها</span></li>
+            <li><b>Hamshahri Corpus</b><span>پیکرهٔ روزنامهٔ همشهری</span></li>
+            <li><b>گنجور · شعر کلاسیک</b><span>خاقانی، مولانا، سعدی، حافظ و خیام</span></li>
+            <li><b>گفتگوهای آغازین پارسیا</b><span>۸۰ نمونهٔ کوچک برای قالب گفتگو و خودشناسی</span></li>
+          </ul>
+          <p class="fineprint">پیکره پیش از آموزش پاک‌سازی، یکسان‌سازی و در سطح سند جدا شده است. متن شعرها از مجموعهٔ namnamir (برگرفته از ganjoor.net) است.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================= آموزش -->
+    <section class="view" id="view-training">
+      <div class="page-head split">
+        <div>
+          <p class="eyebrow"><span class="eyebrow-line"></span> اتاق کنترل</p>
+          <h2>آموزش، لحظه‌به‌لحظه</h2>
+          <p class="lead narrow">هر عدد این صفحه از فایل گزارش واقعی آموزش می‌آید. مدل روی همین دستگاه و بدون GPU در حال یادگیری است.</p>
+        </div>
+        <div class="live-panel">
+          <span class="live-badge big" id="train-badge-2"><span></span>در حال آموزش</span>
+          <span class="muted" id="train-updated">—</span>
+        </div>
+      </div>
+
+      <div class="metrics-row">
+        <div class="card metric"><span>گام</span><b id="m-step">—</b><small id="m-step-sub">از ۱٬۸۰۰</small></div>
+        <div class="card metric"><span>توکن دیده‌شده</span><b id="m-tokens">—</b><small id="m-epoch">—</small></div>
+        <div class="card metric"><span>سرعت</span><b id="m-tps">—</b><small>توکن بر ثانیه</small></div>
+        <div class="card metric"><span>زمان باقی‌مانده</span><b id="m-eta">—</b><small id="m-elapsed">—</small></div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="card-head">
+          <h3>خطای آموزش و اعتبارسنجی</h3>
+          <div class="legend">
+            <span><i class="dot train"></i>آموزش</span>
+            <span><i class="dot val"></i>اعتبارسنجی</span>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="loss-chart" height="360" aria-label="نمودار خطای آموزش"></canvas>
+          <div class="chart-tip" id="chart-tip" hidden></div>
+        </div>
+        <div class="chart-foot">
+          <span>خطای واژه‌به‌واژه (cross-entropy) بر حسب گام آموزش</span>
+          <span class="muted" id="chart-note">در انتظار داده…</span>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head"><h3>آخرین گزارش‌ها</h3><span class="tag" id="log-count">۰</span></div>
+          <div class="log-table-wrap">
+            <table class="log-table">
+              <thead><tr><th>گام</th><th>خطا</th><th>نرخ یادگیری</th><th>گرادیان</th><th>توکن/ث</th></tr></thead>
+              <tbody id="log-body"><tr><td colspan="5" class="muted">در انتظار داده…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>ترکیب پیکره</h3><span class="tag">۲۹ مگابایت</span></div>
+          <div class="mix-bar" aria-label="ترکیب داده">
+            <span class="mix news" style="width:79%"></span>
+            <span class="mix poetry" style="width:20%"></span>
+            <span class="mix chat" style="width:1%"></span>
+          </div>
+          <ul class="mix-legend">
+            <li><i class="swatch news"></i><span>خبر و گزارش</span><b id="mix-news">۱۳٫۴ میلیون نویسه</b></li>
+            <li><i class="swatch poetry"></i><span>شعر کلاسیک</span><b id="mix-poetry">۳٫۴ میلیون نویسه</b></li>
+            <li><i class="swatch chat"></i><span>گفتگوی آغازین</span><b>۸۰ نمونه × ۱۸</b></li>
+          </ul>
+          <div class="callout">
+            <b>چرا این ترکیب؟</b>
+            <p>خبر، جملهٔ فارسی معیار می‌آموزد؛ شعر، موسیقی و نحو آزادتر؛ و گفتگوهای کوچک، قالب پرسش‌وپاسخ و خودشناسی مدل را شکل می‌دهند.</p>
+          </div>
+          <div class="fineprint" id="train-config">مدل: ۵ لایه · ۴ سر · ۲۵۶ بُعد · زمینهٔ ۲۵۶ · batch 24</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================= درباره -->
+    <section class="view" id="view-about">
+      <div class="page-head">
+        <p class="eyebrow"><span class="eyebrow-line"></span> چرا پارسیا؟</p>
+        <h2>یک شروع صادقانه</h2>
+      </div>
+
+      <div class="about-grid">
+        <article class="card prose">
+          <h3>مسئله</h3>
+          <p>بیشتر مدل‌های زبانی فارسی یا از مدل‌های انگلیسی اقتباس شده‌اند یا پشت APIهای بسته اجرا می‌شوند. برای یادگیریِ واقعیِ این فناوری، باید از پایه ساخت: توکنایزر، معماری، آموزش و استنتاج.</p>
+          <p>پارسیا یک آزمایش جدی در همین مسیر است: بدون وزن آماده، بدون PyTorch، بدون سرویس ابری. همه‌چیز با NumPy، پیکرهٔ فارسی و صبر نوشته شده است.</p>
+          <h3>چه چیزهایی از صفر نوشته شد؟</h3>
+          <ul class="arrow-list">
+            <li>توکنایزر BPE مخصوص فارسی با آگاهی از نیم‌فاصله و نشانه‌گذاری.</li>
+            <li>ترنسفورمر رمزگشا با توجه چندسری، LayerNorm، SiLU و وزن‌های مشترک.</li>
+            <li>پس‌انتشار دستی و بهینه‌ساز AdamW؛ آزمون گرادیان با اختلاف نسبی کمتر از ۱۰⁻⁵.</li>
+            <li>استنتاج با حافظهٔ KV، نمونه‌گیر ترکیبی و جست‌وجوی چندمسیره.</li>
+            <li>پاک‌سازی پیکره، ساخت قالب گفتگو و رابط کاربری بدون هیچ کتابخانهٔ ظاهری.</li>
+          </ul>
+          <blockquote>این مدل ادعای رقابت با مدل‌های بزرگ را ندارد؛ ادعا می‌کند که مسیر ساخت، واقعی و قابل تکرار است.</blockquote>
+          <h3>گام‌های بعدی</h3>
+          <div class="timeline">
+            <div><span>۰۱</span><b>مدل بزرگ‌تر</b><p>افزایش پارامترها و زمینه، با همان کد خوانا.</p></div>
+            <div><span>۰۲</span><b>دادهٔ بیشتر</b><p>کتاب، ویکی‌پدیا و پیکرهٔ گفتاری فارسی.</p></div>
+            <div><span>۰۳</span><b>تنظیم دستور</b><p>آموزش پاسخ‌دادن به دستورهای واقعی، نه فقط تقلید متن.</p></div>
+            <div><span>۰۴</span><b>ارزیابی</b><p>سنجش دقت، هم‌خوانی و ایمنی با معیارهای فارسی.</p></div>
+          </div>
+        </article>
+
+        <aside class="about-side">
+          <div class="card fact-card">
+            <h3>در یک نگاه</h3>
+            <div class="fact"><b data-about-params>۶٫۵۷M</b><span>پارامتر آموزش‌پذیر</span></div>
+            <div class="fact"><b>۱۰٬۰۰۰</b><span>توکن واژگان فارسی</span></div>
+            <div class="fact"><b>۲۵۶</b><span>توکن زمینهٔ گفتگو</span></div>
+            <div class="fact"><b>۰</b><span>درخواست به سرویس بیرونی</span></div>
+          </div>
+          <div class="card honesty big">
+            <h3>قاعدهٔ ما</h3>
+            <p>هیچ عددی در این سایت ساختگی نیست: خطا، perplexity، سرعت و توکن‌ها از گزارش واقعی آموزش خوانده می‌شوند.</p>
+          </div>
+          <div class="card tech-card">
+            <h3>پشتهٔ فنی</h3>
+            <ul>
+              <li><span>زبان</span><b>Python 3.11</b></li>
+              <li><span>محاسبات</span><b>NumPy (OpenBLAS)</b></li>
+              <li><span>سرور</span><b>FastAPI + Uvicorn</b></li>
+              <li><span>رابط</span><b>HTML/CSS/JS خالص</b></li>
+              <li><span>فونت</span><b>Vazirmatn</b></li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <svg viewBox="0 0 64 64" class="brand-mark" aria-hidden="true"><rect x="13" y="13" width="38" height="38" rx="9" fill="none" stroke="#5eead4" stroke-width="2"/><rect x="13" y="13" width="38" height="38" rx="9" fill="none" stroke="#f5b74a" stroke-width="2" transform="rotate(45 32 32)"/><circle cx="32" cy="32" r="4" fill="#5eead4"/></svg>
+        <div><strong>پارسیا</strong><span>هوش زبانی فارسی، از صفر</span></div>
+      </div>
+      <p>ساخته‌شده با NumPy و حوصله · بدون API بیرونی · ۱۴۰۵</p>
+      <div class="footer-links">
+        <span class="status-inline"><i></i>همه‌چیز محلی است</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <noscript><div class="noscript">برای استفاده از پارسیا، JavaScript را فعال کنید.</div></noscript>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

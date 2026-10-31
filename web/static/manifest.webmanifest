@@ -1,0 +1,14 @@
+{
+  "name": "پارسیا — هوش زبانی فارسی",
+  "short_name": "پارسیا",
+  "description": "مدل زبانی فارسی ساخته‌شده از صفر، بدون API بیرونی.",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#05080f",
+  "theme_color": "#05080f",
+  "icons": [
+    { "src": "/static/assets/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

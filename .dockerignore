@@ -1,0 +1,8 @@
+.venv
+.git
+legacy
+data/train.txt
+data/val.txt
+logs/*.log
+checkpoints/last.npz
+**/__pycache__
