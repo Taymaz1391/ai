@@ -241,8 +241,8 @@ async function testAdminGate() {
   check("admin: shell hidden", doc.querySelector("#admin-shell")?.hidden === true);
   const pw = doc.querySelector("#admin-password");
   // اعتبارسنجی سمت مرورگر؛ عمداً درخواست ورود نمی‌فرستیم تا قفل تلاش‌های ناموفق فعال نشود.
-  pw.value = "123";
-  check("admin: short password invalid", pw.checkValidity() === false);
+  check("admin: password field constrained", pw.getAttribute("type") === "password"
+    && Number(pw.getAttribute("minlength")) >= 6);
   const form = doc.querySelector("#login-form");
   check("admin: form wired", !!form && typeof form.requestSubmit === "function");
 }
@@ -318,6 +318,12 @@ async function testEnglishAndSummary() {
   check("en: autoplay muted", enDoc.getElementById("promo-video")?.hasAttribute("muted") === true
     && enDoc.getElementById("promo-video")?.hasAttribute("autoplay") === true);
   check("en: wordmark", enDoc.querySelectorAll(".brand-wordmark").length >= 2);
+
+  const enCourse = await loadPage("/en/course");
+  const enCourseDoc = enCourse.window.document;
+  check("en course: syllabus", enCourseDoc.querySelectorAll(".lesson").length >= 10,
+    String(enCourseDoc.querySelectorAll(".lesson").length));
+  check("en course: fa switch", !!enCourseDoc.querySelector('a[href="/course"]'));
 
   const docs = await loadPage("/en/docs");
   check("en docs: sections", docs.window.document.querySelectorAll(".prose h2").length >= 5,
