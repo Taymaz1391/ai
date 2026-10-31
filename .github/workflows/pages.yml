@@ -1,9 +1,17 @@
 name: pages
 
+# انتشار نسخهٔ استاتیک سایت روی GitHub Pages.
+# پیش‌نیاز یک‌باره: Settings → Pages → Source: «GitHub Actions».
+# (ساخت خودکار فقط با فعال‌کردن Pages توسط مالک مخزن ممکن است.)
+
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+  push:
+    branches: ["main", "arena/ddad3f43-ai"]
+    paths:
+      - "web/static/**"
+      - "scripts/export_site.py"
+      - ".github/workflows/pages.yml"
 
 permissions:
   contents: read
@@ -22,10 +30,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Build static site
+      - name: Export static site
         run: python scripts/export_site.py --out _site
-      - name: Check output
+      - name: Static sanity check
         run: python scripts/check_static.py _site
+      - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
@@ -37,17 +46,5 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Is GitHub Pages enabled?
-        id: check
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if gh api "repos/${GITHUB_REPOSITORY}/pages" >/dev/null 2>&1; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::warning title=GitHub Pages is off::Settings → Pages → Source: GitHub Actions, then re-run this workflow."
-          fi
-      - if: steps.check.outputs.enabled == 'true'
-        id: deployment
+      - id: deployment
         uses: actions/deploy-pages@v4

@@ -40,6 +40,8 @@ from web import admin as admin_module  # noqa: E402
 from web import locale as locale_module  # noqa: E402
 from web import owner as owner_module  # noqa: E402
 from web import search as search_module  # noqa: E402
+from web import skills as skills_module  # noqa: E402
+from web import knowledge as knowledge_module  # noqa: E402
 from web import tools as tools_module  # noqa: E402
 
 STATIC_DIR = os.path.join(ROOT, "web", "static")
@@ -1107,6 +1109,56 @@ def _record_usage(owner: dict, ip: str, kind: str) -> None:
     store().record_event(kind, user_id=owner.get("user_id"), guest_id=owner.get("guest_id"), ip=ip)
 
 
+def _instant_turn(owner: dict, ip: str, req: ChatRequest, response: Response,
+                  conv_id: str | None, message: str, answer: str,
+                  tool_result: dict | None, started: float,
+                  engine: str, extra: dict | None = None) -> dict:
+    """پاسخ آماده (مهارت/دانشنامه) را بدون دخالت مدل ثبت و برمی‌گرداند."""
+    global request_count
+    stats = {
+        "prompt_tokens": 0, "tokens": 0, "seconds": round(time.time() - started, 3),
+        "tokens_per_second": 0.0, "confidence": 1.0, "entropy": 0.0,
+        "finish_reason": engine, "seed": 0,
+    }
+    conv_id, msg_id = _persist_turn(owner, conv_id, message, answer, stats, None, False,
+                                    tool_result, None)
+    _remember(req.session_id, message, answer)
+    _record_usage(owner, ip, "chat")
+    _set_guest_cookie(response, owner)
+    with stats_lock:
+        request_count += 1
+    used, limit = _quota(owner, ip, "chat")
+    return {
+        "answer": answer, "mode": req.mode, "deep": False, "trace": None,
+        "stats": stats, "latency_s": round(time.time() - started, 3),
+        "session_id": req.session_id, "conversation_id": conv_id,
+        "message_id": msg_id, "usage": {"used": used, "limit": limit},
+        "tool": tool_result, "sources": [], "engine": engine, "extra": extra or {},
+    }
+
+
+@app.get("/api/benchmark")
+def api_benchmark() -> dict:
+    """نتیجهٔ آخرین اجرای بنچمارک شفاف (scripts/benchmark.py)."""
+    path = os.path.join(ROOT, "reports", "benchmark.json")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, ValueError):
+        raise HTTPException(404, "هنوز بنچمارکی اجرا نشده است.") from None
+    return {
+        "model": data.get("model"),
+        "params": data.get("params"),
+        "run_at": data.get("run_at"),
+        "tasks": data.get("tasks"),
+        "accuracy": data.get("accuracy"),
+        "latency": data.get("latency"),
+        "engine_mix": data.get("engine_mix"),
+        "cost_usd_per_million_tokens": data.get("cost_usd_per_million_tokens"),
+        "opus_reference": data.get("opus_reference"),
+    }
+
+
 @app.get("/api/search")
 def api_search(request: Request, q: str = "", limit: int = 5) -> dict:
     """جست‌وجوی وب سمت سرور؛ کلید API لازم نیست و هیچ داده‌ای به سرویس بیرونی نمی‌رود."""
@@ -1130,6 +1182,19 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
     tool_result = None if req.mode != "chat" else tools_module.detect(message)
     started = time.time()
     kwargs = _generation_kwargs(req)
+
+    if req.mode == "chat":
+        skill = skills_module.match(message)
+        if skill:
+            return _instant_turn(owner, ip, req, response, conv_id, message, skill["answer"],
+                                 tool_result, started, "skill", {"skill": skill["skill"]})
+
+        if not req.web:
+            kb = knowledge_module.answer(message)
+            if kb:
+                return _instant_turn(owner, ip, req, response, conv_id, message, kb["answer"],
+                                     tool_result, started, "knowledge",
+                                     {"knowledge": kb["knowledge"], "score": kb["score"]})
 
     web_results: list[dict] = []
     if req.web and req.mode == "chat" and admin_module.flags().get("web_search", True):
@@ -1210,12 +1275,41 @@ def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
         raise HTTPException(400, "برای اندیشهٔ ژرف از /api/chat استفاده کنید.")
     model, message, history, conv_id = _prepare(req, owner, ip)
     tool_result = None if req.mode != "chat" else tools_module.detect(message)
+    skill = skills_module.match(message) if req.mode == "chat" else None
+    kb = None
+    if req.mode == "chat" and not skill and not req.web:
+        kb = knowledge_module.answer(message)
+    instant_answer = (skill or {}).get("answer") or (kb or {}).get("answer") or ""
+    instant_engine = "skill" if skill else ("knowledge" if kb else "")
     kwargs = _generation_kwargs(req)
     kwargs["seed"] = req.seed
     kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
     def generate_events():
         global request_count
+        if instant_answer:
+            stats = {"prompt_tokens": 0, "tokens": 0, "seconds": 0.0,
+                     "tokens_per_second": 0.0, "confidence": 1.0, "entropy": 0.0,
+                     "finish_reason": instant_engine, "seed": 0}
+            new_conv, msg_id = _persist_turn(owner, conv_id, message, instant_answer,
+                                             stats, None, False, tool_result, None)
+            _remember(req.session_id, message, instant_answer)
+            _record_usage(owner, ip, "chat")
+            with stats_lock:
+                request_count += 1
+            used, limit = _quota(owner, ip, "chat")
+            yield json.dumps({"type": "start", "prompt_tokens": 0}, ensure_ascii=False) + "\n"
+            yield json.dumps({"type": "token", "text": instant_answer}, ensure_ascii=False) + "\n"
+            yield json.dumps({
+                "type": "done", "answer": instant_answer, "stats": stats,
+                "conversation_id": new_conv, "message_id": msg_id,
+                "usage": {"used": used, "limit": limit}, "tool": tool_result,
+                "engine": instant_engine,
+                "skill": (skill or {}).get("skill"),
+                "knowledge": (kb or {}).get("knowledge"),
+            }, ensure_ascii=False) + "\n"
+            return
+
         if not _acquire_slot(wait=12.0):
             yield json.dumps({"type": "error", "error": "سرور شلوغ است؛ چند لحظه بعد دوباره تلاش کنید."},
                              ensure_ascii=False) + "\n"

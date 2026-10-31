@@ -131,6 +131,14 @@ python web/server.py --host 0.0.0.0 --port 8000</code></pre>
           و نشانی سرور را در نخستین اجرا می‌پرسی. ساختشان با
           <code>.github/workflows/clients.yml</code> انجام می‌شود.</p>
 
+        <h2 id="benchmark">بنچمارک شفاف</h2>
+        <p>هیچ ادعای «جلو زدن از مدل‌های مرزی» در این پروژه نیست. نتیجهٔ سنجه‌های واقعی
+          (ابزار محلی، خط فارسی، تولید متن، تأخیر و هزینه) در
+          <code><a href="/api/benchmark">/api/benchmark</a></code> و در فایل
+          <code>docs/BENCHMARKS.md</code> منتشر می‌شود و با
+          <code>python scripts/benchmark.py</code> بازتولید می‌شود. جدول مرجع Opus 5.5 هم
+          آن‌جاست، ولی مقایسهٔ هم‌سنگ نیست: آن بنچمارک‌ها عامل‌محور و چندمرحله‌ای‌اند.</p>
+
         <h2 id="deploy">استقرار</h2>
         <p>سه مسیر رایگان:</p>
         <ul>

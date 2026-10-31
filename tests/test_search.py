@@ -161,7 +161,7 @@ class SearchApiTest(unittest.TestCase):
     def test_chat_without_web_stays_mocked_offline(self):
         """بدون وب، مدل محلی پاسخ می‌دهد و هیچ فراخوانی شبکه‌ای لازم نیست."""
         res = self.client.post("/api/chat", json={
-            "message": "سلام", "mode": "chat", "web": False, "max_new_tokens": 16,
+            "message": "باران پاییزی", "mode": "chat", "web": False, "max_new_tokens": 16,
         })
         self.assertEqual(res.status_code, 200, res.text)
         self.assertEqual(res.json()["engine"], "chat")

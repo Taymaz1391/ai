@@ -1,0 +1,20 @@
+{"id": "tool-calc-1", "kind": "tool", "prompt": "۱۲۴ ضربدر ۳ چند است؟", "expect_value": 372}
+{"id": "tool-calc-2", "kind": "tool", "prompt": "۴۵۶ + ۷۸۹ چند می‌شود؟", "expect_value": 1245}
+{"id": "tool-calc-3", "kind": "tool", "prompt": "۲۵ * ۴ - ۱۰", "expect_value": 90}
+{"id": "tool-calc-4", "kind": "tool", "prompt": "۷۲ / ۹ برابر است با چند؟", "expect_value": 8}
+{"id": "tool-calc-5", "kind": "tool", "prompt": "۸۱ % ۱۰", "expect_value": 1}
+{"id": "tool-now-1", "kind": "tool_now", "prompt": "ساعت چند است؟"}
+{"id": "tool-now-2", "kind": "tool_now", "prompt": "تاریخ امروز چندم است؟"}
+{"id": "norm-1", "kind": "normalize", "prompt": "كتاب", "expect": "کتاب"}
+{"id": "norm-2", "kind": "normalize", "prompt": "ايران", "expect": "ایران"}
+{"id": "norm-3", "kind": "normalize", "prompt": "مي‌روم", "expect": "می‌روم"}
+{"id": "norm-4", "kind": "normalize", "prompt": "سلام  دنيا", "expect": "سلام دنیا"}
+{"id": "norm-5", "kind": "normalize", "prompt": "تهران", "expect": "تهران"}
+{"id": "gen-1", "kind": "generation", "prompt": "سلام!", "accept_any": ["سلام", "درود", "خوش"], "min_chars": 6}
+{"id": "gen-2", "kind": "generation", "prompt": "پایتخت ایران کجاست؟", "accept_any": ["تهران"], "min_chars": 4}
+{"id": "gen-3", "kind": "generation", "prompt": "یک جملهٔ کوتاه دربارهٔ باران بنویس.", "accept_any": [], "min_chars": 24, "min_persian": 0.6}
+{"id": "gen-4", "kind": "generation", "prompt": "شعر کوتاهی دربارهٔ دریا بگو.", "accept_any": [], "min_chars": 24, "min_persian": 0.6}
+{"id": "gen-5", "kind": "generation", "prompt": "اگر امروز دوشنبه باشد، فردا چه روزی است؟", "accept_any": ["سه‌شنبه", "سه شنبه"], "min_chars": 6}
+{"id": "gen-6", "kind": "generation", "prompt": "خوشحالم چون", "accept_any": [], "min_chars": 20, "min_persian": 0.6}
+{"id": "gen-7", "kind": "generation", "prompt": "کد پایتون برای جمع دو عدد بنویس.", "accept_any": ["def", "print", "+"], "min_chars": 12}
+{"id": "gen-8", "kind": "generation", "prompt": "معنی واژهٔ «امید» چیست؟", "accept_any": ["امید", "انتظار", "آرزو"], "min_chars": 8}
