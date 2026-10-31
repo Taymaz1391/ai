@@ -37,5 +37,17 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - id: deployment
+      - name: Is GitHub Pages enabled?
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/${GITHUB_REPOSITORY}/pages" >/dev/null 2>&1; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=GitHub Pages is off::Settings → Pages → Source: GitHub Actions, then re-run this workflow."
+          fi
+      - if: steps.check.outputs.enabled == 'true'
+        id: deployment
         uses: actions/deploy-pages@v4
