@@ -139,8 +139,9 @@ jobs:
               exit 1
             fi
           fi
-          out=$(gh release upload clients dist/rayan-android/rayan-android.apk dist/rayan-windows/rayan-windows.exe \
-            --repo "$GITHUB_REPOSITORY" --clobber 2>&1)
+          files=$(find dist -type f \( -name '*.apk' -o -name '*.exe' \))
+          echo "assets found: $files"
+          out=$(gh release upload clients $files --repo "$GITHUB_REPOSITORY" --clobber 2>&1)
           code=$?
           if [ $code -ne 0 ]; then
             echo "::error title=release-upload-failed::${out//$'\n'/ | }"
