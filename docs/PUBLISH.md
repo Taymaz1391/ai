@@ -44,9 +44,17 @@ https://<username>.github.io/ai/
 * متغیر مخزن `RAYAN_SERVER_URL` را ست کن و گردش‌کار `clients` را اجرا کن تا فایل‌های
   نصب با نشانی ثابت ساخته شوند.
 
+## سریع‌ترین راه به یک سایت زنده
+
+[Deploy to Render](https://render.com/deploy?repo=https://github.com/Taymaz1391/ai) را بزن،
+`RAYAN_OWNER_PASSWORD` را وارد کن و بعد از دو دقیقه دامنهٔ `*.onrender.com` را داری؛
+همان دامنه را در APK/EXE بگذار. سایت کامل (چت، ورود، پنل، جست‌وجو) همان‌جا کار می‌کند.
+
 ## چرا از این محیط نشد؟
 
 * `POST /repos/.../pages` با توکن این محیط → **403 Resource not accessible by integration**
+* همین خطا در گردش‌کار با `GITHUB_TOKEN` هم تکرار شد (`actions/configure-pages`)
+  چون ساخت Pages مجوز مدیر مخزن می‌خواهد، نه مجوز گردش‌کار.
 * دامنه‌های دیگر (Render/Fly/…) از این سندباکس در دسترس نیستند و نمی‌توان حساب ساخت.
 * پیش‌نمایش موقت این محیط (`*.e2b.app`) درخواستِ بیرونی را با
   `403 Missing traffic access token` رد می‌کند و برای کاربر عمومی قابل استفاده نیست.
