@@ -81,6 +81,11 @@ jobs:
           mkdir -p ../../out
           cp "$WORK/rayan-android.apk" ../../out/rayan-android.apk
           ls -lh ../../out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rayan-android
+          path: out/rayan-android.apk
+          if-no-files-found: error
 
   windows:
     name: EXE
