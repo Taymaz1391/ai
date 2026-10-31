@@ -191,12 +191,6 @@ class Renderer:
     def __init__(self) -> None:
         self.orb512 = orb(512)
         self.orb256 = orb(256)
-        base = Image.open(os.path.join(BRAND, "wordmark-white.png")).convert("RGBA")
-        # روی زمینهٔ سرمه‌ای، متن لوگو کمی آبی روشن شود تا با کره هم‌خانواده بماند
-        tint = Image.new("RGBA", base.size, (150, 214, 255, 0))
-        tint.putalpha(base.getchannel("A").point(lambda v: int(v * 0.85)))
-        base.alpha_composite(tint)
-        self.wordmark = base
         self.mark = Image.open(os.path.join(BRAND, "mark-white.png")).convert("RGBA")
         self._bg: dict[tuple[int, int], Image.Image] = {}
         self._vig: dict[tuple[int, int], Image.Image] = {}
@@ -402,16 +396,6 @@ class Renderer:
         if alpha < 0.999:
             sprite.putalpha(sprite.getchannel("A").point(lambda v: int(v * alpha)))
         return paste_alpha(img, sprite, (cx - size / 2, cy - size / 2))
-
-    def wordmark_at(self, img, cx: float, y: float, width: float, alpha: float = 1.0) -> float:
-        scale = width / self.wordmark.width
-        sprite = self.wordmark.resize((max(2, int(self.wordmark.width * scale)),
-                                      max(2, int(self.wordmark.height * scale))), Image.LANCZOS)
-        if alpha < 0.999:
-            sprite = sprite.copy()
-            sprite.putalpha(sprite.getchannel("A").point(lambda v: int(v * alpha)))
-        paste_alpha(img, sprite, (cx - sprite.width / 2, y))
-        return sprite.height
 
     def sweep(self, img, p: float, strength: int = 30) -> Image.Image:
         if p <= 0 or p >= 1:

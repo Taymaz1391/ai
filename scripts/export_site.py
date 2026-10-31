@@ -60,7 +60,7 @@ border-radius:26px;padding:40px 30px;box-shadow:var(--shadow-lg)}
 .nf h1{font-size:22px;margin:0 0 10px}.nf p{color:var(--text-2);font-size:14px;line-height:2;margin:0 0 20px}
 .nf .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}</style></head>
 <body><main class="nf">
-<img src="static/assets/brand/wordmark-ink.png" alt="رایان" width="109" height="44">
+<img src="static/assets/brand/mark-ink.png" alt="رایان" width="109" height="56">
 <h1>این صفحه پیدا نشد</h1>
 <p>نشانی اشتباه است یا صفحه جابه‌جا شده. از خانه یا مستندات شروع کن؛ دورهٔ ۵ ساعته هم همان‌جاست.</p>
 <div class="row"><a class="btn btn-primary" href="index.html">بازگشت به خانه</a>

@@ -66,7 +66,7 @@
 .sidebar-scrim[hidden] { display: none; }
 @keyframes sidebar-fade { from { opacity: 0; } to { opacity: 1; } }
 .app-brand { display: inline-flex; align-items: center; padding-inline-end: 4px; }
-.app-brand img { height: 26px; width: auto; aspect-ratio: 232 / 94; }
+.app-brand img { height: 21px; width: auto; aspect-ratio: 514 / 262; }
 .app-brand .wordmark-for-dark { display: none; }
 [data-theme="dark"] .app-brand .wordmark-for-dark { display: block; }
 [data-theme="dark"] .app-brand .wordmark-for-light { display: none; }
@@ -251,8 +251,8 @@
 }
 .picker-btn:hover { border-color: var(--line-strong); background: var(--surface-2); }
 .picker-btn img { border-radius: 50%; }
-.picker-btn .model-logo { height: 1.05em; width: auto; aspect-ratio: 122 / 64; border-radius: 0; vertical-align: -0.18em; margin-inline-end: 4px; }
-.model-item .model-logo { height: 1em; width: auto; aspect-ratio: 122 / 64; border-radius: 0; vertical-align: -0.16em; margin-inline-end: 5px; }
+.picker-btn .model-logo { height: 1.05em; width: auto; aspect-ratio: 514 / 262; border-radius: 0; vertical-align: -0.18em; margin-inline-end: 4px; }
+.model-item .model-logo { height: 1em; width: auto; aspect-ratio: 514 / 262; border-radius: 0; vertical-align: -0.16em; margin-inline-end: 5px; }
 .picker-btn svg { color: var(--text-3); }
 .menu {
   position: absolute;

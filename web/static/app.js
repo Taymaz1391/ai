@@ -263,8 +263,8 @@
   // نام برند همیشه تصویر است: پیشوند «رایان» از دادهٔ سرور جدا و با لوگوتایپ
   // نمایش داده می‌شود، بقیهٔ نام (مثلاً «۱ — کوچک») متن می‌ماند.
   const MODEL_LOGO = (
-    '<img class="wm-inline model-logo wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="122" height="64" decoding="async">' +
-    '<img class="wm-inline model-logo wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="122" height="64" decoding="async">'
+    '<img class="wm-inline model-logo wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async">' +
+    '<img class="wm-inline model-logo wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async">'
   );
   function modelNameCore(name) {
     return String(name || "").replace(/^\s*(رایان|Rayan)\s*/u, "").trim();

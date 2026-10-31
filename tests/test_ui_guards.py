@@ -6,8 +6,9 @@
   دکمه را برای همیشه پنهان می‌کرد.
 * لوگوتایپ: نسبت تصویر در نشانه‌گذاری باید با نسبت واقعی فایل بخواند،
   وگرنه حروف کشیده می‌شوند.
-* ویدیو: هر سه نسبت تصویر و دو زبان باید فایل واقعی داشته باشند.
-* زبان: صفحه‌های انگلیسی نباید متن فارسی نشان دهند.
+* ویدیو: هر سه نسبت تصویر باید فایل واقعی داشته باشند و ویدیوی پس از
+  ثبت‌نام تمام‌صفحه پخش شود.
+* زبان: سایت تک‌زبانه است؛ هیچ صفحهٔ انگلیسی یا کلید زبان نمی‌ماند.
 """
 from __future__ import annotations
 
@@ -63,20 +64,21 @@ class SidebarTest(unittest.TestCase):
 
 
 class BrandTest(unittest.TestCase):
-    def test_wordmark_ratio_matches_markup(self):
-        for name in ("wordmark-ink.png", "wordmark-white.png"):
+    def test_mark_ratio_matches_markup(self):
+        """نسبت لوگوتایپ در نشانه‌گذاری باید با فایل رسمی بخواند، وگرنه کشیده می‌شود."""
+        for name in ("mark-ink.png", "mark-white.png"):
             with Image.open(BRAND / name) as img:
-                ratio = round(img.width / img.height, 2)
-            self.assertAlmostEqual(ratio, 2.47, places=1, msg=name)
+                ratio = round(img.width / img.height, 3)
+            self.assertAlmostEqual(ratio, 514 / 262, places=2, msg=name)
         for page in STATIC.glob("*.html"):
             html = page.read_text(encoding="utf-8")
-            for w, h in re.findall(r'wordmark-(?:ink|white)\.png"[^>]*width="(\d+)" height="(\d+)"', html):
-                self.assertAlmostEqual(int(w) / int(h), 232 / 94, delta=0.06,
+            for w, h in re.findall(r'mark-(?:ink|white)\.png"[^>]*width="(\d+)" height="(\d+)"', html):
+                self.assertAlmostEqual(int(w) / int(h), 514 / 262, delta=0.08,
                                        msg=f"{page.name}: {w}×{h}")
 
     def test_css_reserves_intrinsic_ratio(self):
         css = (STATIC / "styles.css").read_text(encoding="utf-8")
-        self.assertIn("aspect-ratio: 232 / 94", css)
+        self.assertIn("aspect-ratio: 514 / 262", css)
 
     def test_brand_name_is_a_logotype_not_text(self):
         """هیچ صفحه‌ای نام برند را به‌تنهایی به‌صورت متن نمی‌نویسد."""

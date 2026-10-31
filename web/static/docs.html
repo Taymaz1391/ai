@@ -18,10 +18,10 @@
   <header class="nav">
     <div class="nav-inner">
       <a class="brand" href="/">
-        <img class="brand-wordmark wordmark-for-light" src="/static/assets/brand/wordmark-ink.png"
-             alt="رایان" width="116" height="47">
-        <img class="brand-wordmark wordmark-for-dark" src="/static/assets/brand/wordmark-white.png"
-             alt="رایان" width="116" height="47">
+        <img class="brand-wordmark wordmark-for-light" src="/static/assets/brand/mark-ink.png"
+             alt="رایان" width="116" height="59">
+        <img class="brand-wordmark wordmark-for-dark" src="/static/assets/brand/mark-white.png"
+             alt="رایان" width="116" height="59">
       </a>
       <nav class="nav-links" aria-label="پیمایش">
         <a class="nav-link" href="/#features">قابلیت‌ها</a>
@@ -50,9 +50,9 @@
       </nav>
 
       <div class="prose">
-        <h1 style="font-size:clamp(24px,3.6vw,34px);color:var(--text)">مستندات <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="122" height="64" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="122" height="64" decoding="async"> </h1>
+        <h1 style="font-size:clamp(24px,3.6vw,34px);color:var(--text)">مستندات <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async"> </h1>
         <p style="color:var(--text-3);font-size:13.5px">هر چیزی که برای اجرا، استفاده و استقرار لازم داری.
-          اگر می‌خواهی از صفر یاد بگیری، <a href="/course">دورهٔ ۵ ساعتهٔ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="122" height="64" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="122" height="64" decoding="async"> </a> مسیر کامل است.</p>
+          اگر می‌خواهی از صفر یاد بگیری، <a href="/course">دورهٔ ۵ ساعتهٔ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async"> </a> مسیر کامل است.</p>
 
         <h2 id="quickstart">شروع سریع</h2>
         <pre><code>git clone https://github.com/Taymaz1391/ai.git
@@ -116,12 +116,9 @@ python web/server.py --host 0.0.0.0 --port 8000</code></pre>
 
         <h2 id="locale">زبان و ویدیوی تبلیغاتی</h2>
         <p>
-          زبان پیش‌فرض فارسی است. اگر مرورگر زبان فارسی یا انگلیسی بفرستد، همان انتخاب می‌شود؛ وگرنه کشور بازدیدکننده
-          از سرصفحهٔ پراکسی میزبان (مثل <code>cf-ipcountry</code> در Cloudflare) خوانده می‌شود و در آخر منطقهٔ زمانی
-          مرورگر به‌عنوان سیگنال جایگزین به کار می‌رود. هیچ درخواستی به سرویس GeoIP بیرونی زده نمی‌شود؛ اگر جدول محلی
-          <code>data/geoip.json</code> را بگذاری، همان ملاک است (قالب نمونه: <code>data/geoip.sample.json</code>؛
-          مسیر دیگر را با متغیر <code>RAYAN_GEOIP</code> بده). ویدیوی تبلیغاتی هم به همین زبان و به نسبت صفحه
-          (افقی، عمودی یا مربعی) انتخاب می‌شود.
+          سایت تک‌زبانه است: همهٔ صفحه‌ها <code>lang="fa"</code> و <code>dir="rtl"</code> هستند و هیچ کلید زبان،
+          هدایت خودکار یا تشخیص GeoIP وجود ندارد. ویدیوی تبلیغاتی فقط بر اساس نسبت صفحه انتخاب می‌شود
+          (افقی برای دسکتاپ، عمودی برای موبایل، مربعی برای شبکه‌های اجتماعی) و فارسی است.
         </p>
 
         <h2 id="clients">کلاینت‌های نصب</h2>
@@ -155,10 +152,10 @@ python web/server.py --host 0.0.0.0 --port 8000</code></pre>
   <footer class="footer">
     <div class="wrap"><div class="footer-bottom" style="border-top:0;margin-top:0">
       <div class="footer-brandmark">
-        <img class="wordmark-for-light" src="/static/assets/brand/wordmark-ink.png" alt="رایان" width="116" height="47">
-        <img class="wordmark-for-dark" src="/static/assets/brand/wordmark-white.png" alt="رایان" width="116" height="47">
+        <img class="wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="116" height="59">
+        <img class="wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="116" height="59">
       </div>
-      <span>© ۱۴۰۵ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="122" height="64" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="122" height="64" decoding="async"> · MIT</span>
+      <span>© ۱۴۰۵ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async"> · MIT</span>
       <a href="https://github.com/Taymaz1391/ai" rel="noopener">مخزن GitHub</a><a href="/summary">خلاصهٔ پروژه</a>
     </div></div>
   </footer>

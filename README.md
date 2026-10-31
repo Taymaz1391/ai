@@ -81,9 +81,10 @@ python scripts/make_promo.py --lang fa --preview 2,8  # پیش‌نمایش فر
 python scripts/make_sting.py  --lang both             # نشان متحرک ۶ثانیه‌ای
 ```
 
-لوگوتایپ برند تصویر است، نه متن: `scripts/make_logotype.py` از `wordmark-*.png` دو فایل می‌سازد
-(`mark-*.png` برای سرصفحه و نشانه، `logotype-stack-*.png` برای کره+نام) و `scripts/inline_logotype.py`
-هر نام تایپ‌شده در صفحه‌ها را با همان تصویر جایگزین می‌کند؛ `--check` در CI جلوی برگشتش را می‌گیرد.
+لوگوتایپ برند تصویر است، نه متن: `scripts/make_logotype.py` لوگوتایپ رسمی «رایان» را از
+`logo-source.jpg` می‌برد و پس‌زمینه‌اش را شفاف می‌کند — `mark-*.png` برای سرصفحه و درون متن،
+`logotype-stack-*.png` برای کره+نام. `scripts/inline_logotype.py` هر نام تایپ‌شده را با همان
+تصویر جایگزین می‌کند و `--check` در CI جلوی برگشتش را می‌گیرد.
 
 فونت‌های سایت woff2 هستند؛ `scripts/fontcache.py` همان فایل‌ها را برای Pillow به TTF تبدیل می‌کند (بدون دانلود).
 

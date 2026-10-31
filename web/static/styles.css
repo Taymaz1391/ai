@@ -240,7 +240,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .nav.is-scrolled { border-bottom-color: var(--line); background: var(--nav-bg); box-shadow: var(--shadow-sm); }
 .nav-inner { display: flex; align-items: center; gap: 26px; width: min(1180px, 100% - 40px); margin-inline: auto; }
 .brand { display: inline-flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.brand-wordmark { height: 37px; width: auto; aspect-ratio: 232 / 94; display: block; object-fit: contain; }
+.brand-wordmark { height: 30px; width: auto; aspect-ratio: 514 / 262; display: block; object-fit: contain; }
 .wordmark-for-dark { display: none; }
 [data-theme="dark"] .wordmark-for-dark { display: block; }
 [data-theme="dark"] .wordmark-for-light { display: none; }
@@ -364,7 +364,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   margin-inline-start: auto; display: inline-flex; align-items: center; gap: 8px;
   font-size: 11.5px; color: var(--text-3); letter-spacing: 0.04em;
 }
-.preview-brand img { height: 22px; width: auto; aspect-ratio: 232 / 94; display: block; }
+.preview-brand img { height: 17px; width: auto; aspect-ratio: 514 / 262; display: block; }
 .preview-brand em { font-style: normal; }
 .preview-brand em::before { content: "·"; margin-inline-end: 6px; opacity: .6; }
 .preview-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
@@ -847,7 +847,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .pill.is-bad { background: var(--danger-bg); color: var(--danger-fg); }
 
 /* ----------------------------------------------------------- لوگو و آکادمی */
-.lockup { width: min(186px, 48vw); height: auto; aspect-ratio: 840 / 965; display: block; }
+.lockup { width: min(178px, 46vw); height: auto; aspect-ratio: 834 / 875; display: block; }
 .lockup-for-dark { display: none; }
 [data-theme="dark"] .lockup-for-dark { display: block; }
 [data-theme="dark"] .lockup-for-light { display: none; }
@@ -967,7 +967,7 @@ body::before {
 }
 
 .footer-brandmark { margin-bottom: 10px; }
-.footer-brandmark img { height: 34px; width: auto; }
+.footer-brandmark img { height: 26px; width: auto; }
 .footer-brandmark .wordmark-for-dark { display: none; }
 [data-theme="dark"] .footer-brandmark .wordmark-for-dark { display: block; }
 [data-theme="dark"] .footer-brandmark .wordmark-for-light { display: none; }
@@ -1009,17 +1009,26 @@ body::before {
 
 /* لوگوتایپ درون‌خطی: نام برند همیشه تصویر است، نه متن تایپ‌شده */
 .wm-inline {
-  height: 0.92em; width: auto; aspect-ratio: 122 / 64;
+  height: 0.92em; width: auto; aspect-ratio: 514 / 262;
   display: inline-block; vertical-align: -0.16em; margin-inline-end: 0.28em;
   object-fit: contain;
 }
 /* جایی که لوگوتایپ کامل (بدون کره) به‌کار می‌رود */
-.wm-inline[src*="wordmark-"] { aspect-ratio: 232 / 94; }
+
 .wm-inline.wordmark-for-dark { display: none; }
 [data-theme="dark"] .wm-inline.wordmark-for-dark { display: inline-block; }
 [data-theme="dark"] .wm-inline.wordmark-for-light { display: none; }
-/* روی سطح‌های تیره (دکمهٔ اصلی، نوار فراخوان، قاب پیش‌نمایش) لوگو سفید می‌شود */
-.btn-primary .wm-inline,
-.cta-band .wm-inline,
-.preview-frame .wm-inline,
-.promo-media .wm-inline { filter: brightness(0) invert(1); }
+/* روی سطح‌های تیره (دکمهٔ اصلی، نوار فراخوان، قاب پیش‌نمایش) نسخهٔ سفید برند
+   نمایش داده می‌شود؛ لهجهٔ آبی لوگو حفظ می‌شود و فیلتری روی تصویر نمی‌نشیند. */
+.btn-primary .wm-inline.wordmark-for-light,
+.cta-band .wm-inline.wordmark-for-light,
+.preview-frame .wm-inline.wordmark-for-light,
+.promo-media .wm-inline.wordmark-for-light,
+.welcome-copy .wm-inline.wordmark-for-light,
+.studio-stage .wm-inline.wordmark-for-light { display: none; }
+.btn-primary .wm-inline.wordmark-for-dark,
+.cta-band .wm-inline.wordmark-for-dark,
+.preview-frame .wm-inline.wordmark-for-dark,
+.promo-media .wm-inline.wordmark-for-dark,
+.welcome-copy .wm-inline.wordmark-for-dark,
+.studio-stage .wm-inline.wordmark-for-dark { display: inline-block; filter: none; }
