@@ -182,7 +182,7 @@ def chip(img: Image.Image, box, label: str, font, alpha: float, accent=CYAN) -> 
 
 # -------------------------------------------------------------------- صحنه‌ها
 def frame(w: int, h: int, t: float, lang: str, wordmark_white: Image.Image,
-          wordmark_ink: Image.Image) -> Image.Image:
+          wordmark_ink: Image.Image, bar: bool = True) -> Image.Image:
     cfg = TEXT[lang]
     s = min(w, h) / 720.0
     img = background(w, h, t)
@@ -314,8 +314,9 @@ def frame(w: int, h: int, t: float, lang: str, wordmark_white: Image.Image,
         img.alpha_composite(wm, (int(w / 2 - wm.width / 2), int(h * 0.70)))
 
     # نوار پیشرفت پایین + وینیت
-    d = ImageDraw.Draw(img)
-    d.rectangle([0, h - 5, int(w * (t / DURATION)), h], fill=CYAN + (200,))
+    if bar:
+        d = ImageDraw.Draw(img)
+        d.rectangle([0, h - 5, int(w * (t / DURATION)), h], fill=CYAN + (200,))
     return vignette(img).convert("RGB")
 
 
@@ -407,8 +408,9 @@ def render(out_path: str, w: int, h: int, lang: str, wordmark_white, ffmpeg: str
         raise SystemExit(f"ffmpeg failed for {out_path}")
 
 
-def poster(w: int, h: int, lang: str, wordmark, path: str) -> None:
-    img = frame(w, h, 1.2, lang, wordmark, wordmark)
+def poster(w: int, h: int, lang: str, wordmark, path: str, at: float = 2.4) -> None:
+    """پوستر بدون نوار پیشرفت، از صحنهٔ لوگو یا صحنهٔ قابلیت‌ها."""
+    img = frame(w, h, at, lang, wordmark, wordmark, bar=False)
     img.save(path, quality=88, optimize=True)
 
 
