@@ -943,6 +943,8 @@
         ? `گام ${fa(s.step)} از ${fa(s.totalSteps)}؛ خطای آموزش ${lastTrain?.loss !== undefined ? fa(lastTrain.loss, 3) : "—"}.`
         : `آخرین وضعیت: گام ${fa(s.step)}؛ خطای اعتبارسنجی ${fa(lastEval?.val_loss, 3)}.`;
     }
+    const heroLabel = $("#hero-live-label");
+    if (heroLabel) heroLabel.textContent = s.m.active ? "آموزش زنده" : "مدل نهایی";
     const heroLive = $("#hero-live-text");
     if (heroLive) {
       heroLive.textContent = s.m.active
