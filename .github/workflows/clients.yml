@@ -32,22 +32,55 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - uses: android-actions/setup-android@v3
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.9"
-      - name: Build release APK
-        working-directory: clients/android
-        run: gradle --no-daemon :app:assembleRelease -PserverUrl="$SERVER_URL"
-      - name: Rename artifact
+      - name: Bake server address
         run: |
-          mkdir -p out
-          cp clients/android/app/build/outputs/apk/release/app-release.apk out/rayan-android.apk
-          ls -lh out
-      - uses: actions/upload-artifact@v4
-        with:
-          name: rayan-android
-          path: out/rayan-android.apk
+          cat > clients/android/app/src/main/java/ir/rayan/app/Config.java <<JAVA
+          package ir.rayan.app;
+
+          final class Config {
+              static final String SERVER_URL = "$SERVER_URL";
+              static final String VERSION = "6.0.0";
+              static final boolean DEBUG = false;
+          }
+          JAVA
+          cat clients/android/app/src/main/java/ir/rayan/app/Config.java
+      - name: Build APK with SDK build-tools (no Gradle, no downloads)
+        working-directory: clients/android
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          echo "SDK=$SDK"
+          PLATFORM_JAR="$(ls -d "$SDK"/platforms/android-*/android.jar | sort -V | tail -1)"
+          BT="$(ls -d "$SDK"/build-tools/* | sort -V | tail -1)"
+          echo "platform=$PLATFORM_JAR buildtools=$BT"
+          test -f "$PLATFORM_JAR"
+          API="$(basename "$(dirname "$PLATFORM_JAR")" | sed 's/[^0-9]//g')"
+          WORK="$(mktemp -d)"
+          "$BT/aapt2" compile --dir app/src/main/res -o "$WORK/res.zip"
+          "$BT/aapt2" link -o "$WORK/base.apk" \
+            -I "$PLATFORM_JAR" \
+            --manifest app/src/main/AndroidManifest.xml \
+            -R "$WORK/res.zip" \
+            --java "$WORK/gen" \
+            --min-sdk-version 24 --target-sdk-version "$API" \
+            --version-code 1 --version-name 6.0.0 \
+            --auto-add-overlay
+          javac -source 17 -target 17 -encoding UTF-8 -nowarn \
+            -classpath "$PLATFORM_JAR" -d "$WORK/classes" \
+            $(find app/src/main/java "$WORK/gen" -name '*.java')
+          mkdir -p "$WORK/dex"
+          "$BT/d8" --lib "$PLATFORM_JAR" --min-api 24 --output "$WORK/dex" \
+            $(find "$WORK/classes" -name '*.class')
+          (cd "$WORK/dex" && zip -q ../base.apk classes.dex)
+          "$BT/zipalign" -f -p 4 "$WORK/base.apk" "$WORK/aligned.apk"
+          "$BT/apksigner" sign --ks rayan-sideload.p12 --ks-type PKCS12 \
+            --ks-pass pass:rayan-sideload-2024 --ks-key-alias rayan \
+            --key-pass pass:rayan-sideload-2024 \
+            --out "$WORK/rayan-android.apk" "$WORK/aligned.apk"
+          "$BT/apksigner" verify "$WORK/rayan-android.apk"
+          mkdir -p ../../out
+          cp "$WORK/rayan-android.apk" ../../out/rayan-android.apk
+          ls -lh ../../out
 
   windows:
     name: EXE

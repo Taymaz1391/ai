@@ -621,6 +621,11 @@ def docs_page() -> FileResponse:
     return _page("docs.html")
 
 
+@app.get("/download", response_class=HTMLResponse)
+def download_page() -> FileResponse:
+    return _page("download.html")
+
+
 @app.get("/summary", response_class=HTMLResponse)
 def summary_page() -> FileResponse:
     return _page("summary.html")
@@ -702,7 +707,8 @@ def robots() -> Response:
 @app.get("/sitemap.xml")
 def sitemap(request: Request) -> Response:
     base = os.environ.get("RAYAN_PUBLIC_URL", str(request.base_url).rstrip("/"))
-    pages = ["", "chat", "pricing", "models", "about", "docs", "course", "summary", "en", "en/course", "en/docs"]
+    pages = ["", "chat", "pricing", "models", "about", "docs", "course", "download", "summary",
+             "en", "en/course", "en/docs"]
     urls = "".join(f"<url><loc>{base}/{p}</loc></url>" for p in pages)
     xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
     return Response(xml, media_type="application/xml")

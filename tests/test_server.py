@@ -58,7 +58,8 @@ class ApiTest(unittest.TestCase):
 
     def test_pages(self):
         for path in ("/", "/chat", "/login", "/signup", "/pricing", "/models", "/about",
-                     "/docs", "/course", "/en", "/en/course", "/en/docs", "/summary"):
+                     "/docs", "/course", "/en", "/en/course", "/en/docs", "/summary",
+                     "/download"):
             res = self.client.get(path)
             self.assertEqual(res.status_code, 200, path)
             self.assertTrue("رایان" in res.text or "rayan" in res.text.lower(), path)

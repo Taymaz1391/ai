@@ -1,7 +1,7 @@
 const fs = require("fs");
 const { JSDOM, VirtualConsole } = require("jsdom");
 const BASE = "http://127.0.0.1:8078";
-const pages = ["/index.html", "/chat.html", "/login.html", "/signup.html", "/pricing.html", "/models.html", "/about.html", "/docs.html", "/course.html"];
+const pages = ["/index.html", "/chat.html", "/login.html", "/signup.html", "/pricing.html", "/models.html", "/about.html", "/docs.html", "/course.html", "/download.html"];
 (async () => {
   const errors = [];
   for (const p of pages) {

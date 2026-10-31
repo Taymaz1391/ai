@@ -55,7 +55,7 @@ public class MainActivity extends Activity {
         s.setAllowFileAccess(false);
         s.setAllowContentAccess(false);
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
-        s.setUserAgentString(s.getUserAgentString() + " RayanAndroid/" + BuildConfig.VERSION_NAME);
+        s.setUserAgentString(s.getUserAgentString() + " RayanAndroid/" + Config.VERSION);
 
         CookieManager cookies = CookieManager.getInstance();
         cookies.setAcceptCookie(true);
@@ -65,7 +65,7 @@ public class MainActivity extends Activity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
-                if (uri.getHost() != null && uri.getHost().equals(Uri.parse(BuildConfig.SERVER_URL).getHost())) {
+                if (uri.getHost() != null && uri.getHost().equals(Uri.parse(Config.SERVER_URL).getHost())) {
                     return false; // همان سرور: داخل برنامه
                 }
                 startActivity(new Intent(Intent.ACTION_VIEW, uri)); // بقیه: مرورگر
@@ -74,7 +74,7 @@ public class MainActivity extends Activity {
 
             @Override
             public void onReceivedError(WebView view, int code, String description, String failingUrl) {
-                if (failingUrl != null && failingUrl.startsWith(BuildConfig.SERVER_URL)) {
+                if (failingUrl != null && failingUrl.startsWith(Config.SERVER_URL)) {
                     showError();
                 }
             }
@@ -83,10 +83,10 @@ public class MainActivity extends Activity {
         findViewById(R.id.retry).setOnClickListener(v -> {
             errorView.setVisibility(View.GONE);
             web.setVisibility(View.VISIBLE);
-            web.loadUrl(BuildConfig.SERVER_URL);
+            web.loadUrl(Config.SERVER_URL);
         });
 
-        web.loadUrl(BuildConfig.SERVER_URL);
+        web.loadUrl(Config.SERVER_URL);
     }
 
     private void showError() {

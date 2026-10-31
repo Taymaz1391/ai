@@ -7,7 +7,7 @@
 
 | فایل | توضیح |
 | --- | --- |
-| `android/` | پروژهٔ Gradle؛ WebView تمام‌صفحه، بدون نوار نشانی |
+| `android/` | پروژهٔ بومی؛ WebView تمام‌صفحه، بدون نوار نشانی (ساخت با build-tools خودِ SDK) |
 | `windows/` | پروژهٔ .NET 8 WinForms + WebView2؛ پنجرهٔ بومی |
 
 ## نشانی سرور
@@ -16,14 +16,16 @@
 
 * در CI از متغیر مخزن `RAYAN_SERVER_URL` خوانده می‌شود
   (Settings → Secrets and variables → Actions → Variables).
-* به‌صورت دستی: `gradle :app:assembleRelease -PserverUrl=https://your-host`
-  و برای ویندوز `RAYAN_SERVER_URL` را پیش از `dotnet publish` ست کن.
+* در ساخت دستی، `app/src/main/java/ir/rayan/app/Config.java` را با نشانی خودت بنویس
+  (یا همان تکهٔ «Bake server address» در گردش‌کار را اجرا کن)؛ برای ویندوز
+  `RAYAN_SERVER_URL` را پیش از `dotnet publish` ست کن.
 * در ویندوز، متغیر محیطی `RAYAN_SERVER_URL` هنگام اجرا هم نشانی را عوض می‌کند
   (برای آزمون محلی).
 
 ## امضا
 
-APK با کلید `rayan-sideload.p12` امضا می‌شود. این کلید فقط برای نصب مستقیم
+APK بدون Gradle و فقط با `aapt2`/`javac`/`d8`/`apksigner` از Android SDK ساخته
+می‌شود و با کلید `rayan-sideload.p12` امضا می‌شود. این کلید فقط برای نصب مستقیم
 (sideload) است و برای انتشار در Google Play مناسب نیست؛ اگر کلید خصوصی
 Play را داری، `signingConfigs.release` را به آن تغییر بده.
 

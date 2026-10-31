@@ -1,5 +1,5 @@
 /* رایان — سرویس‌ورکر: دارایی‌های ایستا کش، صفحه‌ها شبکه-اول، آفلاین‌پذیر */
-const VERSION = "rayan-v5";
+const VERSION = "rayan-v6";
 const SHELL = [
   "/static/styles.css",
   "/static/pages.css",
@@ -19,7 +19,7 @@ const SHELL = [
   "/static/assets/fonts/Vazirmatn-Regular.woff2",
   "/static/assets/fonts/Vazirmatn-Bold.woff2",
 ];
-const PAGES = ["/", "/chat", "/pricing", "/models", "/about", "/docs", "/course", "/offline"];
+const PAGES = ["/", "/chat", "/pricing", "/models", "/about", "/docs", "/course", "/download", "/offline"];
 const OFFLINE_HTML = `<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>رایان — آفلاین</title>
 <style>

@@ -8,7 +8,7 @@ public class RayanApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        if (BuildConfig.DEBUG) {
+        if (Config.DEBUG) {
             WebView.setWebContentsDebuggingEnabled(true);
         }
     }
