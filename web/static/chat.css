@@ -669,15 +669,6 @@
 
 /* ======================================================== پخش‌کنندهٔ ویدیو */
 .modal.modal-wide { width: min(940px, calc(100vw - 28px)); }
-.promo-player {
-  position: relative; border-radius: 16px; overflow: hidden;
-  background: var(--code-bg); border: 1px solid var(--line);
-  box-shadow: 0 24px 60px -28px rgba(3, 12, 30, 0.75);
-}
-.promo-player video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
-.promo-modal-note { margin-top: 12px; font-size: 13px; text-align: center; }
-@media (max-width: 560px) {
-  .promo-player video { aspect-ratio: 9 / 16; max-height: 68vh; }
 }
 .chip-play { display: inline-flex; align-items: center; gap: 8px; }
 .chip-play-icon {

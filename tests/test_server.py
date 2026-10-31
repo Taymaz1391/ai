@@ -266,7 +266,8 @@ class V3Test(unittest.TestCase):
         """سایت تک‌زبانه است: حتی مرورگر یا IP خارجی هم نسخهٔ فارسی می‌گیرد."""
         en = self.client.get("/api/locale", headers={"accept-language": "en-US,en;q=0.9"}).json()
         self.assertEqual((en["lang"], en["dir"]), ("fa", "rtl"))
-        self.assertTrue(en["videos"]["landscape"].endswith("promo-fa-16x9.mp4"))
+        self.assertTrue(en["motion"]["orb"].endswith("orb-live.webp"))
+        self.assertNotIn("videos", en)
         de = self.client.get("/api/locale", headers={"cf-ipcountry": "DE"}).json()
         self.assertEqual(de["lang"], "fa")
         home = self.client.get("/", headers={"accept-language": "en-GB,en"}, follow_redirects=False)
@@ -278,15 +279,20 @@ class V3Test(unittest.TestCase):
             self.assertEqual(res.status_code, 302, path)
             self.assertEqual(res.headers["location"], "/")
 
-    def test_promo_assets_exist(self):
+    def test_brand_motion_assets_exist(self):
         from pathlib import Path as _Path
-        video_dir = _Path(ROOT) / "web" / "static" / "assets" / "video"
-        for name in ("promo-fa-16x9.mp4", "promo-fa-9x16.mp4", "promo-fa-1x1.mp4",
-                     "promo-fa-poster.jpg", "sting-fa-16x9.mp4", "sting-fa-1x1.mp4"):
-            self.assertTrue((video_dir / name).exists(), name)
-        res = self.client.get("/static/assets/video/promo-fa-16x9.mp4")
+        brand = _Path(ROOT) / "web" / "static" / "assets" / "brand"
+        for name, floor in (("orb-live.webp", 20_000), ("orb-live-sm.webp", 8_000),
+                            ("logo-motion.webp", 60_000), ("logo-motion-dark.webp", 60_000),
+                            ("logo-loading.webp", 40_000)):
+            path = brand / name
+            self.assertTrue(path.exists(), name)
+            self.assertGreater(path.stat().st_size, floor, name)
+        res = self.client.get("/static/assets/brand/orb-live.webp")
         self.assertEqual(res.status_code, 200)
-        self.assertGreater(int(res.headers.get("content-length", "0")), 50_000)
+        self.assertEqual(res.headers["content-type"], "image/webp")
+        # ویدیوی تبلیغاتی از سایت و مخزن حذف شده است
+        self.assertFalse((_Path(ROOT) / "web" / "static" / "assets" / "video" / "promo-fa-16x9.mp4").exists())
 
     def test_new_pages(self):
         for path in ("/admin", "/offline", "/privacy"):
@@ -428,7 +434,8 @@ class V3Test(unittest.TestCase):
     def test_shared_static_assets_exist(self):
         for path in ("/static/assets/brand/logotype-stack-ink.png", "/static/assets/brand/og-image.png",
                      "/static/assets/brand/mark-ink.png",
-                     "/static/assets/video/promo-fa-16x9.mp4"):
+                     "/static/assets/brand/orb-live.webp",
+                     "/static/assets/brand/logo-motion.webp"):
             self.assertEqual(self.client.get(path).status_code, 200, path)
 
 

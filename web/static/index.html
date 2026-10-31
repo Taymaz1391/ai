@@ -73,7 +73,7 @@
           <div class="hero-copy">
             <div class="hero-orb-row">
               <span class="orb-live hero-orb" data-size="72">
-                <img src="/static/assets/brand/orb-128.png" alt="رایان" width="72" height="72" loading="eager">
+                <img src="/static/assets/brand/orb-live.webp" alt="رایان" width="72" height="72" loading="eager">
                 <i class="lid l"></i><i class="lid r"></i>
               </span>
               <span class="eyebrow">هوش مصنوعی فارسی · نسخهٔ ۳٫۰</span>
@@ -92,12 +92,6 @@
               <a class="btn btn-lg" href="/login">ساخت حساب رایگان</a>
             </div>
             <p class="hero-note"><span class="dot-live"></span><span id="hero-status">در حال خواندن وضعیت مدل…</span></p>
-            <div class="hero-video-chip">
-              <a class="video-chip" href="#promo" aria-label="دیدن ویدیوی تبلیغاتی">
-                <span class="video-chip-play" aria-hidden="true"></span>
-                <span><b>ویدیوی تبلیغاتی</b><small>۱۶ ثانیه · با صدا و موسیقی · ساخته‌شده در همین مخزن</small></span>
-              </a>
-            </div>
             <div class="hero-stats">
               <div class="hero-stat"><b id="stat-params">۶٫۵۷ میلیون</b><span>پارامتر</span></div>
               <div class="hero-stat"><b id="stat-speed">۸۴</b><span>توکن بر ثانیه</span></div>
@@ -140,11 +134,7 @@
                 </div>
               </div>
             </div>
-            <div class="preview-float">
-              <span class="dot-live"></span>
-              <span>بدون API بیرونی · اجرا روی CPU</span>
-            </div>
-            <p class="preview-caption">تصویر رابط کاربری · پاسخ نمونه</p>
+            <p class="preview-caption">تصویر رابط کاربری · پاسخ نمونه · بدون API بیرونی</p>
           </div>
         </div>
       </div>
@@ -239,7 +229,7 @@
             <div class="step-num">۰۳ / مدل</div>
             <div class="step-body">
               <h3>ترنسفورمر ۶٫۵۷ میلیون پارامتری</h3>
-              <p>یک ترنسفورمر کوچک که کاملاً با NumPy ساخته شده؛ نه PyTorch، نه وزن آماده.</p>
+              <p>یک ترنسفورمر کوچک که کاملاً با <bdi dir="ltr">NumPy</bdi> ساخته شده؛ نه <bdi dir="ltr">PyTorch</bdi>، نه وزن آماده.</p>
             </div>
           </div>
           <div class="step-row reveal">
@@ -305,41 +295,33 @@
       </div>
     </section>
 
-    <!-- ==================================================== ویدیوی تبلیغاتی -->
-    <section class="section-sm" id="promo" aria-label="ویدیوی تبلیغاتی رایان">
+    <!-- ====================================================== نشانِ زندهٔ برند -->
+    <section class="section-sm" id="motion" aria-label="نشان زندهٔ رایان">
       <div class="wrap">
-        <div class="promo-card reveal">
-          <div class="promo-media">
-            <video id="promo-video" class="promo-video" muted autoplay loop playsinline
-                   preload="metadata" disableremoteplayback
-                   poster="/static/assets/video/promo-fa-poster.jpg"
-                   aria-label="ویدیوی تبلیغاتی رایان: نشان، گفتگو، سه عدد راستین و فراخوان">
-              <source src="/static/assets/video/promo-fa-16x9.mp4" type="video/mp4">
-              <track kind="captions" src="/static/assets/video/promo-fa.vtt" srclang="fa" label="فارسی" default>
-            </video>
-            <button class="promo-sound" type="button" id="promo-sound" aria-pressed="false">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M16 9a4 4 0 0 1 0 6"/><path d="M19 6a8 8 0 0 1 0 12"/></svg>
-              <span>صدا</span>
-            </button>
+        <div class="motion-shell reveal">
+          <div class="motion-stage">
+            <img class="motion-logo motion-for-light" src="/static/assets/brand/logo-motion.webp"
+                 alt="نشان رایان" width="640" height="320" loading="lazy" decoding="async">
+            <img class="motion-logo motion-for-dark" src="/static/assets/brand/logo-motion-dark.webp"
+                 alt="" aria-hidden="true" width="640" height="320" loading="lazy" decoding="async">
+            <span class="motion-orb">
+              <img src="/static/assets/brand/orb-live.webp" alt="" width="132" height="132" loading="lazy" decoding="async">
+            </span>
           </div>
-          <div class="promo-copy">
-            <span class="eyebrow">ویدیوی معرفی</span>
-            <h2 class="section-title">۱۶ ثانیه، با موسیقی و افکت</h2>
+          <div class="motion-copy">
+            <span class="eyebrow">نشان زنده</span>
+            <h2 class="section-title">حرکت، بخشی از هویت است</h2>
             <p class="section-sub">
-              این ویدیو هم داخل همین مخزن ساخته شده: تصویرها با پایتون، صدا با numpy و
-              چسباندن نهایی با ffmpeg. بدون استوک، بدون سرویس ابری.
+              نشان و کرهٔ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async">
+              با حرکت ساخته شده‌اند: حرف‌ها یکی‌یکی می‌رسند و کره نفس می‌کشد. این‌ها فایل‌های سبک‌اند،
+              نه ویدیو و نه سرویس بیرونی؛ در تم روشن و تیره هم درست می‌نشینند.
             </p>
-            <div class="promo-actions">
-              <a class="btn btn-primary" href="/chat">همین حالا امتحان کن</a>
-              <a class="btn" href="#promo">نسخه‌های ویدیو</a>
-            </div>
-            <ul class="promo-variants" aria-label="نسخه‌های ویدیو">
-              <li><a href="/static/assets/video/promo-fa-16x9.mp4" download>افقی ۱۶:۹</a></li>
-              <li><a href="/static/assets/video/promo-fa-9x16.mp4" download>عمودی ۹:۱۶</a></li>
-              <li><a href="/static/assets/video/promo-fa-1x1.mp4" download>مربعی ۱:۱</a></li>
-              <li><a href="/static/assets/video/promo-fa-poster.jpg" download>پوستر</a></li>
+            <ul class="motion-points">
+              <li><b>۱</b><span>نشان متحرک، ۱۸۰ کیلوبایت، شفاف و بی‌قاب</span></li>
+              <li><b>۲</b><span>کرهٔ زنده با پلک‌زدن و حالِ پاسخ‌دادن</span></li>
+              <li><b>۳</b><span>توقف خودکار با «کم‌کردن حرکت» در سیستم</span></li>
             </ul>
-            <p class="promo-note" id="promo-note" hidden></p>
+            <a class="btn btn-primary" href="/chat">گفتگو با <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> </a>
           </div>
         </div>
       </div>
@@ -411,7 +393,7 @@
           </div>
           <div class="faq-item">
             <button class="faq-q" aria-expanded="false">از هیچ مدل آماده‌ای استفاده شده؟ <span class="chev">+</span></button>
-            <div class="faq-a"><p>خیر. وزن‌ها از صفر مقداردهی و آموزش داده شده‌اند؛ توکنایزر هم روی پیکرهٔ خودمان آموزش دیده. تنها وابستگی‌ها NumPy، FastAPI و SQLite هستند — نه وزن آماده، نه API بیرونی.</p></div>
+            <div class="faq-a"><p>خیر. وزن‌ها از صفر مقداردهی و آموزش داده شده‌اند؛ توکنایزر هم روی پیکرهٔ خودمان آموزش دیده. تنها وابستگی‌ها <bdi dir="ltr">NumPy</bdi>، <bdi dir="ltr">FastAPI</bdi> و <bdi dir="ltr">SQLite</bdi> هستند — نه وزن آماده، نه API بیرونی.</p></div>
           </div>
           <div class="faq-item">
             <button class="faq-q" aria-expanded="false">چرا پاسخ‌ها گاهی نامفهوم‌اند؟ <span class="chev">+</span></button>
@@ -502,7 +484,6 @@
   <script src="/static/ui.js"></script>
   <script src="/static/studio.js"></script>
   <script src="/static/ads.js"></script>
-  <script src="/static/promo.js"></script>
   <script src="/static/landing.js"></script>
   <script src="/static/speed.js"></script>
   <script src="/static/scroll.js"></script>

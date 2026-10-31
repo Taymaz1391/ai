@@ -6,8 +6,8 @@
   دکمه را برای همیشه پنهان می‌کرد.
 * لوگوتایپ: نسبت تصویر در نشانه‌گذاری باید با نسبت واقعی فایل بخواند،
   وگرنه حروف کشیده می‌شوند.
-* ویدیو: هر سه نسبت تصویر باید فایل واقعی داشته باشند و ویدیوی پس از
-  ثبت‌نام تمام‌صفحه پخش شود.
+* حرکت برند: کره و نشان باید فایل متحرک واقعی داشته باشند و نمایشِ پس از
+  ثبت‌نام تمام‌صفحه پخش شود؛ ویدیوی تبلیغاتی حذف شده است.
 * زبان: سایت تک‌زبانه است؛ هیچ صفحهٔ انگلیسی یا کلید زبان نمی‌ماند.
 """
 from __future__ import annotations
@@ -123,42 +123,46 @@ class LanguageTest(unittest.TestCase):
             self.assertNotIn('hreflang="en"', html, page.name)
 
 
-class VideoTest(unittest.TestCase):
-    RATIOS = ("16x9", "9x16", "1x1")
+class BrandMotionTest(unittest.TestCase):
+    """نشان و کرهٔ متحرک جای ویدیوی تبلیغاتی را گرفته‌اند: سبک، شفاف، بی‌ویدیو."""
 
-    def test_all_versions_exist(self):
-        for lang in ("fa",):
-            self.assertTrue((VIDEO / f"promo-{lang}-poster.jpg").exists(), lang)
-            for ratio in self.RATIOS:
-                clip = VIDEO / f"promo-{lang}-{ratio}.mp4"
-                self.assertTrue(clip.exists(), clip.name)
-                self.assertGreater(clip.stat().st_size, 200_000, clip.name)
-                self.assertTrue((VIDEO / f"promo-{lang}-{ratio}-poster.jpg").exists(), clip.name)
+    def test_motion_assets_are_animated_webp(self):
+        for name in ("orb-live.webp", "orb-live-sm.webp", "logo-motion.webp",
+                     "logo-motion-dark.webp", "logo-loading.webp"):
+            path = BRAND / name
+            self.assertTrue(path.exists(), name)
+            head = path.read_bytes()[:16]
+            self.assertEqual(head[:4], b"RIFF", name)
+            self.assertEqual(head[8:12], b"WEBP", name)
+            self.assertEqual(head[12:16], b"VP8X", name)
+            self.assertGreater(path.stat().st_size, 8_000, name)
+        # ویدیوی تبلیغاتی کامل از مخزن حذف شده است
+        self.assertFalse((VIDEO / "promo-fa-16x9.mp4").exists())
+        self.assertFalse((STATIC / "promo.js").exists())
 
-    def test_mp4_header_has_faststart(self):
-        """moov باید پیش از mdat باشد تا پخش تدریجی سریع شروع شود."""
-        for ratio in self.RATIOS:
-            data = (VIDEO / f"promo-fa-{ratio}.mp4").read_bytes()[:400_000]
-            self.assertLess(data.find(b"moov"), data.find(b"mdat"), ratio)
-
-    def test_embedded_with_autoplay_and_poster(self):
+    def test_home_uses_motion_not_video(self):
         html = (STATIC / "index.html").read_text(encoding="utf-8")
-        video = re.search(r"<video id=\"promo-video\".*?>", html, re.S)
-        self.assertIsNotNone(video)
-        tag = video.group(0)
-        for attr in ("autoplay", "muted", "loop", "playsinline", "poster="):
-            self.assertIn(attr, tag, attr)
+        self.assertNotIn("<video", html)
+        self.assertIn('id="motion"', html)
+        self.assertIn("logo-motion.webp", html)
+        self.assertIn("orb-live.webp", html)
+        self.assertIn("logo-motion-dark.webp", html)
 
-    def test_chat_page_has_player(self):
+    def test_chat_uses_motion_orb(self):
         html = (STATIC / "app.html").read_text(encoding="utf-8")
-        self.assertIn('id="promo-modal"', html)
-        self.assertIn("promo-modal-video", html)
         js = (STATIC / "app.js").read_text(encoding="utf-8")
-        self.assertIn("promo-${promoLang}-${ratio}.mp4", js)
+        self.assertNotIn("promo-modal", html)
+        self.assertIn("orb-live.webp", html)
+        self.assertIn("orb-live-sm.webp", js)
+
+    def test_static_orb_has_alpha_and_square_ratio(self):
+        for name in ("orb-128.png", "orb-256.png", "orb-512.png"):
+            w, h = png_size(BRAND / name)
+            self.assertEqual(w, h, name)
 
 
 class WelcomeReelTest(unittest.TestCase):
-    """بعد از ساخت حساب، ویدیوی معرفی باید تمام‌صفحه پخش شود."""
+    """بعد از ساخت حساب، نمایشِ نشان تمام‌صفحه و سبک پخش می‌شود."""
 
     def setUp(self):
         self.html = (STATIC / "auth.html").read_text(encoding="utf-8")
@@ -167,14 +171,14 @@ class WelcomeReelTest(unittest.TestCase):
 
     def test_markup_has_fullscreen_reel(self):
         self.assertIn('id="welcome-reel"', self.html)
-        self.assertIn("promo-fa-16x9.mp4", self.html)
-        self.assertIn("promo-fa.vtt", self.html)
         self.assertIn('id="welcome-skip"', self.html)
+        self.assertIn("logo-motion.webp", self.html)
+        self.assertNotIn("<video", self.html)
 
     def test_signup_triggers_reel(self):
         self.assertIn("function playWelcomeReel", self.js)
         self.assertIn('playWelcomeReel("/chat")', self.js)
-        self.assertIn("ended", self.js)
+        self.assertIn("requestAnimationFrame", self.js)
 
     def test_reel_covers_viewport(self):
         block = re.search(r"\.welcome-reel\s*\{([^}]*)\}", self.css)
@@ -182,17 +186,12 @@ class WelcomeReelTest(unittest.TestCase):
         self.assertIn("position: fixed", block.group(1))
         self.assertIn("inset: 0", block.group(1))
 
-
-class StingTest(unittest.TestCase):
-    """ویدیوی کوتاه برند: فایل واقعی و آمادهٔ پخش در دسترس باشد."""
-
-    def test_stings_exist(self):
-        for lang in ("fa",):
-            for ratio in ("16x9", "1x1"):
-                clip = VIDEO / f"sting-{lang}-{ratio}.mp4"
-                self.assertTrue(clip.exists(), clip.name)
-                self.assertGreater(clip.stat().st_size, 120_000, clip.name)
-                self.assertTrue((VIDEO / f"sting-{lang}-{ratio}-poster.jpg").exists(), clip.name)
+    def test_api_key_sign_in_available(self):
+        """ورود با کلید API، در کنار حساب و مهمان."""
+        self.assertIn('id="key-form"', self.html)
+        self.assertIn('id="api-key"', self.html)
+        self.assertIn('"x-api-key"', (STATIC / "ui.js").read_text(encoding="utf-8"))
+        self.assertIn("/api/auth/me", self.js)
 
 
 class OrbMotionTest(unittest.TestCase):

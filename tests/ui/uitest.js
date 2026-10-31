@@ -126,10 +126,12 @@ async function testLanding() {
   check("landing: faq", doc.querySelectorAll(".faq-item").length >= 5);
   check("landing: showcase rendered", doc.querySelectorAll("#showcase-list .showcase-item").length >= 3,
     String(doc.querySelectorAll("#showcase-list .showcase-item").length));
-  check("landing: promo video", !!doc.querySelector("#promo-video"));
-  const pv = doc.querySelector("#promo-video");
-  check("landing: promo autoplay muted", !!pv && pv.hasAttribute("autoplay") && pv.hasAttribute("muted"));
-  check("landing: promo sound button", !!doc.querySelector("#promo-sound"));
+  check("landing: brand motion section", !!doc.querySelector("#motion"));
+  check("landing: animated logo", /logo-motion\.webp/.test(
+    doc.querySelector(".motion-logo")?.getAttribute("src") || ""));
+  check("landing: animated orb in hero", /orb-live\.webp/.test(
+    doc.querySelector(".hero-orb img")?.getAttribute("src") || ""));
+  check("landing: no promo video", !doc.querySelector("video"));
   check("landing: no academy", !doc.querySelector('a[href="/academy"]'));
   check("landing: hero status", /مدل|گام|آموزش/.test(doc.querySelector("#hero-status")?.textContent || ""),
     doc.querySelector("#hero-status")?.textContent);
@@ -155,11 +157,10 @@ async function testAuth() {
   // ویدیوی معرفی تمام‌صفحه: آماده ولی پنهان تا لحظهٔ ساخت حساب
   const reel = doc.querySelector("#welcome-reel");
   check("signup: welcome reel hidden", !!reel && reel.hidden === true, String(!!reel));
-  const reelVideo = doc.querySelector("#welcome-video");
-  check("signup: reel video source", /promo-fa-16x9\.mp4/.test(
-    reelVideo?.querySelector("source")?.getAttribute("src") || ""),
-    reelVideo?.querySelector("source")?.getAttribute("src"));
-  check("signup: reel captions", !!reelVideo?.querySelector('track[src="/static/assets/video/promo-fa.vtt"]'));
+  check("signup: reel shows animated logo", /logo-motion(-dark)?\.webp/.test(
+    doc.querySelector("#welcome-reel .reel-logo")?.getAttribute("src") || ""));
+  check("signup: reel has no video", !doc.querySelector("#welcome-reel video"));
+  check("signup: api key sign-in", !!doc.querySelector("#key-form") && !!doc.querySelector("#api-key"));
   return { window };
 }
 
@@ -181,6 +182,7 @@ async function testSignupReel() {
   check("signup: human check solved",
     !!doc.querySelector("#human-slot input[name='captcha']")?.value,
     doc.querySelector(".human-note")?.textContent || "");
+  window.RAYAN_REEL_MS = 60000;   // در آزمون، پایان خودکار نمایش را عقب می‌اندازیم
   doc.querySelector("#name").value = "آزمون ویدیو";
   doc.querySelector("#email").value = email;
   doc.querySelector("#password").value = "Secret12345";
@@ -188,10 +190,11 @@ async function testSignupReel() {
   await wait(1500);
   const reel = doc.querySelector("#welcome-reel");
   check("signup: reel shown after register", !!reel && reel.hidden === false, String(reel && reel.hidden));
-  const src = doc.querySelector("#welcome-video source")?.getAttribute("src") || "";
-  check("signup: reel source chosen", /promo-fa-(16x9|9x16)\.mp4/.test(src), src);
+  check("signup: reel is playing", reel?.classList.contains("is-playing"), reel?.className);
   const loc = window.location.pathname;
   check("signup: stays on page during reel", loc.startsWith("/signup"), loc);
+  // نمایش با تایمر پایان می‌یابد؛ پیش از آن پنجرهٔ آزمایشی بسته می‌شود
+  window.close();
 }
 
 async function testChat() {
@@ -251,13 +254,10 @@ async function testChat() {
   check("chat: scroll progress bar", !!doc.querySelector(".scroll-progress > i"));
   check("chat: smooth scroll helper", typeof window.RAYAN?.smoothScroll === "function");
 
-  // ویدیوی معرفی در همان صفحه
-  check("chat: promo modal present", doc.querySelector("#promo-modal")?.hidden === true);
-  check("chat: promo video source", /promo-fa-16x9\.mp4/.test(
-    doc.querySelector("#promo-modal-video source")?.getAttribute("src") || ""));
-  doc.querySelector("#promo-open").click();
-  check("chat: promo modal opens", doc.querySelector("#promo-modal").hidden === false);
-  doc.querySelector("#promo-modal").hidden = true;
+  // نشان متحرک به‌جای ویدیو و آیکون ثابت
+  check("chat: no promo modal", !doc.querySelector("#promo-modal"));
+  check("chat: empty orb animated", /orb-live\.webp/.test(
+    doc.querySelector(".empty-orb img")?.getAttribute("src") || ""));
 
   // ارسال پیام واقعی (جریان)
   const prompt = doc.querySelector("#prompt");
@@ -413,7 +413,8 @@ async function testPersianOnlyAndSummary() {
   check("fa: html lang", homeDoc.documentElement.lang === "fa", homeDoc.documentElement.lang);
   check("fa: dir rtl", homeDoc.documentElement.dir === "rtl", homeDoc.documentElement.dir);
   check("fa: no english switch", !homeDoc.querySelector('a[href="/en"]'));
-  check("fa: promo video", !!homeDoc.querySelector("#promo-video source"));
+  check("fa: motion assets", !!homeDoc.querySelector("#motion .motion-logo") &&
+    !!homeDoc.querySelector("#motion .motion-orb img"));
   check("fa: brand mark is an image", !!homeDoc.querySelector('.brand img[alt="رایان"]'));
 
   const sum = await loadPage("/summary");

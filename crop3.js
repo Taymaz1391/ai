@@ -1,0 +1,16 @@
+const puppeteer = require('puppeteer-core');
+(async () => {
+  const b = await puppeteer.launch({ executablePath: '/tmp/chromium-sp', headless: 'shell',
+    args: ['--no-sandbox','--disable-dev-shm-usage','--hide-scrollbars','--disable-gpu'],
+    env: { ...process.env, LD_LIBRARY_PATH: '/tmp/al2023/lib:/tmp/al2023/usr/lib' } });
+  const p = await b.newPage();
+  for (const spec of process.argv.slice(2)) {
+    const [url, w, h, name] = spec.split('|');
+    await p.setViewport({ width: Number(w), height: Number(h) });
+    await p.goto('http://127.0.0.1:8000' + url, { waitUntil: 'networkidle2' }).catch(()=>{});
+    await new Promise(r=>setTimeout(r,2400));
+    await p.screenshot({ path: `/tmp/${name}.png` });
+    console.log('saved', name);
+  }
+  await b.close();
+})();

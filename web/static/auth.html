@@ -23,13 +23,13 @@
   <div class="auth-shell">
     <aside class="auth-aside">
       <a class="brand" href="/">
-        <img class="brand-wordmark wordmark-for-light" src="/static/assets/brand/mark-ink.png"
-             alt="رایان" width="116" height="59">
-        <img class="brand-wordmark wordmark-for-dark" src="/static/assets/brand/mark-white.png"
-             alt="رایان" width="116" height="59">
+        <img class="brand-wordmark brand-motion wordmark-for-light" src="/static/assets/brand/logo-motion.webp"
+             alt="رایان" width="640" height="320" decoding="async">
+        <img class="brand-wordmark brand-motion wordmark-for-dark" src="/static/assets/brand/logo-motion-dark.webp"
+             alt="رایان" width="640" height="320" decoding="async">
       </a>
       <div class="auth-pitch">
-        <img src="/static/assets/brand/orb-256.png" alt="" width="104" height="104" class="auth-orb">
+        <img src="/static/assets/brand/orb-live.webp" alt="" width="104" height="104" class="auth-orb">
         <h1>دستیار فارسی‌ات<br>همیشه همین‌جاست</h1>
         <p>با ساخت یک حساب رایگان، گفتگوهایت می‌مانند، سهمیهٔ روزانه‌ات بیشتر می‌شود و می‌توانی پاسخ‌ها را با دیگران به اشتراک بگذاری.</p>
         <ul class="auth-points">
@@ -82,6 +82,21 @@
             ادامه بدون حساب
           </a>
 
+          <div class="auth-key" id="auth-key">
+            <button class="auth-key-toggle" type="button" id="key-toggle" aria-expanded="false" aria-controls="key-form">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 4l3 3M14 7l3 3"/></svg>
+              ورود با کلید API
+            </button>
+            <div class="auth-key-form" id="key-form" hidden>
+              <label class="sr-only" for="api-key">کلید API</label>
+              <input class="input" id="api-key" name="api-key" type="text" dir="ltr" inputmode="text"
+                     autocomplete="off" spellcheck="false" placeholder="rk_…">
+              <button class="btn btn-primary" type="button" id="key-submit">ورود با کلید</button>
+              <span class="field-error" id="key-error"></span>
+              <span class="auth-key-note">کلید را از <a href="/developer">صفحهٔ توسعه‌دهنده</a> بساز. کلید فقط تا پایان همین نشست در مرورگر می‌ماند.</span>
+            </div>
+          </div>
+
           <p class="auth-switch">
             <span id="switch-text">حساب نداری؟</span>
             <a href="/signup" id="switch-link">ساخت حساب رایگان</a>
@@ -95,32 +110,35 @@
     </main>
   </div>
 
-  <!-- ویدیوی معرفی تمام‌صفحه، بعد از ساخت حساب -->
-  <div id="welcome-reel" class="welcome-reel" hidden role="dialog" aria-modal="true" aria-label="ویدیوی معرفی">
-    <video id="welcome-video" class="welcome-video" playsinline preload="none" aria-label="ویدیوی معرفی رایان">
-      <source src="/static/assets/video/promo-fa-16x9.mp4" type="video/mp4">
-      <track kind="captions" src="/static/assets/video/promo-fa.vtt" srclang="fa" label="فارسی">
-    </video>
-    <div class="welcome-vignette" aria-hidden="true"></div>
-    <div class="welcome-progress" aria-hidden="true"><i id="welcome-progress"></i></div>
-    <button class="welcome-skip-x" type="button" id="welcome-close" aria-label="بستن ویدیو">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg>
-    </button>
+  <!-- نمایش نشان، بعد از ساخت حساب: تمام‌صفحه، سبک، بی‌ویدیو -->
+  <div id="welcome-reel" class="welcome-reel brand-reel" hidden role="dialog" aria-modal="true"
+       aria-label="معرفی کوتاه رایان">
+    <div class="reel-aurora" aria-hidden="true"></div>
+    <div class="reel-stage">
+      <img class="reel-logo reel-for-light" src="/static/assets/brand/logo-motion.webp"
+           alt="رایان" width="640" height="320" decoding="async">
+      <img class="reel-logo reel-for-dark" src="/static/assets/brand/logo-motion-dark.webp"
+           alt="" aria-hidden="true" width="640" height="320" decoding="async">
+      <span class="reel-orb"><img src="/static/assets/brand/orb-live.webp" alt="" width="168" height="168"></span>
+    </div>
     <div class="reel-hooks" aria-hidden="true">
       <span class="reel-hook is-on" data-at="0">حسابت ساخته شد — خوش آمدی</span>
-      <span class="reel-hook" data-at="6.8">فارسی را از صفر یاد گرفته</span>
-      <span class="reel-hook" data-at="10.4">بدون هیچ API بیرونی</span>
-      <span class="reel-hook" data-at="13.4">همین حالا گفتگو کن</span>
+      <span class="reel-hook" data-at="2.6">همه‌چیز از صفر ساخته شده</span>
+      <span class="reel-hook" data-at="4.8">بدون هیچ API بیرونی</span>
+      <span class="reel-hook" data-at="6.6">حالا نوبت گفتگوست</span>
     </div>
+    <div class="welcome-progress" aria-hidden="true"><i id="welcome-progress"></i></div>
+    <button class="welcome-skip-x" type="button" id="welcome-close" aria-label="بستن معرفی">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
     <div class="welcome-bar">
       <div class="welcome-copy">
         <b>حسابت ساخته شد — خوش آمدی!</b>
-        <span>یک لحظه نگاه کن تا ببینی <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> چه می‌کند.</span>
+        <span>چند ثانیه نگاه کن تا ببینی <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> چه می‌کند.</span>
       </div>
       <div class="welcome-actions">
         <button class="btn btn-sm" type="button" id="welcome-full" aria-pressed="false" title="تمام‌صفحهٔ واقعی">تمام‌صفحه</button>
-        <button class="btn btn-sm" type="button" id="welcome-sound" aria-pressed="false">صدا</button>
-        <a class="btn btn-primary btn-sm" id="welcome-skip" href="/chat">رد کردن</a>
+        <a class="btn btn-primary btn-sm" id="welcome-skip" href="/chat">شروع گفتگو</a>
       </div>
     </div>
   </div>

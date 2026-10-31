@@ -17,72 +17,61 @@
   const identifierInput = $("#email");
 
 
-  // ------------------------------------------------ ویدیوی معرفی پس از ثبت‌نام
+  // ------------------------------------------------ نمایش نشان پس از ثبت‌نام
   function playWelcomeReel(next) {
     const reel = $("#welcome-reel");
-    const vid = $("#welcome-video");
     const skip = $("#welcome-skip");
-    const sound = $("#welcome-sound");
     const close = $("#welcome-close");
     const full = $("#welcome-full");
     const progress = $("#welcome-progress");
     const hooks = [...document.querySelectorAll(".reel-hook")];
-    if (!reel || !vid || !isSignup) {
+    if (!reel || !isSignup) {
       location.replace(next);
       return;
     }
+    // ثانیه؛ همان ریتمی که نشان و کره حرکت می‌کنند (قابل تنظیم برای آزمون)
+    const TOTAL = Number(window.RAYAN_REEL_MS || 8200) / 1000;
     let done = false;
+    let started = 0;
+    let raf = 0;
     const go = () => {
       if (done) return;
       done = true;
-      try { vid.pause(); } catch { /* نادیده */ }
+      cancelAnimationFrame(raf);
       try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch { /* نادیده */ }
       location.replace(next);
     };
+
     reel.hidden = false;
     document.body.classList.add("reel-open");
-    // نسخهٔ عمودی برای گوشی، افقی برای دسکتاپ
-    const vertical = window.matchMedia("(max-width: 760px)").matches;
-    const src = vertical
-      ? "/static/assets/video/promo-fa-9x16.mp4"
-      : "/static/assets/video/promo-fa-16x9.mp4";
-    const source = vid.querySelector("source");
-    if (source) source.setAttribute("src", src);
-    vid.setAttribute("poster", vertical
-      ? "/static/assets/video/promo-fa-9x16-poster.jpg"
-      : "/static/assets/video/promo-fa-16x9-poster.jpg");
-    vid.load();
-    if (skip) {
-      skip.setAttribute("href", next);
-      skip.addEventListener("click", (event) => {
-        event.preventDefault();
-        go();
-      });
-    }
-    vid.addEventListener("ended", go, { once: true });
-    vid.addEventListener("error", go, { once: true });
-    // نوار پیشرفت و جمله‌های راهنما هم‌گام با پخش
-    vid.addEventListener("timeupdate", () => {
-      if (progress && vid.duration) {
-        progress.style.width = `${Math.min(100, (vid.currentTime / vid.duration) * 100).toFixed(1)}%`;
-      }
+    reel.classList.add("is-playing");
+    started = performance.now();
+    const tick = () => {
+      const t = (performance.now() - started) / 1000;
+      if (progress) progress.style.width = `${Math.min(100, (t / TOTAL) * 100).toFixed(1)}%`;
       hooks.forEach((hook) => {
         const at = Number(hook.dataset.at || 0);
-        hook.classList.toggle("is-on", vid.currentTime >= at && vid.currentTime < at + 3.4);
+        hook.classList.toggle("is-on", t >= at && t < at + 2.6);
       });
-    });
-    // ورود با کلید Escape یا ضربهٔ دوباره؛ خروج همیشه به گفتگو می‌رسد
-    close?.addEventListener("click", go);
+      if (t >= TOTAL) { go(); return; }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
 
-    // تمام‌صفحهٔ واقعی؛ اگر مرورگر اجازه نداد، همان پوشش کامل صفحه کافی است
+    if (skip) {
+      skip.setAttribute("href", next);
+      skip.addEventListener("click", (event) => { event.preventDefault(); go(); });
+    }
+    close?.addEventListener("click", go);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") go();
+    }, { once: true });
+
     if (full) {
       full.addEventListener("click", async () => {
         try {
-          if (document.fullscreenElement) {
-            await document.exitFullscreen();
-          } else {
-            await (reel.requestFullscreen?.({ navigationUI: "hide" }) || reel.webkitRequestFullscreen?.());
-          }
+          if (document.fullscreenElement) await document.exitFullscreen();
+          else await (reel.requestFullscreen?.({ navigationUI: "hide" }) || reel.webkitRequestFullscreen?.());
         } catch { /* نادیده */ }
       });
       document.addEventListener("fullscreenchange", () => {
@@ -90,40 +79,51 @@
         full.textContent = document.fullscreenElement ? "خروج از تمام‌صفحه" : "تمام‌صفحه";
       });
     }
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") go();
-    }, { once: true });
-    // صدا روشن؛ اگر مرورگر اجازه نداد، بی‌صدا پخش می‌شود و دکمه صدا روشن می‌ماند
-    const setSoundLabel = () => {
-      if (!sound) return;
-      sound.setAttribute("aria-pressed", vid.muted ? "false" : "true");
-      sound.textContent = vid.muted ? "صدا" : "بی‌صدا";
+    setTimeout(() => skip?.focus({ preventScroll: true }), 120);
+  }
+
+  // -------------------------------------------------------- ورود با کلید API
+  const keyToggle = $("#key-toggle");
+  const keyForm = $("#key-form");
+  const keyError = $("#key-error");
+  if (keyToggle && keyForm) {
+    keyToggle.addEventListener("click", () => {
+      const open = keyForm.hidden;
+      keyForm.hidden = !open;
+      keyToggle.setAttribute("aria-expanded", open ? "true" : "false");
+      if (open) $("#api-key")?.focus({ preventScroll: true });
+    });
+    const submitKey = async () => {
+      const raw = ($("#api-key").value || "").trim();
+      keyError.textContent = "";
+      if (!/^rk_[A-Za-z0-9_-]{16,}$/.test(raw)) {
+        keyError.textContent = "کلید باید با rk_ شروع شود؛ کلید را کامل کپی کن.";
+        return;
+      }
+      const submit = $("#key-submit");
+      submit.disabled = true;
+      submit.textContent = "بررسی…";
+      try {
+        const me = await request("/api/auth/me", { headers: { "x-api-key": raw } });
+        if (!me || !me.user) throw new Error("این کلید به حسابی متصل نیست.");
+        window.RAYAN.apiKey(raw);
+        toast(`خوش آمدی ${me.user.name || ""}! دسترسی با کلید API فعال شد.`, "ok");
+        const next = new URLSearchParams(location.search).get("next");
+        const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : "/chat";
+        setTimeout(() => location.replace(safeNext), 420);
+      } catch (err) {
+        keyError.textContent = err.message || "کلید معتبر نیست.";
+        submit.disabled = false;
+        submit.textContent = "ورود با کلید";
+      }
     };
-    vid.muted = false;
-    const attempt = vid.play();
-    if (attempt && typeof attempt.then === "function") {
-      attempt.then(setSoundLabel).catch(() => {
-        vid.muted = true;
-        setSoundLabel();
-        vid.play().catch(go);
-      });
-    } else {
-      setSoundLabel();
-    }
-    if (skip) skip.focus({ preventScroll: true });
-    // روی موبایل، چرخش صفحه نباید ویدیو را نصفه بگذارد
-    const lock = () => {
-      try { screen.orientation?.lock?.("portrait").catch(() => {}); } catch { /* نادیده */ }
-    };
-    if (vertical) lock();
-    if (sound) {
-      setSoundLabel();
-      sound.addEventListener("click", () => {
-        vid.muted = !vid.muted;
-        setSoundLabel();
-        if (!vid.muted) vid.play().catch(() => {});
-      });
-    }
+    $("#key-submit").addEventListener("click", submitKey);
+    $("#api-key").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        submitKey();
+      }
+    });
   }
 
   if (isSignup) {

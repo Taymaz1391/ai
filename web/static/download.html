@@ -44,10 +44,9 @@
       border-radius: 18px; padding: 10px; background: var(--surface); box-shadow: var(--shadow-soft);
       transition: transform .3s var(--ease), border-color .3s var(--ease), box-shadow .3s var(--ease); }
     .press-card:hover { transform: translateY(-3px); border-color: var(--line-strong); box-shadow: var(--shadow-lg); }
-    .press-card img { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 12px;
-      background: var(--bg-2); }
-    .press-card:nth-child(2) img { aspect-ratio: 9 / 16; max-height: 420px; margin-inline: auto; }
-    .press-card:nth-child(3) img { aspect-ratio: 1 / 1; }
+    .press-card img { width: 100%; height: auto; aspect-ratio: 2 / 1; object-fit: contain; border-radius: 12px;
+      padding: 10px; background: var(--bg-2); }
+    .press-card:nth-child(3) img { aspect-ratio: 1 / 1; padding: 16px; }
     .press-meta { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 0 4px 4px; }
     .press-meta b { font-size: 13.5px; color: var(--text); }
     .press-meta small { font-size: 12px; color: var(--text-3); }
@@ -166,26 +165,26 @@
 
       <section class="press-kit" style="margin-top:36px">
         <h2>کیت رسانه</h2>
-        <p class="dl-lede" style="margin-top:6px">ویدیوی رسمی، پوستر و نشان برند — همه محلی ساخته شده‌اند، بدون هیچ سرویس بیرونی.</p>
+        <p class="dl-lede" style="margin-top:6px">نشان متحرک، کرهٔ زنده و نشانهٔ برند — همه از همین مخزن، سبک، شفاف و بدون سرویس بیرونی.</p>
         <div class="press-grid">
-          <a class="press-card" href="/static/assets/video/promo-fa-16x9.mp4" download>
-            <img src="/static/assets/video/promo-fa-16x9-poster.jpg" alt="پوستر ویدیوی معرفی، قاب افقی" width="1280" height="720" loading="lazy" decoding="async">
-            <span class="press-meta"><b>معرفی · ۱۶:۹</b><small>MP4 · ۱۶ ثانیه</small></span>
+          <a class="press-card" href="/static/assets/brand/logo-motion-dark.webp" download>
+            <img class="press-preview" src="/static/assets/brand/logo-motion-dark.webp" alt="نشان متحرک رایان روی زمینهٔ تیره" width="640" height="320" loading="lazy" decoding="async">
+            <span class="press-meta"><b>نشان متحرک</b><small>WebP متحرک · شفاف · ۳٫۲ ثانیه</small></span>
           </a>
-          <a class="press-card" href="/static/assets/video/promo-fa-9x16.mp4" download>
-            <img src="/static/assets/video/promo-fa-9x16-poster.jpg" alt="پوستر ویدیوی معرفی، قاب عمودی" width="720" height="1280" loading="lazy" decoding="async">
-            <span class="press-meta"><b>معرفی · ۹:۱۶</b><small>MP4 · استوری</small></span>
+          <a class="press-card" href="/static/assets/brand/logo-loading.webp" download>
+            <img class="press-preview" src="/static/assets/brand/logo-loading.webp" alt="نشان در حالت بارگذاری" width="390" height="200" loading="lazy" decoding="async">
+            <span class="press-meta"><b>نشان بارگذاری</b><small>WebP متحرک · شفاف · ۲٫۴ ثانیه</small></span>
           </a>
-          <a class="press-card" href="/static/assets/video/sting-fa-1x1.mp4" download>
-            <img src="/static/assets/video/sting-fa-1x1-poster.jpg" alt="پوستر ویدیوی کوتاه نشان برند" width="1080" height="1080" loading="lazy" decoding="async">
-            <span class="press-meta"><b>نشان · ۱:۱</b><small>MP4 · ۶ ثانیه</small></span>
+          <a class="press-card" href="/static/assets/brand/orb-live.webp" download>
+            <img class="press-preview" src="/static/assets/brand/orb-256.png" alt="کرهٔ زندهٔ رایان" width="256" height="256" loading="lazy" decoding="async">
+            <span class="press-meta"><b>کرهٔ زنده</b><small>WebP متحرک · ۶ ثانیه · آواتار</small></span>
           </a>
         </div>
         <div class="press-links">
           <a class="btn btn-sm" href="/static/assets/brand/logotype-stack-ink.png" download>لوگوتایپ (PNG)</a>
           <a class="btn btn-sm" href="/static/assets/brand/mark-ink.png" download>نشانه (PNG)</a>
           <a class="btn btn-sm" href="/static/assets/brand/orb-512.png" download>کره (PNG)</a>
-          <a class="btn btn-sm" href="/static/assets/video/sting-fa-16x9.mp4" download>نشان متحرک (MP4)</a>
+          <a class="btn btn-sm" href="/static/assets/brand/logo-motion.webp" download>نشان متحرک · زمینهٔ روشن</a>
         </div>
       </section>
 

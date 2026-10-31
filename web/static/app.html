@@ -51,7 +51,7 @@
       <div class="sidebar-foot">
         <div class="usage-card" id="usage-card">
           <div class="usage-head">
-            <span id="usage-plan">مهمان</span>
+            <span id="usage-plan">سهمیهٔ امروز</span>
             <span id="usage-count">—</span>
           </div>
           <div class="usage-bar"><i id="usage-fill" style="width:0%"></i></div>
@@ -62,7 +62,7 @@
             <span class="avatar" data-user-initials>م</span>
             <span class="account-meta">
               <b data-user-name>مهمان</b>
-              <small data-user-plan>مهمان</small>
+              <small data-user-plan>حساب مهمان</small>
             </span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
           </button>
@@ -123,7 +123,7 @@
         <div class="empty-state" id="empty-state">
           <div class="empty-orb">
             <span class="orb-live" style="width:96px;height:96px">
-              <img src="/static/assets/brand/orb-256.png" alt="رایان" width="96" height="96">
+              <img src="/static/assets/brand/orb-live.webp" alt="رایان" width="96" height="96">
               <i class="lid l"></i><i class="lid r"></i>
             </span>
           </div>
@@ -134,10 +134,6 @@
           <div class="empty-foot">
             <button class="chip" data-scroll="models">مدل چطور ساخته شده؟</button>
             <button class="chip" data-scroll="pricing">سهمیه‌ام چقدر است؟</button>
-            <button class="chip chip-play" id="promo-open" type="button">
-              <span class="chip-play-icon" aria-hidden="true"></span>
-              ویدیوی ۱۶ ثانیه‌ای
-            </button>
           </div>
         </div>
 
@@ -260,26 +256,6 @@
       <div class="modal-foot">
         <button class="btn btn-sm" data-close="confirm-modal">انصراف</button>
         <button class="btn btn-sm" id="confirm-yes" style="border-color:rgba(255,122,138,.5);color:#ffb3bd">حذف</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal-backdrop promo-modal" id="promo-modal" hidden>
-    <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="promo-title">
-      <div class="modal-head">
-        <h3 id="promo-title">ویدیوی معرفی</h3>
-        <button class="icon-btn" data-close="promo-modal" aria-label="بستن">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="promo-player">
-          <video id="promo-modal-video" class="promo-video" controls loop playsinline
-                 preload="none" poster="/static/assets/video/promo-fa-poster.jpg"
-                 aria-label="ویدیوی معرفی رایان">
-            <source src="/static/assets/video/promo-fa-16x9.mp4" type="video/mp4">
-            <track kind="captions" src="/static/assets/video/promo-fa.vtt" srclang="fa" label="فارسی" default>
-          </video>
-        </div>
-        <p class="muted promo-modal-note">ساخته‌شده در همین مخزن — بدون استوک و بدون سرویس بیرونی.</p>
       </div>
     </div>
   </div>

@@ -25,6 +25,7 @@
     controller: null,
     query: "",
     dragging: false,
+    apiKey: (() => { try { return !!sessionStorage.getItem("rayan.apiKey"); } catch { return false; } })(),
   };
 
   function loadSettings() {
@@ -262,7 +263,7 @@
   function renderUsage() {
     const usage = state.usage || {};
     const chat = usage.chat || { used: 0, limit: 25 };
-    el.usagePlan.textContent = state.user ? planLabel(state.plan) : "مهمان";
+    el.usagePlan.textContent = state.apiKey ? "کلید API" : "سهمیهٔ امروز";
     el.usageCount.textContent = `${nf(chat.used || 0)} / ${nf(chat.limit || 0)}`;
     const pct = Math.min(100, ((chat.used || 0) / Math.max(1, chat.limit || 1)) * 100);
     el.usageFill.style.width = `${pct}%`;
@@ -594,7 +595,7 @@
       orb.style.width = "32px";
       orb.style.height = "32px";
       const img = document.createElement("img");
-      img.src = "/static/assets/brand/orb-128.png";
+      img.src = "/static/assets/brand/orb-live-sm.webp";
       img.alt = "رایان";
       img.width = 32;
       img.height = 32;
@@ -1172,43 +1173,6 @@
     }
   });
   $("#new-chat").addEventListener("click", newChat);
-
-  // ---------------------------------------------------------- ویدیوی معرفی
-  const promoVideo = $("#promo-modal-video");
-  if (promoVideo) {
-    // سایت تک‌زبانه است؛ فقط نسبت تصویر عوض می‌شود
-    const promoLang = "fa";
-    const portrait = window.matchMedia("(max-width: 560px)");
-    function syncPromoSource() {
-      const ratio = portrait.matches ? "9x16" : "16x9";
-      const src = `/static/assets/video/promo-${promoLang}-${ratio}.mp4`;
-      const source = promoVideo.querySelector("source");
-      if (source && source.getAttribute("src") !== src) {
-        source.setAttribute("src", src);
-        promoVideo.load();
-      }
-      promoVideo.setAttribute("poster", `/static/assets/video/promo-${promoLang}-${ratio}-poster.jpg`);
-    }
-    syncPromoSource();
-    portrait.addEventListener("change", syncPromoSource);
-    const openBtn = $("#promo-open");
-    if (openBtn) {
-      openBtn.addEventListener("click", () => {
-        openModal("promo-modal");
-        promoVideo.currentTime = 0;
-        const play = promoVideo.play();
-        if (play && play.catch) play.catch(() => { /* پخش با کلیک کاربر */ });
-      });
-    }
-    // وقتی مودال بسته شد، صدا و پخش هم قطع شود
-    const promoModal = $("#promo-modal");
-    if (promoModal) {
-      const observer = new MutationObserver(() => {
-        if (promoModal.hidden) promoVideo.pause();
-      });
-      observer.observe(promoModal, { attributes: true, attributeFilter: ["hidden"] });
-    }
-  }
 
   document.addEventListener("keydown", (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {

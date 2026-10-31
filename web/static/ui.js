@@ -50,9 +50,24 @@
 
   const apiBase = (cfg.apiBase || "").replace(/\/$/, "");
 
+  // کلید API که کاربر در صفحهٔ ورود وارد کرده است (فقط تا پایان همین نشست مرورگر)
+  const KEY_STORE = "rayan.apiKey";
+  function apiKey(value) {
+    try {
+      if (value === undefined) return sessionStorage.getItem(KEY_STORE) || "";
+      if (value) sessionStorage.setItem(KEY_STORE, String(value));
+      else sessionStorage.removeItem(KEY_STORE);
+    } catch { /* نادیده */ }
+    return value || "";
+  }
+
   async function request(path, options = {}) {
     const url = `${apiBase}${path}`;
     const opts = Object.assign({ credentials: "include", headers: {} }, options);
+    const key = apiKey();
+    if (key && !opts.headers["x-api-key"] && !opts.headers["X-API-Key"]) {
+      opts.headers["x-api-key"] = key;
+    }
     if (opts.body && typeof opts.body !== "string") {
       opts.body = JSON.stringify(opts.body);
       opts.headers["Content-Type"] = "application/json";
@@ -246,6 +261,8 @@
     me, logout, applyAuthChrome, copyText, initials,
     applyTheme, toggleTheme, preferredTheme, orbState, icon, hydrateIcons, asset,
     initOrbs,
+    calmMotion,
+    apiKey,
     config: cfg,
     href(path) { return `${apiBase}${path}`; },
   });
@@ -331,7 +348,8 @@
         orb.classList.add("is-blinking");
         orb.dispatchEvent(new CustomEvent("rayan:orb-wink", { bubbles: true }));
       });
-      orb.blinkTimer = setInterval(blink, 6400 + Math.random() * 1400);
+      const animated = /orb-live/.test(orb.querySelector("img")?.getAttribute("src") || "");
+      if (!animated) orb.blinkTimer = setInterval(blink, 6400 + Math.random() * 1400);
     });
   }
 
@@ -339,6 +357,21 @@
     const target = host || document.querySelector(".orb-live");
     if (!target) return;
     target.dataset.state = state || "";
+  }
+
+  // احترام به «کم‌کردن حرکت» سیستم: تصویرهای متحرک با نسخهٔ ثابت عوض می‌شوند
+  function calmMotion() {
+    let still = false;
+    try { still = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { /* نادیده */ }
+    if (!still) return;
+    document.querySelectorAll('img[src*="orb-live"]').forEach((img) => {
+      img.src = img.src.replace(/orb-live-sm\.webp/, "orb-128.png").replace(/orb-live\.webp/, "orb-256.png");
+    });
+    document.querySelectorAll('img[src*="logo-motion"], img[src*="logo-loading"], img[src*="reel-logo"]').forEach((img) => {
+      const dark = img.classList.contains("wordmark-for-dark") || img.classList.contains("motion-for-dark")
+        || img.classList.contains("reel-for-dark") || /-dark\.webp/.test(img.getAttribute("src") || "");
+      img.src = asset(dark ? "brand/mark-white.png" : "brand/mark-ink.png");
+    });
   }
 
   // ---------------------------------------------------------- اسپلش آغازین
@@ -352,8 +385,14 @@
     try { sessionStorage.setItem("rayan.splash", "1"); } catch { /* نادیده */ }
     const splash = document.createElement("div");
     splash.className = "splash";
+    const light = asset("brand/logo-motion.webp");
+    const dark = asset("brand/logo-loading.webp");
+    const fallback = asset("brand/logotype-stack-white.png");
     splash.innerHTML =
-      '<img class="splash-art" src="' + asset("brand/logotype-stack-white.png") + '" alt="رایان" />' +
+      '<img class="splash-art splash-for-light" src="' + light + '" alt="رایان" ' +
+      'onerror="this.onerror=null;this.src=\'' + asset("brand/logotype-stack-ink.png") + '\'" />' +
+      '<img class="splash-art splash-for-dark" src="' + dark + '" alt="رایان" ' +
+      'onerror="this.onerror=null;this.src=\'' + fallback + '\'" />' +
       '<div class="splash-bar"><i></i></div>';
     document.body.append(splash);
     window.setTimeout(() => splash.classList.add("is-out"), 1250);
@@ -471,6 +510,7 @@
     initFaq();
     applyAuthChrome();
     initOrbs();
+    calmMotion();
     initSplash();
     initStatus();
     staticBanner();

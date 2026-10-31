@@ -1,17 +1,15 @@
-/* رایان — حلقهٔ سرعت دور کره.
+/* رایان — نشان سرعت بارگذاری.
  *
- * عدد را از مرورگر خودِ بازدیدکننده می‌گیریم (FCP، LCP و زمان بارگذاری) و
- * روی یک حلقهٔ دور کره نشان می‌دهیم؛ هیچ عدد ساختگی و هیچ سرور سنجشی در کار
- * نیست. اگر مرورگر این سنجه‌ها را ندهد، حلقه پنهان می‌ماند.
+ * سنجه را از مرورگر خودِ بازدیدکننده می‌گیریم (FCP، LCP و زمان بارگذاری) و
+ * نتیجه را در یک نشان کوچک و بی‌عدد کنار وضعیت مدل نشان می‌دهیم: «بارگذاری سریع».
+ * عدد خام و جزئیات فنی به کاربر نمایش داده نمی‌شود؛ فقط برای دسترس‌پذیری در
+ * aria-label می‌ماند. هیچ عدد ساختگی و هیچ سرور سنجشی در کار نیست.
  */
 (function () {
   "use strict";
 
-  const host = document.querySelector(".hero-orb-row");
-  if (!host) return;
-
-  const orb = host.querySelector(".orb-live");
-  if (!orb) return;
+  const note = document.querySelector(".hero-note");
+  if (!note) return;
 
   const metrics = { fcp: 0, lcp: 0, load: 0 };
   let painted = false;
@@ -43,54 +41,24 @@
     return Math.max(18, Math.min(100, Math.round(raw)));
   }
 
-  const NS = "http://www.w3.org/2000/svg";
-  const size = 96;
-  const ring = document.createElementNS(NS, "svg");
-  ring.setAttribute("class", "speed-ring");
-  ring.setAttribute("viewBox", `0 0 ${size} ${size}`);
-  ring.setAttribute("role", "img");
-  ring.setAttribute("aria-label", "سرعت بارگذاری همین صفحه");
-  const r = 44;
-  const circ = 2 * Math.PI * r;
-  const track = document.createElementNS(NS, "circle");
-  track.setAttribute("cx", size / 2);
-  track.setAttribute("cy", size / 2);
-  track.setAttribute("r", r);
-  track.setAttribute("class", "speed-track");
-  const arc = document.createElementNS(NS, "circle");
-  arc.setAttribute("cx", size / 2);
-  arc.setAttribute("cy", size / 2);
-  arc.setAttribute("r", r);
-  arc.setAttribute("class", "speed-arc");
-  arc.setAttribute("stroke-dasharray", String(circ.toFixed(2)));
-  arc.setAttribute("stroke-dashoffset", String(circ.toFixed(2)));
-  arc.setAttribute("transform", `rotate(-90 ${size / 2} ${size / 2})`);
-  ring.append(track, arc);
-
-  const tag = document.createElement("span");
-  tag.className = "speed-tag";
-  tag.textContent = "سنجش سرعت…";
-
-  host.append(ring, tag);
+  const pill = document.createElement("span");
+  pill.className = "speed-pill";
 
   function paint() {
     if (painted) return;
     painted = true;
     readLoad();
     const s = score();
-    const offset = circ * (1 - s / 100);
-    requestAnimationFrame(() => {
-      arc.style.strokeDashoffset = offset.toFixed(1);
-    });
-    const seconds = (metrics.fcp || metrics.load || 0).toFixed(1).replace(".", "٫");
-    tag.textContent = seconds && Number(seconds.replace("٫", ".")) > 0
-      ? `سرعت این صفحه: ${s} از ۱۰۰`
-      : `سرعت این صفحه: ${s} از ۱۰۰`;
-    tag.classList.add("is-ready");
-    ring.setAttribute("aria-label", `سرعت بارگذاری این صفحه ${s} از ۱۰۰`);
+    const label = s >= 80 ? "بارگذاری سریع" : s >= 58 ? "بارگذاری خوب" : "بارگذاری سبک";
+    pill.textContent = label;
+    pill.title = "همین صفحه در مرورگر تو، بی‌کمک سرور، سنجیده شد.";
+    pill.setAttribute("role", "img");
+    pill.setAttribute("aria-label", `${label}؛ سرعت بارگذاری این صفحه ${s} از ۱۰۰`);
+    pill.classList.add("is-ready");
+    note.append(pill);
   }
 
   if (document.readyState === "complete") paint();
   else window.addEventListener("load", () => setTimeout(paint, 320), { once: true });
-  setTimeout(paint, 2600);   // اگر load دیر شد، بالاخره عدد را نشان بده
+  setTimeout(paint, 2600);   // اگر load دیر شد، بالاخره نشان را بده
 })();

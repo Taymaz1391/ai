@@ -1,19 +1,20 @@
 """زبان سایت — تک‌زبانه: فارسی، راست‌چین، پیش‌فرض برای همه.
 
 نسخهٔ انگلیسی حذف شده است؛ نه هدایت خودکار بر پایهٔ IP یا ``Accept-Language``
-انجام می‌شود، نه کوکی زبان لازم است. تنها یک زبان، یک جهت، و یک مجموعهٔ ویدیو.
+انجام می‌شود، نه کوکی زبان لازم است. تنها یک زبان، یک جهت، و یک مجموعهٔ دارایی متحرک.
 """
 from __future__ import annotations
 
 LANGS = ("fa",)
 
-# نسخه‌های ویدیوی تبلیغاتی
-VIDEOS = {
+# دارایی‌های متحرک برند (به‌جای ویدیوی تبلیغاتی؛ سبک، شفاف و بی‌صدا)
+MOTION = {
     "fa": {
-        "landscape": "/static/assets/video/promo-fa-16x9.mp4",
-        "vertical": "/static/assets/video/promo-fa-9x16.mp4",
-        "square": "/static/assets/video/promo-fa-1x1.mp4",
-        "poster": "/static/assets/video/promo-fa-poster.jpg",
+        "orb": "/static/assets/brand/orb-live.webp",
+        "avatar": "/static/assets/brand/orb-live-sm.webp",
+        "logo": "/static/assets/brand/logo-motion.webp",
+        "logo_dark": "/static/assets/brand/logo-motion-dark.webp",
+        "loading": "/static/assets/brand/logo-loading.webp",
     },
 }
 
@@ -24,6 +25,6 @@ def detect(request) -> dict:  # noqa: ARG001 - امضای مشترک با فرا
         "lang": "fa",
         "dir": "rtl",
         "source": "default",
-        "videos": VIDEOS["fa"],
+        "motion": MOTION["fa"],
         "alternate": "/",
     }

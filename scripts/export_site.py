@@ -155,7 +155,7 @@ def build(out: Path) -> dict:
     for name in ("styles.css", "pages.css", "landing.css", "chat.css",
                  "ui.js", "landing.js", "app.js", "auth.js", "models.js", "share.js",
                  "studio.js", "ads.js", "theme-boot.js", "offline.js",
-                 "pricing.js", "promo.js", "course.js"):
+                 "pricing.js", "course.js"):
         path = STATIC / name
         if path.exists():
             text = read(path)

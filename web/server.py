@@ -65,7 +65,7 @@ CORPUS_STATS_PATH = os.path.join(ROOT, "data", "corpus_stats.json")
 SESSION_COOKIE = "rayan_session"
 GUEST_COOKIE = "rayan_guest"
 SESSION_DAYS = 30
-IS_PROD = os.environ.get("RAYAN_ENV", "dev") == "prod"
+IS_PROD = os.environ.get("RAYAN_ENV", "dev").strip().lower() in ("prod", "production")
 
 STARTED = time.time()
 engine: Engine | None = None
@@ -184,7 +184,7 @@ app.add_middleware(
     allow_origins=sorted(_PUBLIC_ORIGINS),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "X-RayAn-CSRF", "x-rayan-csrf"],
+    allow_headers=["Content-Type", "X-RayAn-CSRF", "x-rayan-csrf", "X-API-Key", "Authorization", "X-Admin-Key"],
 )
 
 if os.path.isdir(STATIC_DIR):

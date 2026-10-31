@@ -8,8 +8,8 @@
   min-height: 100dvh;
 }
 .auth-aside {
-  display: flex; flex-direction: column; gap: 26px;
-  padding: 34px 44px;
+  display: flex; flex-direction: column; gap: 20px;
+  padding: 30px 44px 34px;
   border-inline-end: 1px solid var(--line);
   background: var(--hero-band);
   position: relative;
@@ -17,6 +17,7 @@
 }
 .auth-aside::after {
   content: "";
+  z-index: 0;
   position: absolute;
   width: 520px; height: 520px;
   border-radius: 50%;
@@ -25,26 +26,26 @@
   filter: blur(20px);
   pointer-events: none;
 }
-.auth-pitch { display: flex; flex-direction: column; gap: 16px; margin: auto 0; max-width: 430px; }
+.auth-pitch { display: flex; flex-direction: column; gap: 14px; margin: auto 0; max-width: 430px; position: relative; z-index: 1; }
 .auth-orb { filter: drop-shadow(0 18px 40px rgba(46, 139, 255, 0.5)); }
-.auth-pitch h1 { font-size: clamp(26px, 2.8vw, 36px); line-height: 1.4; }
+.auth-pitch h1 { font-size: clamp(24px, 2.3vw, 31px); line-height: 1.45; }
 .auth-pitch p { color: var(--text-2); font-size: 15px; line-height: 1.95; }
 .auth-points { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
-.auth-points li { display: flex; gap: 10px; align-items: center; font-size: 14px; color: var(--text-2); }
+.auth-points li { display: flex; gap: 10px; align-items: center; font-size: 13.5px; color: var(--text-2); }
 .auth-points span {
   width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
   display: grid; place-items: center; font-size: 11px;
   background: rgba(94, 234, 212, 0.16); color: var(--mint);
 }
-.auth-fine { margin-top: auto; font-size: 12px; color: var(--text-3); max-width: 380px; line-height: 1.9; position: relative; z-index: 1; }
+.auth-fine { margin-top: 6px; font-size: 12px; color: var(--text-3); max-width: 380px; line-height: 1.9; position: relative; z-index: 1; }
 
-.auth-main { display: grid; place-items: center; padding: 40px 24px; order: 1; }
+.auth-main { display: grid; place-items: center; padding: 30px 24px; order: 1; }
 .auth-aside { order: 2; }  /* فرم در سمت راست (شروع خط فارسی)، معرفی در چپ */
-.auth-card { width: min(430px, 100%); padding: 32px 30px; }
+.auth-card { width: min(430px, 100%); padding: 26px 28px; }
 .auth-head { margin-bottom: 22px; }
 .auth-head h2 { font-size: 23px; margin-bottom: 6px; }
 .auth-head p { color: var(--text-3); font-size: 13.5px; }
-.auth-form { display: flex; flex-direction: column; gap: 15px; }
+.auth-form { display: flex; flex-direction: column; gap: 13px; }
 .pw-wrap { position: relative; }
 .pw-wrap .input { padding-inline-end: 44px; }
 .pw-toggle {
@@ -64,6 +65,59 @@
 .auth-switch a:hover { color: var(--blue-3); }
 .auth-legal { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--text-3); text-align: center; }
 .auth-legal a { color: var(--text-2); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ورود با کلید API در همان کارت */
+.auth-key { display: grid; gap: 10px; }
+.auth-key-toggle {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 9px 12px; border-radius: 12px;
+  border: 1px dashed color-mix(in srgb, var(--blue) 32%, var(--line));
+  background: color-mix(in srgb, var(--blue) 5%, transparent);
+  color: var(--text-2); font-size: 13px; font-weight: 600;
+  transition: 0.18s var(--ease);
+}
+.auth-key-toggle:hover { color: var(--blue); border-color: color-mix(in srgb, var(--blue) 60%, var(--line)); }
+.auth-key-form { display: grid; gap: 10px; padding: 14px; border-radius: 14px; background: var(--panel-soft); border: 1px solid var(--line); }
+.auth-key-form[hidden] { display: none; }
+.auth-key-form .input { direction: ltr; text-align: left; font-family: var(--mono); font-size: 13px; }
+.auth-key-note { font-size: 11.5px; color: var(--text-3); line-height: 1.85; }
+.auth-key-note a { color: var(--blue-2); text-decoration: underline; text-underline-offset: 3px; }
+.brand-motion { height: 34px; width: auto; aspect-ratio: 2 / 1; }
+
+/* ---------------------------------------------------- نمایش نشان (تمام‌صفحه) */
+.brand-reel { background: var(--bg); }
+.reel-aurora {
+  position: absolute; inset: -20% -10%;
+  background:
+    radial-gradient(38% 42% at 72% 34%, rgba(56, 210, 255, 0.32), transparent 70%),
+    radial-gradient(42% 46% at 28% 66%, rgba(26, 99, 240, 0.28), transparent 72%);
+  filter: blur(8px);
+  animation: auroraDrift 9s ease-in-out infinite alternate;
+}
+@keyframes auroraDrift {
+  from { transform: translate3d(-2%, -1%, 0) scale(1); }
+  to { transform: translate3d(2%, 2%, 0) scale(1.08); }
+}
+.reel-stage {
+  position: absolute; inset: 0;
+  display: grid; place-items: center; gap: 26px;
+  padding: 8vh 6vw 16vh;
+  grid-auto-rows: min-content;
+  align-content: center;
+}
+.reel-logo { width: min(560px, 74vw); height: auto; animation: reelLogo 1s var(--ease) both; }
+.reel-for-dark { display: none; }
+[data-theme="dark"] .reel-for-light { display: none; }
+[data-theme="dark"] .reel-for-dark { display: block; }
+@keyframes reelLogo { from { opacity: 0; transform: translateY(14px) scale(0.97); } to { opacity: 1; transform: none; } }
+.reel-orb { display: block; animation: reelOrb 5s var(--ease) infinite; }
+.reel-orb img { width: min(168px, 30vw); height: auto; border-radius: 50%; filter: drop-shadow(0 22px 44px rgba(26, 99, 240, 0.42)); }
+@keyframes reelOrb { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+.brand-reel .reel-hook { font-size: clamp(12.5px, 1.6vw, 16px); }
+.brand-reel .welcome-copy b { font-size: 16px; }
+@media (prefers-reduced-motion: reduce) {
+  .reel-aurora, .reel-orb, .reel-logo { animation: none !important; }
+}
 
 @media (max-width: 900px) {
   .auth-shell { grid-template-columns: 1fr; }
@@ -160,7 +214,7 @@
 .toc { position: sticky; top: 90px; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
 .toc a { color: var(--text-3); padding: 5px 10px; border-radius: 8px; }
 .toc a:hover { color: var(--text); background: rgba(125, 168, 235, 0.08); }
-.doc-grid { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 40px; align-items: start; }
+.doc-grid { display: grid; grid-template-columns: 200px minmax(0, 880px); gap: 48px; align-items: start; justify-content: center; }
 
 @media (max-width: 860px) {
   .doc-grid { grid-template-columns: 1fr; gap: 20px; }
@@ -239,7 +293,7 @@
 .course-table tbody tr:nth-child(even) { background: rgba(26, 99, 240, .03); }
 @media print { .course-table { font-size: 11px; } }
 
-/* --------------------------------------------- ویدیوی معرفی تمام‌صفحه (پس از ثبت‌نام) */
+/* --------------------------------------- نمایش نشان، تمام‌صفحه (پس از ثبت‌نام) */
 .welcome-reel {
   position: fixed; inset: 0; z-index: 300;
   width: 100vw; height: 100dvh; min-height: 100svh;
@@ -250,19 +304,6 @@
 }
 .welcome-reel[hidden] { display: none; }
 body.reel-open { overflow: hidden; overscroll-behavior: none; }
-/* خود ویدیو تمام صفحه را پر می‌کند، نه با نوارهای سیاه */
-.welcome-video {
-  position: absolute; inset: 0;
-  width: 100%; height: 100%;
-  object-fit: cover;
-  background: #040a18;
-}
-.welcome-vignette {
-  position: absolute; inset: 0; pointer-events: none;
-  background:
-    radial-gradient(120% 90% at 50% 45%, transparent 38%, rgba(3, 8, 20, 0.55) 100%),
-    linear-gradient(0deg, rgba(3, 8, 20, 0.82) 0%, transparent 34%);
-}
 /* هدایت نگاه: جمله‌های کوتاه که با ریتم ویدیو ظاهر می‌شوند */
 .reel-hooks { position: absolute; inset-inline: 0; top: clamp(18px, 5vh, 54px); display: grid; justify-items: center; pointer-events: none; }
 .reel-hook {
@@ -305,12 +346,42 @@ body.reel-open { overflow: hidden; overscroll-behavior: none; }
   cursor: pointer;
 }
 .welcome-skip-x:hover { color: #fff; border-color: rgba(150, 195, 255, 0.6); }
+
+/* تم روشن: در صفحهٔ معرفی هیچ سطح تیره‌ای نمی‌ماند */
+[data-theme="light"] .welcome-reel { background: var(--bg); }
+[data-theme="light"] .reel-hook {
+  color: var(--text); background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(26, 99, 240, 0.18);
+  box-shadow: 0 8px 24px rgba(10, 23, 48, 0.12);
+}
+[data-theme="light"] .welcome-bar {
+  background: linear-gradient(0deg, rgba(255, 255, 255, 0.97), rgba(255, 255, 255, 0));
+}
+[data-theme="light"] .welcome-copy { color: var(--text); }
+[data-theme="light"] .welcome-copy span { color: var(--text-2); }
+[data-theme="light"] .welcome-copy .wm-inline { filter: none; }
+[data-theme="light"] .welcome-actions .btn {
+  color: var(--text); border-color: rgba(26, 99, 240, 0.2); background: rgba(255, 255, 255, 0.86);
+}
+[data-theme="light"] .welcome-actions .btn-primary {
+  color: var(--on-accent); border-color: transparent; background: var(--grad);
+}
+[data-theme="light"] .welcome-progress { background: rgba(10, 23, 48, 0.1); }
+[data-theme="light"] .welcome-skip-x {
+  color: var(--text); background: rgba(255, 255, 255, 0.86);
+  border-color: rgba(26, 99, 240, 0.2);
+  box-shadow: 0 6px 18px rgba(10, 23, 48, 0.14);
+}
+[data-theme="light"] .welcome-skip-x:hover { color: var(--blue); border-color: var(--blue-2); }
 @keyframes reelIn { from { opacity: 0; } to { opacity: 1; } }
-@media (max-width: 560px) {
+@media (max-width: 700px) {
   .welcome-bar { flex-direction: column; align-items: stretch; gap: 10px; text-align: center; }
   .welcome-copy { justify-items: center; }
   .welcome-actions { justify-content: center; }
   .reel-hooks { top: 14px; }
+  .reel-stage { padding: 12vh 6vw 26vh; gap: 16px; }
+  .reel-logo { width: min(360px, 82vw); }
+  .reel-orb img { width: min(112px, 26vw); }
 }
 @media (prefers-reduced-motion: reduce) {
   .reel-hook { transition: none; }
