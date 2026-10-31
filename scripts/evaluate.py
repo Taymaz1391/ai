@@ -19,6 +19,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 from parsia.generate import Engine, polish  # noqa: E402
+from parsia.thinking import deep_reply  # noqa: E402
 from parsia.model import forward, load_checkpoint  # noqa: E402
 from parsia.tokenizer import BPETokenizer  # noqa: E402
 
@@ -76,7 +77,7 @@ def main() -> None:
     parser.add_argument("--tokenizer", default="tokenizer/parsia_bpe.json")
     parser.add_argument("--val", default="data/val.txt")
     parser.add_argument("--out", default="reports")
-    parser.add_argument("--seeds", default="11,23,37")
+    parser.add_argument("--seeds", default="11,23,37,53,71")
     args = parser.parse_args()
 
     os.makedirs(args.out, exist_ok=True)
@@ -124,6 +125,27 @@ def main() -> None:
                 "confidence": round(generation.confidence, 3),
             })
             print(f"[{mode}] {prompt or 'شعر'} (seed {seed}) -> {text[:80]!r}")
+    deep_prompts = ["سلام! خودت را معرفی کن", "اسمت چیست؟"]
+    for prompt in deep_prompts:
+        for _attempt in range(3):
+            text, generation, trace = deep_reply(
+                engine, prompt, mode="chat", n_candidates=4, max_new_tokens=80,
+            )
+            tokens = len(generation.tokens) if generation else 0
+            seconds = float(trace.get("total_seconds") or 0.0)
+            samples.append({
+                "mode": "chat",
+                "prompt": prompt,
+                "seed": 0,
+                "text": text,
+                "tokens": tokens,
+                "seconds": round(seconds, 2),
+                "tok_s": round(tokens / max(1e-6, seconds), 1) if seconds else 0.0,
+                "confidence": round(generation.confidence, 3) if generation else 0.0,
+                "deep": True,
+                "trace": trace.get("rationale", ""),
+            })
+            print(f"[deep] {prompt} -> {text[:90]!r}")
     report["samples"] = samples
     report["generation"] = {
         "mean_tok_s": round(float(np.mean([s["tok_s"] for s in samples])), 1),

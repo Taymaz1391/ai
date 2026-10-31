@@ -680,6 +680,14 @@
   function drawMainChart() {
     const canvas = $("#loss-chart");
     if (!canvas || state.view !== "training" || !state.metrics) return;
+    const noteEl = $("#chart-note");
+    if (noteEl) {
+      const rows = state.metrics.train || [];
+      const lastRow = rows[rows.length - 1];
+      noteEl.textContent = lastRow
+        ? `آخرین خطای آموزش: ${fa(lastRow.loss, 3)} · گام ${fa(lastRow.step)}`
+        : "در انتظار داده…";
+    }
     const fit = fitCanvas(canvas);
     if (!fit) return;
     const { ctx, width: W, height: H } = fit;
@@ -885,8 +893,8 @@
     const tps = lastTrain.tok_s || null;
     const elapsed = lastTrain.elapsed_s || lastEval.elapsed_s || 0;
     let eta = null;
-    if (m.active) {
-      if (tps) eta = (targetTokens - tokens) / tps;
+    if (m.active && step < totalSteps) {
+      if (tps) eta = Math.max(0, (targetTokens - tokens) / tps);
       else if (step && elapsed) eta = ((totalSteps - step) * elapsed) / step;
     }
     return { m, run, lastTrain, lastEval, totalSteps, targetTokens, tokens, step, tps, elapsed, eta };
@@ -990,7 +998,7 @@
     const c = state.model.corpus;
     const news = c.news_chars || 0;
     const poetry = c.poetry_chars || 0;
-    const chat = c.chat_chars || 0;
+    const chat = c.chat_train_chars || c.chat_chars || 0;
     const total = news + poetry + chat;
     if (!total) return;
     $$(".mix").forEach((el) => {
@@ -1022,7 +1030,8 @@
         text.textContent = example.text || "—";
         const foot = document.createElement("div");
         foot.className = "foot";
-        foot.textContent = `${modeLabel[example.mode] || example.mode} · ${fa(example.tokens || 0)} توکن · ${fa(example.tok_s || 0)} توکن/ث`;
+        const deepTag = example.deep ? " · اندیشهٔ ژرف (بهترین از ۴ مسیر)" : "";
+        foot.textContent = `${modeLabel[example.mode] || example.mode} · ${fa(example.tokens || 0)} توکن · ${fa(example.tok_s || 0)} توکن/ث${deepTag}`;
         item.append(prompt, text, foot);
         holder.append(item);
       });

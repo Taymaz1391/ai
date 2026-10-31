@@ -19,6 +19,7 @@ MODES = {
     "chat": {
         "temperature": 0.82, "top_p": 0.90, "top_k": 40,
         "repetition_penalty": 1.15, "max_new_tokens": 110,
+        "min_new_tokens": 6,  # جلوگیری از پاسخ‌های یک‌کلمه‌ای
     },
     "continue": {
         "temperature": 0.85, "top_p": 0.92, "top_k": 40,
@@ -147,6 +148,7 @@ class Engine:
         top_k: int | None = None,
         repetition_penalty: float | None = None,
         max_new_tokens: int | None = None,
+        min_new_tokens: int | None = None,
         seed: int | None = None,
         on_token=None,
     ) -> Generation:
@@ -156,6 +158,7 @@ class Engine:
         top_k = base["top_k"] if top_k is None else top_k
         repetition_penalty = base["repetition_penalty"] if repetition_penalty is None else repetition_penalty
         max_new_tokens = base["max_new_tokens"] if max_new_tokens is None else max_new_tokens
+        min_new_tokens = base.get("min_new_tokens", 0) if min_new_tokens is None else min_new_tokens
         seed = int(time.time_ns() % 2**31) if seed is None else int(seed)
 
         cfg = self.cfg
@@ -174,8 +177,12 @@ class Engine:
         finish = "length"
         recent = prompt[-48:]
         for i in range(max_new_tokens):
+            step_logits = logits
+            if i < min_new_tokens:
+                step_logits = logits.copy()
+                step_logits[list(stop_ids)] = -1e9
             token, lp, entropy = sample_from_logits(
-                logits, rng, temperature=temperature, top_k=top_k, top_p=top_p,
+                step_logits, rng, temperature=temperature, top_k=top_k, top_p=top_p,
                 recent=recent, repetition_penalty=repetition_penalty,
             )
             if token in stop_ids:

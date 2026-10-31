@@ -119,6 +119,7 @@ def main() -> None:
 
     chars_per_token = 4.25  # اندازه‌گیری‌شده روی پیکرهٔ اعتبارسنجی
     tokens_done = start_step * args.batch_size * cfg.block_size
+    run_tokens = 0
     start_time = time.time()
     best_val = float("inf")
     metrics_fh = open(args.metrics, "a", encoding="utf-8")
@@ -137,10 +138,11 @@ def main() -> None:
         grad_norm = opt.step(params, grads)
         dt = time.time() - t0
         tokens_done += x.size
+        run_tokens += x.size
 
         if step % args.log_every == 0:
             elapsed = time.time() - start_time
-            tok_s = tokens_done / max(1e-9, elapsed)
+            tok_s = run_tokens / max(1e-9, elapsed)
             print(
                 f"step {step:5d}/{args.steps} | loss {float(loss):.4f} | lr {lr:.2e} | "
                 f"gnorm {grad_norm:.2f} | {tok_s:6.0f} tok/s | {elapsed/60:5.1f} min",

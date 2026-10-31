@@ -48,14 +48,16 @@ def _score(generation: Generation, text: str) -> tuple[float, float]:
     repetition = _ngram_repetition(generation.tokens)
     persian = persian_ratio(text)
     ends_cleanly = text.endswith(tuple(".!؟…»\n"))
-    length_factor = min(1.0, len(generation.tokens) / 38)
+    length_factor = min(1.0, len(generation.tokens) / 30)
+    too_short = 0.22 if len(generation.tokens) < 6 else 0.0
     score = (
         generation.mean_logprob
         - 0.75 * repetition
         - 0.02 * generation.mean_entropy
-        + 0.10 * persian
-        + 0.07 * length_factor
-        + (0.09 if ends_cleanly else 0.0)
+        + 0.15 * persian
+        + 0.24 * length_factor
+        + (0.12 if ends_cleanly else 0.0)
+        - too_short
     )
     return float(score), float(repetition)
 

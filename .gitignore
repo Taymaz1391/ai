@@ -18,3 +18,6 @@ checkpoints/*.npz.tmp
 # گزارش‌های موقت
 logs/*.log
 logs/*.pid
+
+# نسخه‌های میانی وزن‌ها
+checkpoints/*-step*.npz

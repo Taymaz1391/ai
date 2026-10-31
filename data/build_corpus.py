@@ -236,6 +236,8 @@ def main() -> None:
     docs = news + poetry + chat
     rng.shuffle(docs)
     n_train = write_split(docs, args.out)
+    train_text = open(os.path.join(args.out, "train.txt"), encoding="utf-8").read()
+    val_text = open(os.path.join(args.out, "val.txt"), encoding="utf-8").read()
 
     stats = {
         "news_chars": sum(len(x) for x in news),
@@ -243,8 +245,11 @@ def main() -> None:
         "chat_chars": sum(len(x) for x in p.chat),
         "train_docs": n_train,
         "val_docs": len(docs) - n_train,
-        "train_chars": os.path.getsize(os.path.join(args.out, "train.txt")),
-        "val_chars": os.path.getsize(os.path.join(args.out, "val.txt")),
+        "chat_train_chars": sum(len(x) for x in chat),
+        "train_chars": len(train_text),
+        "val_chars": len(val_text),
+        "train_bytes": os.path.getsize(os.path.join(args.out, "train.txt")),
+        "val_bytes": os.path.getsize(os.path.join(args.out, "val.txt")),
         "news_docs": len(news),
         "poetry_docs": len(poetry),
         "chat_docs": len(chat),
