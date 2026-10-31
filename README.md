@@ -269,7 +269,7 @@ legacy/                   نسخهٔ نخست پروژه (مبتنی بر PyTorc
 
 ```bash
 python tests/gradcheck.py                          # تطابق گرادیان دستی و عددی + حافظهٔ KV
-python -m pytest -q                                # ۷۶ آزمون: توکنایزر، مدل، پایگاه‌داده، API، امنیت، سایت، مالک، جست‌وجو
+python -m pytest -q                                # ۷۷ آزمون: توکنایزر، مدل، پایگاه‌داده، API، امنیت، سایت، مالک، جست‌وجو
 cd tests/ui && npm install && node uitest.js       # ۷۶ بررسی رابط کاربری با jsdom (نیازمند سرور در حال اجرا)
 ```
 

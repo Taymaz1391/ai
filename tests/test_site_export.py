@@ -28,6 +28,12 @@ class ExportSiteTest(unittest.TestCase):
                      "404.html"):
             self.assertTrue((self.out / name).exists(), name)
 
+    def test_download_page_links(self):
+        html = (self.out / "download.html").read_text(encoding="utf-8")
+        self.assertIn("releases/latest/download/rayan-android.apk", html)
+        self.assertIn("releases/latest/download/rayan-windows.exe", html)
+        self.assertIn("کلاینت نازک", html)
+
     def test_assets_copied(self):
         self.assertTrue((self.out / "static" / "styles.css").exists())
         self.assertTrue((self.out / "static" / "ui.js").exists())

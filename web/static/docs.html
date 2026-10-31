@@ -79,6 +79,7 @@ python web/server.py --host 0.0.0.0 --port 8000</code></pre>
               <tr><td><code>GET /api/showcase</code></td><td>نمونه‌های واقعی تولید مدل</td></tr>
               <tr><td><code>GET /api/locale</code></td><td>زبان، جهت و نسخهٔ ویدیو بر پایهٔ کشور/زمان/زبان مرورگر</td></tr>
               <tr><td><code>GET /api/status</code></td><td>وضعیت کوتاه برای بنر و پایش</td></tr>
+              <tr><td><code>GET /api/search?q=…</code></td><td>جست‌وجوی وب بدون کلید (SearXNG → DuckDuckGo → ویکی‌پدیا)، با کش ۱۰ دقیقه‌ای</td></tr>
               <tr><td><code>GET /api/plans</code></td><td>پلن‌ها و سقف مصرف (قابل تغییر از پنل)</td></tr>
               <tr><td><code>POST /api/auth/register</code></td><td>ساخت حساب</td></tr>
               <tr><td><code>POST /api/auth/login</code></td><td>ورود و صدور کوکی نشست</td></tr>
@@ -123,6 +124,12 @@ python web/server.py --host 0.0.0.0 --port 8000</code></pre>
           مسیر دیگر را با متغیر <code>RAYAN_GEOIP</code> بده). ویدیوی تبلیغاتی هم به همین زبان و به نسبت صفحه
           (افقی، عمودی یا مربعی) انتخاب می‌شود.
         </p>
+
+        <h2 id="clients">کلاینت‌های نصب</h2>
+        <p><code>/download</code> نسخهٔ اندروید (APK) و ویندوز (EXE) را با نشانی ثابت به انتشار
+          <code>clients</code> در GitHub پیوند می‌دهد. هر دو پوستهٔ نازک‌اند: مدل و سهمیه سمت سرور است
+          و نشانی سرور را در نخستین اجرا می‌پرسی. ساختشان با
+          <code>.github/workflows/clients.yml</code> انجام می‌شود.</p>
 
         <h2 id="deploy">استقرار</h2>
         <p>سه مسیر رایگان:</p>
