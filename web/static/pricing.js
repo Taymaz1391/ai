@@ -25,7 +25,7 @@
       if (price) price.innerHTML = `${money(pro.price)} <small>${currency} / ${pro.period}</small>`;
       if (tag) tag.textContent = pro.for_sale ? "فعال" : "به‌زودی";
     } else if (price) {
-      price.innerHTML = "به‌زودی <small>—</small>";
+      price.innerHTML = "توافقی <small>قرارداد سازمانی</small>";
     }
     if (cta) {
       const pay = data.payments || {};

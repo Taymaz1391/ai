@@ -71,7 +71,7 @@ class ExportSiteTest(unittest.TestCase):
             self.assertFalse(icon["src"].startswith("/"), icon["src"])
 
     def test_deterministic_counts(self):
-        self.assertEqual(self.info["pages"], 12)
+        self.assertEqual(self.info["pages"], 14)
         self.assertGreater(self.info["files"], 30)
 
     @classmethod

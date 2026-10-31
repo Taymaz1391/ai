@@ -1,5 +1,5 @@
 /* رایان — سرویس‌ورکر: دارایی‌های ایستا کش، صفحه‌ها شبکه-اول، آفلاین‌پذیر */
-const VERSION = "rayan-v10";
+const VERSION = "rayan-v11";
 const SHELL = [
   "/static/styles.css",
   "/static/pages.css",
@@ -11,22 +11,28 @@ const SHELL = [
   "/static/course.js",
   "/static/studio.js",
   "/static/ads.js",
+  "/static/voice.js",
+  "/static/scroll.js",
+  "/static/perf.js",
+  "/static/speed.js",
+  "/static/developer.js",
+  "/static/support.js",
+  "/static/human.js",
   "/static/assets/brand/orb-128.png",
   "/static/assets/brand/mark-ink.png",
   "/static/assets/brand/mark-white.png",
   "/static/assets/brand/logotype-stack-ink.png",
   "/static/assets/brand/logotype-stack-white.png",
-  "/static/assets/brand/mark-ink.png",
-  "/static/assets/brand/mark-white.png",
   "/static/assets/fonts/Vazirmatn-Regular.woff2",
   "/static/assets/fonts/Vazirmatn-Bold.woff2",
 ];
-const PAGES = ["/", "/chat", "/pricing", "/models", "/about", "/docs", "/course", "/download", "/offline"];
+const PAGES = ["/", "/chat", "/pricing", "/models", "/about", "/docs", "/course", "/download",
+               "/developer", "/support", "/offline"];
 const OFFLINE_HTML = `<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>رایان — آفلاین</title>
 <style>
  body{margin:0;min-height:100dvh;display:grid;place-items:center;background:#f2f6ff;color:#0a1730;
-      font-family:Vazirmatn,Tahoma,sans-serif;text-align:center;padding:24px}
+      font-family:Vazirmatn,"Vazir",sans-serif;text-align:center;padding:24px}
  .card{max-width:420px;background:#fff;border:1px solid #dde7f7;border-radius:24px;padding:34px;
        box-shadow:0 30px 80px -50px rgba(12,44,104,.45)}
  img{width:96px;height:96px;margin-bottom:14px}

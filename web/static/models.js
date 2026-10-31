@@ -9,7 +9,6 @@
         request("/api/health"),
         request("/api/model").catch(() => null),
       ]);
-      const meta = model?.meta || {};
       const ev = model?.metrics?.best_eval || health.latest_eval;
       if (ev) {
         const cells = document.querySelectorAll("#eval-table tbody tr");
@@ -19,11 +18,10 @@
         const ppl = $("#m-ppl");
         if (ppl) ppl.textContent = nf(ev.ppl, 1);
       }
-      const tokens = health.latest_train?.tokens || meta.tokens_seen;
+      const tokens = health.latest_train?.tokens;
       if (tokens) {
-        const rows = document.querySelectorAll("#eval-table tbody tr");
-        const last = rows[rows.length - 1];
-        if (last) last.children[1].textContent = nf(tokens);
+        const cell = document.querySelector("[data-eval='tokens']");
+        if (cell) cell.textContent = `${nf(tokens / 1e6, 1)} میلیون`;
       }
     } catch { /* نسخهٔ استاتیک: اعداد ثابت می‌مانند */ }
   }

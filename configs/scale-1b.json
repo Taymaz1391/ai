@@ -1,0 +1,40 @@
+{
+  "name": "rayan-1-small · مقیاس ۱ میلیارد نویسه",
+  "note": "این فایل فقط نقشهٔ اجراست؛ checkpoint تحویل‌شده روی ۱۶٫۹ میلیون نویسه آموزش دیده است. با همین فایل و پیکرهٔ ۱ میلیارد نویسه‌ای، آموزش روی ۴ تا ۸ هستهٔ CPU چند روز طول می‌کشد. هیچ عددی از پیش پر نشده است.",
+  "corpus": {
+    "builder": "scripts/scale_corpus.py",
+    "target_chars": 1000000000,
+    "val_ratio": 0.005,
+    "sources": [
+      "corpora/news",
+      "corpora/poetry",
+      "corpora/chat"
+    ]
+  },
+  "tokenizer": {
+    "trainer": "scripts/train_tokenizer.py",
+    "chars_seen": 100000000,
+    "vocab": 32000,
+    "min_frequency": 2
+  },
+  "model": {
+    "layers": 8,
+    "heads": 8,
+    "embed": 512,
+    "block_size": 512,
+    "params_estimate": 26_000_000
+  },
+  "train": {
+    "steps": 120000,
+    "batch_size": 16,
+    "tokens_per_step": 8192,
+    "target_tokens": 983_040_000,
+    "learning_rate": 0.0006,
+    "warmup": 2000,
+    "hardware": "۴ تا ۸ هستهٔ CPU · NumPy · بدون GPU"
+  },
+  "eval": {
+    "val_batches": 20,
+    "report": "reports/eval-scale-1b.json"
+  }
+}

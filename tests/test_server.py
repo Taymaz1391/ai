@@ -18,6 +18,15 @@ except Exception:  # pragma: no cover
     HAVE_CLIENT = False
 
 
+def human_proof(client) -> dict:
+    """چالش «من ربات نیستم» را مثل مرورگر حل می‌کند."""
+    from web import security
+
+    challenge = client.get("/api/captcha").json()
+    return {"token": challenge["token"],
+            "nonce": security.HumanCheck.solve(challenge["salt"], challenge["bits"])}
+
+
 @unittest.skipUnless(HAVE_CLIENT, "httpx/fastapi TestClient unavailable")
 @unittest.skipUnless(os.path.exists(CHECKPOINT), "checkpoint not trained yet")
 class ApiTest(unittest.TestCase):
@@ -34,6 +43,7 @@ class ApiTest(unittest.TestCase):
         server.engine = server.load_engine(CHECKPOINT)
         cls.server = server
         cls.client = TestClient(server.app)
+        cls.client.get("/chat")   # کوکی مهمان، مثل باز کردن سایت در مرورگر
 
     @classmethod
     def tearDownClass(cls):
@@ -131,6 +141,7 @@ class ApiTest(unittest.TestCase):
 
         res = client.post("/api/auth/register", json={
             "name": "آزمون", "email": "tester@example.com", "password": "test-password",
+            "captcha": human_proof(client),
         })
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json()["user"]["email"], "tester@example.com")
@@ -142,19 +153,23 @@ class ApiTest(unittest.TestCase):
 
         dup = client.post("/api/auth/register", json={
             "name": "دوباره", "email": "tester@example.com", "password": "test-password",
+            "captcha": human_proof(client),
         })
         self.assertEqual(dup.status_code, 409)
 
         client.post("/api/auth/logout")
         self.assertIsNone(client.get("/api/auth/me").json()["user"])
 
-        bad = client.post("/api/auth/login", json={"email": "tester@example.com", "password": "wrong-pass"})
+        bad = client.post("/api/auth/login", json={"email": "tester@example.com", "password": "wrong-pass",
+                                                   "captcha": human_proof(client)})
         self.assertEqual(bad.status_code, 401)
-        ok = client.post("/api/auth/login", json={"email": "tester@example.com", "password": "test-password"})
+        ok = client.post("/api/auth/login", json={"email": "tester@example.com", "password": "test-password",
+                                                  "captcha": human_proof(client)})
         self.assertEqual(ok.status_code, 200)
 
     def test_share_flow(self):
         client = TestClient(self.server.app)
+        client.get("/chat")
         conv = client.post("/api/chat", json={"message": "سلام", "max_new_tokens": 16}).json()["conversation_id"]
         share = client.post(f"/api/conversations/{conv}/share").json()
         self.assertIn("token", share)
@@ -166,8 +181,10 @@ class ApiTest(unittest.TestCase):
 
     def test_guest_cannot_read_others_conversation(self):
         owner = TestClient(self.server.app)
+        owner.get("/chat")
         conv = owner.post("/api/chat", json={"message": "سلام", "max_new_tokens": 16}).json()["conversation_id"]
         stranger = TestClient(self.server.app)
+        stranger.get("/chat")
         self.assertEqual(stranger.get(f"/api/conversations/{conv}").status_code, 404)
         self.assertEqual(stranger.delete(f"/api/conversations/{conv}").status_code, 404)
 
@@ -177,8 +194,10 @@ class ApiTest(unittest.TestCase):
         server.LIMITS["free"] = {"chat": 1, "deep": 1}
         try:
             client = TestClient(self.server.app)
+            client.get("/chat")
             res = client.post("/api/auth/register", json={
                 "name": "سهمیه", "email": "quota@example.com", "password": "test-password",
+                "captcha": human_proof(client),
             })
             self.assertEqual(res.status_code, 200)
             first = client.post("/api/chat", json={"message": "سلام", "max_new_tokens": 16})
@@ -211,6 +230,7 @@ class V3Test(unittest.TestCase):
         server.engine_error = None
         cls.server = server
         cls.client = TestClient(server.app)
+        cls.client.get("/chat")   # کوکی مهمان، مثل باز کردن سایت در مرورگر
 
     @classmethod
     def tearDownClass(cls):

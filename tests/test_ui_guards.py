@@ -80,16 +80,16 @@ class BrandTest(unittest.TestCase):
         """نسبت لوگوتایپ در نشانه‌گذاری باید با فایل رسمی بخواند، وگرنه کشیده می‌شود."""
         for name in ("mark-ink.png", "mark-white.png"):
             w, h = png_size(BRAND / name)
-            self.assertAlmostEqual(w / h, 514 / 262, places=2, msg=name)
+            self.assertAlmostEqual(w / h, 1026 / 520, places=2, msg=name)
         for page in STATIC.glob("*.html"):
             html = page.read_text(encoding="utf-8")
             for w, h in re.findall(r'mark-(?:ink|white)\.png"[^>]*width="(\d+)" height="(\d+)"', html):
-                self.assertAlmostEqual(int(w) / int(h), 514 / 262, delta=0.08,
+                self.assertAlmostEqual(int(w) / int(h), 1026 / 520, delta=0.08,
                                        msg=f"{page.name}: {w}×{h}")
 
     def test_css_reserves_intrinsic_ratio(self):
         css = (STATIC / "styles.css").read_text(encoding="utf-8")
-        self.assertIn("aspect-ratio: 514 / 262", css)
+        self.assertIn("aspect-ratio: 1026 / 520", css)
 
     def test_brand_name_is_a_logotype_not_text(self):
         """هیچ صفحه‌ای نام برند را به‌تنهایی به‌صورت متن نمی‌نویسد."""

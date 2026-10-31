@@ -121,6 +121,7 @@ class SearchApiTest(unittest.TestCase):
         os.chdir(ROOT)
         cls.server = server
         cls.client = TestClient(server.app)
+        cls.client.get("/chat")  # کوکی مهمان برای دسترسی به مدل
 
     @classmethod
     def tearDownClass(cls):

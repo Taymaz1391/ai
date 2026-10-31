@@ -72,9 +72,11 @@
             <a href="/pricing" role="menuitem">تعرفه و سهمیه</a>
             <a href="/models" role="menuitem">مدل‌ها</a>
             <a href="/download" role="menuitem">دانلود اندروید و ویندوز</a>
+            <a href="/developer" role="menuitem">توسعه‌دهنده و کلید API</a>
+            <a href="/support" role="menuitem">پشتیبانی تجاری</a>
             <button type="button" data-action="studio" role="menuitem">استودیو تصویر</button>
             <a href="/admin" role="menuitem" data-admin-link hidden>پنل مدیریت</a>
-            <a href="/about" role="menuitem">دربارهٔ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async"> </a>
+            <a href="/about" role="menuitem">دربارهٔ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> </a>
             <button type="button" data-action="logout" data-auth="user" role="menuitem">خروج از حساب</button>
           </div>
         </div>
@@ -97,7 +99,7 @@
         <div class="picker" id="model-picker">
           <button class="picker-btn" id="model-btn" aria-haspopup="listbox" aria-expanded="false">
             <img src="/static/assets/brand/orb-128.png" alt="" width="20" height="20">
-            <span id="model-label"> <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async"> ۱ — کوچک</span>
+            <span id="model-label"> <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> ۱ — کوچک</span>
             <span class="tag tag-blue" id="model-tag">فعال</span>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>
           </button>
@@ -126,7 +128,7 @@
             </span>
           </div>
           <h1 id="empty-title">امروز چه کاری برایت انجام دهم؟</h1>
-          <p class="empty-sub" id="empty-sub">مدل <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async"> ۱ — کوچک · ۶٫۵۷ میلیون پارامتر · از صفر ساخته شده</p>
+          <p class="empty-sub" id="empty-sub">مدل <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> ۱ — کوچک · ۶٫۵۷ میلیون پارامتر · از صفر ساخته شده</p>
           <div class="suggestions" id="suggestions"></div>
           <div class="ad-slot ad-inline" data-ad-slot="chat-empty" hidden></div>
           <div class="empty-foot">
@@ -167,6 +169,12 @@
             </div>
             <div class="composer-right">
               <span class="composer-hint" id="composer-hint"></span>
+              <button type="button" class="tool-btn voice-btn" id="voice-btn" aria-pressed="false"
+                      title="گفتگوی صوتی (میکروفون)" aria-label="گفتگوی صوتی">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+                <span class="voice-label">صوتی</span>
+                <span class="voice-waves" aria-hidden="true"><i></i><i></i><i></i></span>
+              </button>
               <button type="button" class="send-btn stop" id="stop-btn" hidden title="توقف تولید">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
               </button>
@@ -176,7 +184,7 @@
             </div>
           </div>
         </form>
-        <p class="disclaimer"> <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async"> مدل کوچکی است و ممکن است اشتباه کند. پاسخ‌های مهم را بررسی کن.</p>
+        <p class="disclaimer"> <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> مدل کوچکی است و ممکن است اشتباه کند. پاسخ‌های مهم را بررسی کن.</p>
       </div>
     </div>
   </div>
@@ -278,8 +286,11 @@
 
   <script src="/static/config.js"></script>
   <script src="/static/ui.js"></script>
+  <script src="/static/voice.js"></script>
   <script src="/static/app.js"></script>
   <script src="/static/studio.js"></script>
   <script src="/static/ads.js"></script>
+  <script src="/static/scroll.js"></script>
+  <script src="/static/perf.js"></script>
 </body>
 </html>

@@ -5,11 +5,11 @@
   justify-content: center;
   padding: 10px 18px;
   font-size: 13px;
-  color: #cfe2ff;
-  background: rgba(46, 139, 255, 0.14);
-  border-bottom: 1px solid rgba(56, 210, 255, 0.24);
+  color: var(--text-2);
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--line-strong);
 }
-.demo-banner b { color: #9fdcff; }
+.demo-banner b { color: var(--blue); }
 .demo-link { color: var(--blue-2); text-decoration: underline; text-underline-offset: 3px; }
 
 .hero { padding-top: 64px; }

@@ -9,6 +9,7 @@
   <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
   <link rel="canonical" href="/summary">
   <link rel="stylesheet" href="/static/styles.css">
+  <link rel="preload" href="/static/assets/fonts/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/pages.css">
   <script src="/static/theme-boot.js"></script>
   <style>
@@ -42,11 +43,12 @@
         <img class="brand-wordmark wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="116" height="59">
         <img class="brand-wordmark wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="116" height="59">
       </a>
-      <nav class="nav-links" aria-label="پیمایش">
+      <nav class="nav-links" aria-label="پیمایش اصلی">
         <a class="nav-link" href="/">خانه</a>
         <a class="nav-link" href="/chat">گفتگو</a>
         <a class="nav-link" href="/models">مدل‌ها</a>
         <a class="nav-link" href="/docs">مستندات</a>
+        <a class="nav-link" href="/support">پشتیبانی</a>
       </nav>
       <div class="nav-actions">
         <a class="btn btn-ghost btn-sm" href="https://github.com/Taymaz1391/ai" rel="noopener">GitHub</a>
@@ -62,7 +64,7 @@
         <img class="lockup lockup-for-dark" src="/static/assets/brand/logotype-stack-white.png" alt="رایان" width="150" height="157">
         <h1>همه‌چیز، در یک نگاه</h1>
         <p>
-           <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async"> یک محصول کاملِ فارسی‌زبان است که از صفر ساخته شده: مدل زبانی با آموزش مستقل،
+           <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> یک محصول کاملِ فارسی‌زبان است که از صفر ساخته شده: مدل زبانی با آموزش مستقل،
  رابط گفتگو، ابزارها، استودیو تصویر، پنل مدیریت، تبلیغات و تعرفهٔ پویا.
  هیچ API بیرونی‌ای در آن استفاده نمی‌شود.
         </p>
@@ -163,17 +165,53 @@ pip install -r requirements.txt &amp;&amp; python -m web.server --port 8000</div
   </main>
 
   <footer class="footer">
-    <div class="wrap footer-bottom" style="border-top:0;margin-top:0">
-      <div class="footer-brandmark">
-        <img class="wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="106" height="54">
-        <img class="wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="106" height="54">
+    <div class="wrap">
+      <div class="footer-grid">
+        <div class="footer-about">
+          <a href="/" aria-label="رایان، خانه">
+            <img class="lockup lockup-for-light" src="/static/assets/brand/logotype-stack-ink.png" alt="رایان — هوش مصنوعی، به زبان فارسی" width="178" height="187" loading="lazy">
+            <img class="lockup lockup-for-dark" src="/static/assets/brand/logotype-stack-white.png" alt="رایان — هوش مصنوعی، به زبان فارسی" width="178" height="187" loading="lazy">
+          </a>
+          <p>دستیار فارسی که از صفر ساخته شده؛ کد، داده و وزن‌ها عمومی‌اند.</p>
+        </div>
+        <div>
+          <h4>محصول</h4>
+          <ul>
+            <li><a href="/chat">گفتگو</a></li>
+            <li><a href="/models">مدل‌ها</a></li>
+            <li><a href="/pricing">تعرفه و سهمیه</a></li>
+            <li><a href="/support">پشتیبانی تجاری</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>توسعه</h4>
+          <ul>
+            <li><a href="/docs">مستندات</a></li>
+            <li><a href="/developer">کلید API</a></li>
+            <li><a href="/download">دانلود اپلیکیشن</a></li>
+            <li><a href="/course">دورهٔ ۵ ساعته</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>پروژه</h4>
+          <ul>
+            <li><a href="/about">درباره</a></li>
+            <li><a href="/summary">خلاصهٔ پروژه</a></li>
+            <li><a href="/api/health">وضعیت سرویس</a></li>
+            <li><a href="https://github.com/Taymaz1391/ai" rel="noopener">GitHub</a></li>
+          </ul>
+        </div>
       </div>
-      <span>© ۱۴۰۵ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async"> · ساخته‌شده از صفر</span>
-      <a href="/docs">مستندات</a>
+      <div class="footer-bottom">
+        <span>© ۱۴۰۵ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> · ساخته‌شده با NumPy، بدون مدل آماده</span>
+        <span><a href="/about#license">مجوز MIT</a> · <a href="/about#privacy">حریم خصوصی</a> · <a href="/about#terms">شرایط استفاده</a></span>
+      </div>
     </div>
   </footer>
 
   <script src="/static/config.js"></script>
   <script src="/static/ui.js"></script>
+  <script src="/static/scroll.js"></script>
+  <script src="/static/perf.js"></script>
 </body>
 </html>

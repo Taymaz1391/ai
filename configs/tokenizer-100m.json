@@ -1,0 +1,8 @@
+{
+  "name": "توکنایزر رایان · دیده‌شده روی ۱۰۰ میلیون نویسه",
+  "note": "واژگان ۱۰۰ میلیون توکنی ناممکن است: جدول جاسازی به‌تنهایی چند صد گیگابایت می‌شود. آنچه معنا دارد دیدن ۱۰۰ میلیون نویسهٔ واقعی با واژگان هم‌اندازهٔ مدل است.",
+  "chars_seen": 100000000,
+  "vocab": 32000,
+  "min_frequency": 2,
+  "command": "python scripts/scale_corpus.py --sources corpora --target-chars 1000000000 --out data/train.txt && python scripts/train_tokenizer.py --corpus data/train.txt --chars 100000000 --vocab 32000 --out tokenizer/rayan_bpe-32k.json"
+}

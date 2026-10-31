@@ -73,6 +73,7 @@ class OwnerLoginTest(unittest.TestCase):
         os.chdir(ROOT)
         cls.server = server
         cls.client = TestClient(server.app)
+        cls.client.get("/chat")  # کوکی مهمان برای دسترسی به مدل
 
     @classmethod
     def tearDownClass(cls):
@@ -84,8 +85,15 @@ class OwnerLoginTest(unittest.TestCase):
         shutil.rmtree(cls.tmp, ignore_errors=True)
 
     def login(self, identifier: str, password: str):
-        return TestClient(self.server.app).post(
-            "/api/auth/login", json={"identifier": identifier, "password": password}
+        client = TestClient(self.server.app)
+        client.get("/chat")
+        from web import security
+        challenge = client.get("/api/captcha").json()
+        proof = {"token": challenge["token"],
+                 "nonce": security.HumanCheck.solve(challenge["salt"], challenge["bits"])}
+        return client.post(
+            "/api/auth/login",
+            json={"identifier": identifier, "password": password, "captcha": proof},
         )
 
     # ------------------------------------------------------------ ورود مالک
@@ -124,8 +132,13 @@ class OwnerLoginTest(unittest.TestCase):
 
     def test_email_login_still_works(self):
         client = TestClient(self.server.app)
+        client.get("/chat")
+        from web import security
+        challenge = client.get("/api/captcha").json()
         created = client.post("/api/auth/register", json={
             "name": "آزمون", "email": "owner-test@example.com", "password": "long-enough-pass",
+            "captcha": {"token": challenge["token"],
+                        "nonce": security.HumanCheck.solve(challenge["salt"], challenge["bits"])},
         })
         self.assertEqual(created.status_code, 200, created.text)
         body = created.json()

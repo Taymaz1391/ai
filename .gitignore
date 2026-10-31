@@ -37,3 +37,11 @@ node_modules/
 # اعتبارنامهٔ مالک (هش scrypt؛ هرگز در Git نمی‌رود)
 data/owner.json
 data/owner.json.tmp
+
+# رازِ امضای سرور (خودکار ساخته می‌شود)
+data/secret.key
+
+# وضعیت ابزار مقیاس‌پذیری (محلی)
+data/.scale_state.json
+data/.scale_seen.txt
+data/scale_stats.json

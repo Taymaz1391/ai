@@ -9,6 +9,7 @@
   <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/static/styles.css">
+  <link rel="preload" href="/static/assets/fonts/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/pages.css">
   <script src="/static/theme-boot.js"></script>
   <style>
@@ -66,13 +67,12 @@
         <img class="brand-wordmark wordmark-for-dark" src="/static/assets/brand/mark-white.png"
              alt="رایان" width="116" height="59">
       </a>
-      <nav class="nav-links" aria-label="پیمایش">
+      <nav class="nav-links" aria-label="پیمایش اصلی">
         <a class="nav-link" href="/#features">قابلیت‌ها</a>
         <a class="nav-link" href="/models">مدل‌ها</a>
         <a class="nav-link" href="/pricing">تعرفه</a>
-        <a class="nav-link is-active" href="/download">دانلود</a>
         <a class="nav-link" href="/docs">مستندات</a>
-        <a class="nav-link" href="/about">درباره</a>
+        <a class="nav-link" href="/support">پشتیبانی</a>
       </nav>
       <div class="nav-actions">
         <a class="btn btn-primary btn-sm" href="/chat">شروع گفتگو</a>
@@ -84,7 +84,7 @@
     <div class="wrap">
       <div class="dl-hero">
         <span class="dl-badge"><span data-icon="download" data-size="15"></span> نسخهٔ ۶ · کلاینت نازک</span>
-        <h1><img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async"> <span>روی هر دستگاهی که داری</span></h1>
+        <h1><img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> <span>روی هر دستگاهی که داری</span></h1>
         <p>یک سرور، سه در. گوشی، ویندوز یا مرورگر — همه به همان حساب و همان موتور وصل می‌شوند.
           هیچ‌کدام از این فایل‌ها مدل را داخل خودش ندارد؛ برای همین هیچ‌کس نمی‌تواند با دست‌کاری
           فایل نصب، خودش را آنلاین یا ویژه جا بزند.</p>
@@ -96,7 +96,7 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="7" y="2.5" width="10" height="19" rx="2.4"/><path d="M11 18.4h2"/></svg>
           </div>
           <h2>اندروید — APK</h2>
-          <p>نصب مستقیم، تمام‌صفحه، بدون نوار نشانی. صفحهٔ همان سرور <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async"> را نشان می‌دهد.</p>
+          <p>نصب مستقیم، تمام‌صفحه، بدون نوار نشانی. صفحهٔ همان سرور <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> را نشان می‌دهد.</p>
           <span class="dl-meta">اندروید ۷ به بالا · امضاشده · حدود ۲ مگابایت</span>
           <a class="btn btn-primary" id="dl-apk"
              href="https://github.com/Taymaz1391/ai/releases/latest/download/rayan-android.apk"
@@ -204,5 +204,7 @@
 
   <script src="/static/config.js"></script>
   <script src="/static/ui.js"></script>
+  <script src="/static/scroll.js"></script>
+  <script src="/static/perf.js"></script>
 </body>
 </html>

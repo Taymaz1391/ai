@@ -31,15 +31,15 @@ ATTR_ONLY = re.compile(r"\b(alt|aria-label|title|aria-labelledby|content)=\"[^\"
 LOGOS = {
     "fa": (
         '<img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" '
-        'alt="رایان" width="514" height="262" decoding="async">'
+        'alt="رایان" width="1026" height="520" decoding="async">'
         '<img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" '
-        'alt="رایان" width="514" height="262" decoding="async">'
+        'alt="رایان" width="1026" height="520" decoding="async">'
     ),
     "en": (
         '<img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" '
-        'alt="Rayan" width="514" height="262" decoding="async">'
+        'alt="Rayan" width="1026" height="520" decoding="async">'
         '<img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" '
-        'alt="Rayan" width="514" height="262" decoding="async">'
+        'alt="Rayan" width="1026" height="520" decoding="async">'
     ),
 }
 

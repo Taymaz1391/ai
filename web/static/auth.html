@@ -45,7 +45,7 @@
     <main class="auth-main">
       <div class="auth-card card card-pad">
         <div class="auth-head">
-          <h2 id="auth-title">ورود به <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async"> </h2>
+          <h2 id="auth-title">ورود به <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> </h2>
           <p id="auth-sub">خوش برگشتی! ادامه بده از همان‌جایی که بودی.</p>
         </div>
 
@@ -68,6 +68,8 @@
             </div>
             <span class="field-error" id="auth-error"></span>
           </div>
+
+          <div class="human-slot" id="human-slot"></div>
 
           <button class="btn btn-primary btn-lg" type="submit" id="auth-submit">
             <span id="submit-label">ورود</span>
@@ -95,17 +97,28 @@
 
   <!-- ویدیوی معرفی تمام‌صفحه، بعد از ساخت حساب -->
   <div id="welcome-reel" class="welcome-reel" hidden role="dialog" aria-modal="true" aria-label="ویدیوی معرفی">
-    <video id="welcome-video" class="welcome-video" playsinline preload="none"
-           poster="/static/assets/video/promo-fa-16x9-poster.jpg">
+    <video id="welcome-video" class="welcome-video" playsinline preload="none" aria-label="ویدیوی معرفی رایان">
       <source src="/static/assets/video/promo-fa-16x9.mp4" type="video/mp4">
-      <track kind="captions" src="/static/assets/video/promo-fa.vtt" srclang="fa" label="فارسی" default>
+      <track kind="captions" src="/static/assets/video/promo-fa.vtt" srclang="fa" label="فارسی">
     </video>
+    <div class="welcome-vignette" aria-hidden="true"></div>
+    <div class="welcome-progress" aria-hidden="true"><i id="welcome-progress"></i></div>
+    <button class="welcome-skip-x" type="button" id="welcome-close" aria-label="بستن ویدیو">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+    <div class="reel-hooks" aria-hidden="true">
+      <span class="reel-hook is-on" data-at="0">حسابت ساخته شد — خوش آمدی</span>
+      <span class="reel-hook" data-at="6.8">فارسی را از صفر یاد گرفته</span>
+      <span class="reel-hook" data-at="10.4">بدون هیچ API بیرونی</span>
+      <span class="reel-hook" data-at="13.4">همین حالا گفتگو کن</span>
+    </div>
     <div class="welcome-bar">
       <div class="welcome-copy">
         <b>حسابت ساخته شد — خوش آمدی!</b>
-        <span>یک دقیقه نگاه کن تا ببینی <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async"> چه می‌کند.</span>
+        <span>یک لحظه نگاه کن تا ببینی <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> چه می‌کند.</span>
       </div>
       <div class="welcome-actions">
+        <button class="btn btn-sm" type="button" id="welcome-full" aria-pressed="false" title="تمام‌صفحهٔ واقعی">تمام‌صفحه</button>
         <button class="btn btn-sm" type="button" id="welcome-sound" aria-pressed="false">صدا</button>
         <a class="btn btn-primary btn-sm" id="welcome-skip" href="/chat">رد کردن</a>
       </div>
@@ -114,6 +127,9 @@
 
   <script src="/static/config.js"></script>
   <script src="/static/ui.js"></script>
+  <script src="/static/human.js"></script>
   <script src="/static/auth.js"></script>
+  <script src="/static/scroll.js"></script>
+  <script src="/static/perf.js"></script>
 </body>
 </html>

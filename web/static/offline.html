@@ -9,6 +9,7 @@
   <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
   <script src="/static/theme-boot.js"></script>
   <link rel="stylesheet" href="/static/styles.css">
+  <link rel="preload" href="/static/assets/fonts/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/pages.css">
   <style>
     .offline-wrap { min-height: 100dvh; display: grid; place-items: center; padding: 32px 20px; }
@@ -42,7 +43,7 @@
       <span class="offline-badge"><i></i> حالت بدون اتصال</span>
       <h1>الان به شبکه دسترسی نیست</h1>
       <p>
-         <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async"> برای فکر کردن به سرور خودش نیاز دارد، ولی حافظهٔ گفتگوها روی همین دستگاه
+         <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> برای فکر کردن به سرور خودش نیاز دارد، ولی حافظهٔ گفتگوها روی همین دستگاه
  نگه داشته می‌شود. به‌محض برگشتن اینترنت، همه‌چیز دقیقاً از همان‌جا ادامه پیدا می‌کند.
       </p>
       <div class="offline-actions">
@@ -52,9 +53,9 @@
       <div class="offline-hints">
         <h2>اگر اینترنت وصل است ولی این پیام را می‌بینی</h2>
         <ul>
-          <li>سرور <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async"> موقتاً در دسترس نیست؛ چند لحظه بعد دوباره امتحان کن.</li>
+          <li>سرور <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> موقتاً در دسترس نیست؛ چند لحظه بعد دوباره امتحان کن.</li>
           <li>در بعضی شبکه‌های داخلی، دسترسی به دامنه محدود می‌شود؛ شبکه یا DNS را بررسی کن.</li>
-          <li>اگر خودت <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async"> را اجرا می‌کنی، سرویس پایتون باید روی پورت ۸۰۰۰ بالا باشد.</li>
+          <li>اگر خودت <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> را اجرا می‌کنی، سرویس پایتون باید روی پورت ۸۰۰۰ بالا باشد.</li>
         </ul>
       </div>
       <div class="offline-wordmark">
@@ -64,5 +65,7 @@
     </section>
   </main>
   <script src="/static/offline.js"></script>
+  <script src="/static/scroll.js"></script>
+  <script src="/static/perf.js"></script>
 </body>
 </html>

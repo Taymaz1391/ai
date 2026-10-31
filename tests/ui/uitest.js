@@ -17,7 +17,10 @@ function check(name, ok, detail = "") {
 async function loadPage(pagePath, { runScripts = true } = {}) {
   const res = await fetch(`${BASE}${pagePath}`, { headers: { accept: "text/html" } });
   let html = await res.text();
-  const cookie = res.headers.get("set-cookie") || "";
+  // کوکی مهمان از همان پاسخ اولیه؛ بدون آن /api/chat اجازهٔ دسترسی نمی‌دهد
+  const initialCookies = typeof res.headers.getSetCookie === "function"
+    ? res.headers.getSetCookie()
+    : (res.headers.get("set-cookie") ? [res.headers.get("set-cookie")] : []);
   const vc = new VirtualConsole();
   vc.on("jsdomError", (e) => errors.push(`jsdomError[${pagePath}]: ${e.message}`));
   vc.on("error", (m) => errors.push(`console.error[${pagePath}]: ${m}`));
@@ -31,6 +34,12 @@ async function loadPage(pagePath, { runScripts = true } = {}) {
 
   // سبد کوکی ساده (jsdom کوکی fetch را نگه نمی‌دارد)
   const jar = new Map();
+  const absorb = (raw) => {
+    const [pair] = String(raw).split(";");
+    const idx = pair.indexOf("=");
+    if (idx > 0) jar.set(pair.slice(0, idx).trim(), pair.slice(idx + 1).trim());
+  };
+  initialCookies.forEach(absorb);
   const cookieHeader = () => [...jar.entries()].map(([k, v]) => `${k}=${v}`).join("; ");
   window.fetch = async (url, opts = {}) => {
     const absolute = url.startsWith("http") ? url : `${BASE}${url}`;
@@ -40,11 +49,7 @@ async function loadPage(pagePath, { runScripts = true } = {}) {
     const setCookies = typeof response.headers.getSetCookie === "function"
       ? response.headers.getSetCookie()
       : (response.headers.get("set-cookie") ? [response.headers.get("set-cookie")] : []);
-    setCookies.forEach((raw) => {
-      const [pair] = raw.split(";");
-      const idx = pair.indexOf("=");
-      if (idx > 0) jar.set(pair.slice(0, idx).trim(), pair.slice(idx + 1).trim());
-    });
+    setCookies.forEach(absorb);
     const text = await response.text();
     const body = ReadableStream
       ? new ReadableStream({
@@ -166,6 +171,16 @@ async function testSignupReel() {
   window.HTMLMediaElement.prototype.play = function () { return Promise.resolve(); };
   window.HTMLMediaElement.prototype.pause = function () {};
   const email = `reel${Date.now()}@example.com`;
+  // «من ربات نیستم»: کادر را می‌زنیم و منتظر می‌مانیم اثبات آماده شود
+  doc.querySelector(".human-box").click();
+  for (let i = 0; i < 60; i++) {
+    const value = doc.querySelector("#human-slot input[name='captcha']")?.value || "";
+    if (value) break;
+    await wait(100);
+  }
+  check("signup: human check solved",
+    !!doc.querySelector("#human-slot input[name='captcha']")?.value,
+    doc.querySelector(".human-note")?.textContent || "");
   doc.querySelector("#name").value = "آزمون ویدیو";
   doc.querySelector("#email").value = email;
   doc.querySelector("#password").value = "Secret12345";
@@ -215,6 +230,26 @@ async function testChat() {
   check("chat: one button restores sidebar", sidebar.classList.contains("is-open") && scrim.hidden === false);
   toggle.click();
   check("chat: same button closes again", !sidebar.classList.contains("is-open") && scrim.hidden === true);
+
+  // گفتگوی صوتی: دکمه در نوار نوشتن و واسط جهانی در دسترس است
+  const voiceBtn = doc.querySelector("#voice-btn");
+  check("chat: voice button", !!voiceBtn && !!voiceBtn.querySelector(".voice-waves"));
+  check("chat: voice label", /صوتی/.test(voiceBtn?.querySelector(".voice-label")?.textContent || ""),
+    voiceBtn?.querySelector(".voice-label")?.textContent);
+  check("chat: voice api", typeof window.RAYAN_VOICE?.start === "function" &&
+    typeof window.RAYAN_VOICE?.speak === "function");
+  voiceBtn?.click();
+  await wait(150);
+  check("chat: voice button reacts", !!voiceBtn && (
+    voiceBtn.classList.contains("is-listening") ||
+    voiceBtn.classList.contains("is-unsupported") ||
+    voiceBtn.getAttribute("aria-pressed") === "true"),
+    voiceBtn?.className);
+  window.RAYAN_VOICE?.stop?.();
+
+  // پکیج سرعت و اسکرول نرم
+  check("chat: scroll progress bar", !!doc.querySelector(".scroll-progress > i"));
+  check("chat: smooth scroll helper", typeof window.RAYAN?.smoothScroll === "function");
 
   // ویدیوی معرفی در همان صفحه
   check("chat: promo modal present", doc.querySelector("#promo-modal")?.hidden === true);
@@ -293,7 +328,7 @@ async function testPages() {
     check(`${page}: nav`, doc.querySelectorAll(".nav-links a").length >= 5);
     if (page === "/models") {
       check("models: cards", doc.querySelectorAll(".model-card").length === 3);
-      check("models: eval table", doc.querySelectorAll("#eval-table tbody tr").length >= 6);
+      check("models: eval table", doc.querySelectorAll("#eval-table tbody tr").length >= 4);
     }
     if (page === "/pricing") check("pricing: plans", doc.querySelectorAll(".plan").length === 3);
     if (page === "/about") check("about: sections", doc.querySelectorAll(".prose h2").length >= 5);

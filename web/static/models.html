@@ -10,6 +10,7 @@
   <link rel="apple-touch-icon" href="/static/assets/icons/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/static/styles.css">
+  <link rel="preload" href="/static/assets/fonts/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/pages.css">
   <script src="/static/theme-boot.js"></script>
 </head>
@@ -24,14 +25,12 @@
         <img class="brand-wordmark wordmark-for-dark" src="/static/assets/brand/mark-white.png"
              alt="رایان" width="116" height="59">
       </a>
-      <nav class="nav-links" aria-label="پیمایش">
+      <nav class="nav-links" aria-label="پیمایش اصلی">
         <a class="nav-link" href="/#features">قابلیت‌ها</a>
         <a class="nav-link" href="/#how">چطور ساخته شد</a>
-        <a class="nav-link is-active" href="/models">مدل‌ها</a>
         <a class="nav-link" href="/pricing">تعرفه</a>
         <a class="nav-link" href="/docs">مستندات</a>
-        <a class="nav-link" href="/download">دانلود</a>
-        <a class="nav-link" href="/about">درباره</a>
+        <a class="nav-link" href="/support">پشتیبانی</a>
       </nav>
       <div class="nav-actions">
         <a class="btn btn-ghost btn-sm" href="/login" data-auth="guest">ورود</a>
@@ -45,7 +44,7 @@
       <div class="wrap">
         <span class="eyebrow">مدل‌ها</span>
         <h1>یک مدل کوچک، با اعداد بزرگ‌نما نشده</h1>
-        <p> <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async"> ۱ — کوچک فعال است. نسخه‌های بعدی در نقشهٔ راه‌اند و تا وقتی آموزششان تمام نشود، منتشر نمی‌شوند.</p>
+        <p> <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> ۱ — کوچک فعال است. نسخه‌های بعدی در نقشهٔ راه‌اند و تا وقتی آموزششان تمام نشود، منتشر نمی‌شوند.</p>
       </div>
     </section>
 
@@ -55,7 +54,7 @@
           <article class="model-card is-active">
             <img class="model-orb" src="/static/assets/brand/orb-128.png" alt="" width="64" height="64">
             <div>
-              <h3> <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async"> ۱ — کوچک <span class="tag tag-blue">فعال</span></h3>
+              <h3> <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> ۱ — کوچک <span class="tag tag-blue">فعال</span></h3>
               <p class="tagline">مدل از صفر، روی CPU · ۶٬۵۷۴٬۸۴۸ پارامتر · زمینهٔ ۲۵۶ توکن</p>
               <p>همین مدلی که در حال گفتگوست: توکنایزر BPE فارسی، ترنسفورمر ۵ لایه با NumPy و ۲٬۴۰۰ گام آموزش روی ۱۶٫۹ میلیون نویسهٔ فارسی.</p>
               <div class="model-meta">
@@ -74,7 +73,7 @@
           <article class="model-card">
             <img class="model-orb" src="/static/assets/brand/orb-128.png" alt="" width="64" height="64" style="opacity:.5;filter:saturate(.5) brightness(1.04)">
             <div>
-              <h3> <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async"> ۱ — متوسط <span class="tag">به‌زودی</span></h3>
+              <h3> <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> ۱ — متوسط <span class="tag">به‌زودی</span></h3>
               <p class="tagline">۳۰ تا ۵۰ میلیون پارامتر · زمینهٔ ۵۱۲ توکن</p>
               <p>همان پشته، اما با دادهٔ بیشتر و آموزش طولانی‌تر. هدف: جمله‌های بلندتر، انسجام بهتر و دانش عمومی بیشتر.</p>
               <div class="model-meta"><span>وضعیت <b>در طراحی</b></span><span>نیازمند <b>GPU</b></span></div>
@@ -85,7 +84,7 @@
           <article class="model-card">
             <img class="model-orb" src="/static/assets/brand/orb-128.png" alt="" width="64" height="64" style="opacity:.4;filter:saturate(.4) brightness(1.02)">
             <div>
-              <h3> <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async"> ۱ — حرفه‌ای <span class="tag tag-amber">نقشهٔ راه</span></h3>
+              <h3> <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> ۱ — حرفه‌ای <span class="tag tag-amber">نقشهٔ راه</span></h3>
               <p class="tagline">آموزش دستوری · ارزیابی استاندارد فارسی</p>
               <p>نسخه‌ای با دادهٔ دستورالعمل و ارزیابی روی بنچمارک فارسی؛ هدف، پاسخ‌های قابل‌اعتمادتر برای کار روزمره است.</p>
               <div class="model-meta"><span>وضعیت <b>پژوهش</b></span><span>وابسته به <b>مدل متوسط</b></span></div>
@@ -100,14 +99,28 @@
       <div class="wrap">
         <div class="section-head"><h2 class="section-title" style="font-size:26px">مشخصات فنی</h2></div>
         <div class="spec-grid" id="spec-grid">
-          <div class="spec"><span>پارامترها</span><b>۶٬۵۷۴٬۸۴۸</b></div>
-          <div class="spec"><span>لایه‌ها</span><b>۵</b></div>
-          <div class="spec"><span>سرهای توجه</span><b>۴</b></div>
-          <div class="spec"><span>بُعد مدل</span><b>۲۵۶</b></div>
-          <div class="spec"><span>واژگان</span><b>۱۰٬۰۰۰</b></div>
+          <div class="spec"><span>پارامترها</span><b>۶٫۵۷ میلیون</b></div>
+          <div class="spec"><span>آموزش</span><b>۱۶٫۹ میلیون نویسه</b></div>
           <div class="spec"><span>زمینه</span><b>۲۵۶ توکن</b></div>
-          <div class="spec"><span>دقت</span><b>float32</b></div>
-          <div class="spec"><span>پیاده‌سازی</span><b>NumPy</b></div>
+          <div class="spec"><span>اجرا</span><b>CPU · بدون GPU</b></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-sm">
+      <div class="wrap">
+        <div class="card card-pad scale-card">
+          <div class="scale-copy">
+            <span class="tag tag-blue">مسیر مقیاس</span>
+            <h2>آمادهٔ آموزش روی ۱ میلیارد نویسه</h2>
+            <p>پیکره‌ساز و توکنایزر جریانی آماده‌اند: با یک فرمان می‌شود ۱ میلیارد نویسه را نرمال کرد،
+              تکراری‌ها را حذف کرد و توکنایزر را روی ۱۰۰ میلیون نویسه آموزش داد. مدلی که همین حالا
+              گفتگو می‌کند روی ۱۶٫۹ میلیون نویسه آموزش دیده و ما عدد بزرگ‌تر را به آن نسبت نمی‌دهیم.</p>
+          </div>
+          <pre class="code-block" dir="ltr">python scripts/scale_corpus.py --sources corpora \
+  --target-chars 1000000000 --out data/train.txt
+python scripts/train_tokenizer.py --corpus data/train.txt \
+  --chars 100000000 --vocab 32000</pre>
         </div>
       </div>
     </section>
@@ -116,7 +129,7 @@
       <div class="wrap">
         <div class="section-head">
           <h2 class="section-title" style="font-size:26px">نتایج ارزیابی</h2>
-          <p class="section-sub">روی کل مجموعهٔ اعتبارسنجی (۷۲٬۴۴۸ توکن)، بدون dropout و بدون نمونه‌گیری داغ.</p>
+          <p class="section-sub">روی مجموعهٔ اعتبارسنجی، بدون dropout و بدون نمونه‌گیری داغ.</p>
         </div>
         <div class="table-wrap">
           <table class="data-table" id="eval-table">
@@ -125,10 +138,7 @@
               <tr><td>خطای اعتبارسنجی</td><td>۵٫۳۱ nats/token</td><td>میانگین cross-entropy</td></tr>
               <tr><td>Perplexity</td><td>۲۰۲٫۳۵</td><td>exp(خطا)</td></tr>
               <tr><td>بیت بر نویسه</td><td>۱٫۸۱</td><td>معیار مستقل از توکنایزر</td></tr>
-              <tr><td>دقت توکن بعدی (top-1)</td><td>۱۷٫۴٪</td><td>پیش‌بینی دقیق توکن بعدی</td></tr>
-              <tr><td>دقت توکن بعدی (top-5)</td><td>۳۴٫۱٪</td><td>پاسخ در میان ۵ گزینهٔ اول</td></tr>
-              <tr><td>خطای آموزش (پایان)</td><td>۵٫۲۴</td><td>روی batch پایانی</td></tr>
-              <tr><td>توکن دیده‌شده</td><td>۱۴٬۷۴۵٬۶۰۰</td><td>دو فاز آموزش</td></tr>
+              <tr><td>توکن دیده‌شده</td><td data-eval="tokens">۱۴٫۷ میلیون</td><td>دو فاز آموزش</td></tr>
             </tbody>
           </table>
         </div>
@@ -197,10 +207,48 @@
   </main>
 
   <footer class="footer">
-    <div class="wrap"><div class="footer-bottom" style="border-top:0;margin-top:0">
-      <span>© ۱۴۰۵ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async"> · مجوز کد MIT</span>
-      <a href="/about">دربارهٔ پروژه</a>
-    </div></div>
+    <div class="wrap">
+      <div class="footer-grid">
+        <div class="footer-about">
+          <a href="/" aria-label="رایان، خانه">
+            <img class="lockup lockup-for-light" src="/static/assets/brand/logotype-stack-ink.png" alt="رایان — هوش مصنوعی، به زبان فارسی" width="178" height="187" loading="lazy">
+            <img class="lockup lockup-for-dark" src="/static/assets/brand/logotype-stack-white.png" alt="رایان — هوش مصنوعی، به زبان فارسی" width="178" height="187" loading="lazy">
+          </a>
+          <p>دستیار فارسی که از صفر ساخته شده؛ کد، داده و وزن‌ها عمومی‌اند.</p>
+        </div>
+        <div>
+          <h4>محصول</h4>
+          <ul>
+            <li><a href="/chat">گفتگو</a></li>
+            <li><a href="/models">مدل‌ها</a></li>
+            <li><a href="/pricing">تعرفه و سهمیه</a></li>
+            <li><a href="/support">پشتیبانی تجاری</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>توسعه</h4>
+          <ul>
+            <li><a href="/docs">مستندات</a></li>
+            <li><a href="/developer">کلید API</a></li>
+            <li><a href="/download">دانلود اپلیکیشن</a></li>
+            <li><a href="/course">دورهٔ ۵ ساعته</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>پروژه</h4>
+          <ul>
+            <li><a href="/about">درباره</a></li>
+            <li><a href="/summary">خلاصهٔ پروژه</a></li>
+            <li><a href="/api/health">وضعیت سرویس</a></li>
+            <li><a href="https://github.com/Taymaz1391/ai" rel="noopener">GitHub</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© ۱۴۰۵ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> · ساخته‌شده با NumPy، بدون مدل آماده</span>
+        <span><a href="/about#license">مجوز MIT</a> · <a href="/about#privacy">حریم خصوصی</a> · <a href="/about#terms">شرایط استفاده</a></span>
+      </div>
+    </div>
   </footer>
 
   <script src="/static/config.js"></script>
@@ -208,5 +256,7 @@
   <script src="/static/studio.js"></script>
   <script src="/static/ads.js"></script>
   <script src="/static/models.js"></script>
+  <script src="/static/scroll.js"></script>
+  <script src="/static/perf.js"></script>
 </body>
 </html>

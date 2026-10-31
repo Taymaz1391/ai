@@ -97,8 +97,24 @@ class BPETokenizer:
         min_frequency: int = 2,
         verbose: bool = True,
     ) -> "BPETokenizer":
-        """BPE را آموزش می‌دهد: شمارش جفتی وزنی + ایندکس واژه‌های هر جفت + سبدهای شمارشی."""
-        freq: Counter[str] = Counter(pretokenize(text))
+        """BPE را روی یک رشتهٔ متن آموزش می‌دهد."""
+        return cls.train_from_freq(Counter(pretokenize(text)), vocab_size=vocab_size,
+                                   min_frequency=min_frequency, verbose=verbose)
+
+    @classmethod
+    def train_from_freq(
+        cls,
+        freq: Counter[str],
+        vocab_size: int = 10_000,
+        min_frequency: int = 2,
+        verbose: bool = True,
+    ) -> "BPETokenizer":
+        """BPE از روی شمارش تکه‌ها؛ برای پیکره‌های بزرگ که در حافظه جا نمی‌شوند.
+
+        ابتدا پیکره را جریانی می‌خوانیم و فقط شمارش تکه‌ها را نگه می‌داریم
+        (چند صد مگابایت برای ۱۰۰ میلیون نویسه)، بعد همان الگوریتم ادغام اجرا می‌شود.
+        """
+        freq = Counter(freq)
         words: list[list[str]] = [_word_pieces(chunk) for chunk in freq]
         counts: list[int] = list(freq.values())
 

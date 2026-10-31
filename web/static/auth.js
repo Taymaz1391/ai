@@ -23,6 +23,10 @@
     const vid = $("#welcome-video");
     const skip = $("#welcome-skip");
     const sound = $("#welcome-sound");
+    const close = $("#welcome-close");
+    const full = $("#welcome-full");
+    const progress = $("#welcome-progress");
+    const hooks = [...document.querySelectorAll(".reel-hook")];
     if (!reel || !vid || !isSignup) {
       location.replace(next);
       return;
@@ -32,6 +36,7 @@
       if (done) return;
       done = true;
       try { vid.pause(); } catch { /* نادیده */ }
+      try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch { /* نادیده */ }
       location.replace(next);
     };
     reel.hidden = false;
@@ -56,6 +61,35 @@
     }
     vid.addEventListener("ended", go, { once: true });
     vid.addEventListener("error", go, { once: true });
+    // نوار پیشرفت و جمله‌های راهنما هم‌گام با پخش
+    vid.addEventListener("timeupdate", () => {
+      if (progress && vid.duration) {
+        progress.style.width = `${Math.min(100, (vid.currentTime / vid.duration) * 100).toFixed(1)}%`;
+      }
+      hooks.forEach((hook) => {
+        const at = Number(hook.dataset.at || 0);
+        hook.classList.toggle("is-on", vid.currentTime >= at && vid.currentTime < at + 3.4);
+      });
+    });
+    // ورود با کلید Escape یا ضربهٔ دوباره؛ خروج همیشه به گفتگو می‌رسد
+    close?.addEventListener("click", go);
+
+    // تمام‌صفحهٔ واقعی؛ اگر مرورگر اجازه نداد، همان پوشش کامل صفحه کافی است
+    if (full) {
+      full.addEventListener("click", async () => {
+        try {
+          if (document.fullscreenElement) {
+            await document.exitFullscreen();
+          } else {
+            await (reel.requestFullscreen?.({ navigationUI: "hide" }) || reel.webkitRequestFullscreen?.());
+          }
+        } catch { /* نادیده */ }
+      });
+      document.addEventListener("fullscreenchange", () => {
+        full.setAttribute("aria-pressed", document.fullscreenElement ? "true" : "false");
+        full.textContent = document.fullscreenElement ? "خروج از تمام‌صفحه" : "تمام‌صفحه";
+      });
+    }
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") go();
     }, { once: true });
@@ -77,6 +111,11 @@
       setSoundLabel();
     }
     if (skip) skip.focus({ preventScroll: true });
+    // روی موبایل، چرخش صفحه نباید ویدیو را نصفه بگذارد
+    const lock = () => {
+      try { screen.orientation?.lock?.("portrait").catch(() => {}); } catch { /* نادیده */ }
+    };
+    if (vertical) lock();
     if (sound) {
       setSoundLabel();
       sound.addEventListener("click", () => {
@@ -120,6 +159,12 @@
     errorEl.style.color = "var(--rose)";
   }
 
+  // «من ربات نیستم» — اثبات‌کار محلی، بدون سرویس بیرونی
+  const humanBox = $("#human-slot");
+  const humanWidget = humanBox && window.RAYAN && window.RAYAN.human
+    ? window.RAYAN.human.mount(humanBox, { onState: (st) => { if (st.ready) errorEl.textContent = ""; } })
+    : null;
+
   async function checkExisting() {
     try {
       const me = await request("/api/auth/me");
@@ -158,14 +203,21 @@
       return;
     }
 
+    const proof = humanWidget ? humanWidget.value : null;
+    if (!proof) {
+      fail("برای ادامه، کادر «من ربات نیستم» را تأیید کن.");
+      if (humanWidget) humanBox.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
+
     submit.disabled = true;
     const original = label.textContent;
     label.textContent = "لطفاً صبر کن…";
     try {
       const path = isSignup ? "/api/auth/register" : "/api/auth/login";
       const body = isSignup
-        ? { name, email: identifier, password }
-        : { identifier, password };
+        ? { name, email: identifier, password, captcha: proof }
+        : { identifier, password, captcha: proof };
       const data = await request(path, { method: "POST", body });
       toast(isSignup ? "حسابت ساخته شد. خوش آمدی!" : `خوش برگشتی ${data.user.name || ""}!`, "ok");
       const next = new URLSearchParams(location.search).get("next");
@@ -184,6 +236,8 @@
       fail(err.message);
       submit.disabled = false;
       label.textContent = original;
+      // اثبات مصرف‌شده است؛ برای تلاش بعدی چالش تازه لازم است
+      if (humanWidget) humanWidget.reset();
     }
   });
 

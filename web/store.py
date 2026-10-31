@@ -129,6 +129,30 @@ CREATE TABLE IF NOT EXISTS feedback (
     comment     TEXT NOT NULL DEFAULT '',
     created_at  REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS api_keys (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL,
+    name        TEXT NOT NULL DEFAULT '',
+    prefix      TEXT NOT NULL,
+    key_hash    TEXT NOT NULL UNIQUE,
+    scopes      TEXT NOT NULL DEFAULT 'chat',
+    created_at  REAL NOT NULL,
+    last_used   REAL NOT NULL DEFAULT 0,
+    revoked_at  REAL
+);
+CREATE INDEX IF NOT EXISTS idx_keys_user ON api_keys(user_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS support_requests (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL DEFAULT '',
+    email       TEXT NOT NULL DEFAULT '',
+    plan        TEXT NOT NULL DEFAULT 'pro',
+    topic       TEXT NOT NULL DEFAULT '',
+    message     TEXT NOT NULL DEFAULT '',
+    user_id     INTEGER,
+    ip          TEXT NOT NULL DEFAULT '',
+    created_at  REAL NOT NULL,
+    status      TEXT NOT NULL DEFAULT 'new'
+);
 """
 
 
@@ -214,6 +238,72 @@ class Store:
         salt = secrets.token_hex(16)
         self._exec("UPDATE users SET pw_hash=?, pw_salt=? WHERE id=?",
                    (self._hash(new_password, salt), salt, user_id))
+
+    # --------------------------------------------------------------- کلید API
+    @staticmethod
+    def _key_hash(key: str) -> str:
+        return hashlib.sha256(key.encode("utf-8")).hexdigest()
+
+    def create_api_key(self, user_id: int, name: str = "", scopes: str = "chat") -> tuple[dict, str]:
+        """کلید تازه می‌سازد و متن کامل را **یک‌بار** برمی‌گرداند."""
+        raw = "rk_" + secrets.token_urlsafe(30)
+        prefix = raw[:11]
+        now = time.time()
+        cur = self._exec(
+            "INSERT INTO api_keys(user_id, name, prefix, key_hash, scopes, created_at)"
+            " VALUES(?,?,?,?,?,?)",
+            (user_id, (name or "کلید پیش‌فرض").strip()[:60], prefix,
+             self._key_hash(raw), scopes, now),
+        )
+        row = self._one("SELECT id,name,prefix,scopes,created_at,last_used,revoked_at"
+                        " FROM api_keys WHERE id=?", (cur.lastrowid,))
+        return dict(row), raw
+
+    def list_api_keys(self, user_id: int) -> list[dict]:
+        rows = self._all(
+            "SELECT id,name,prefix,scopes,created_at,last_used,revoked_at FROM api_keys"
+            " WHERE user_id=? ORDER BY created_at DESC", (user_id,))
+        return [dict(r) for r in rows]
+
+    def revoke_api_key(self, user_id: int, key_id: int) -> bool:
+        cur = self._exec("UPDATE api_keys SET revoked_at=? WHERE id=? AND user_id=? AND revoked_at IS NULL",
+                         (time.time(), key_id, user_id))
+        return cur.rowcount > 0
+
+    def api_key_owner(self, raw: str) -> dict | None:
+        """کلید را به کاربر برمی‌گرداند و زمان آخرین استفاده را به‌روز می‌کند."""
+        if not raw or not raw.startswith("rk_") or len(raw) > 80:
+            return None
+        row = self._one("SELECT k.*, u.plan AS plan, u.email AS email, u.name AS uname"
+                        " FROM api_keys k JOIN users u ON u.id = k.user_id WHERE k.key_hash=?",
+                        (self._key_hash(raw),))
+        if row is None or row["revoked_at"]:
+            return None
+        now = time.time()
+        self._exec("UPDATE api_keys SET last_used=? WHERE id=?", (now, row["id"]))
+        return {
+            "user_id": row["user_id"],
+            "guest_id": None,
+            "plan": row["plan"] or "free",
+            "api_key_id": row["id"],
+            "scopes": row["scopes"],
+            "user": {"id": row["user_id"], "email": row["email"], "name": row["uname"], "plan": row["plan"]},
+        }
+
+    # ------------------------------------------------------------- پشتیبانی
+    def add_support_request(self, name: str, email: str, plan: str, topic: str,
+                            message: str, user_id: int | None, ip: str) -> int:
+        cur = self._exec(
+            "INSERT INTO support_requests(name,email,plan,topic,message,user_id,ip,created_at)"
+            " VALUES(?,?,?,?,?,?,?,?)",
+            (name.strip()[:80], email.strip().lower()[:160], plan[:20], topic.strip()[:80],
+             message.strip()[:2000], user_id, ip, time.time()),
+        )
+        return int(cur.lastrowid)
+
+    def list_support_requests(self, limit: int = 100) -> list[dict]:
+        rows = self._all("SELECT * FROM support_requests ORDER BY created_at DESC LIMIT ?", (limit,))
+        return [dict(r) for r in rows]
 
     def count_users(self) -> int:
         row = self._one("SELECT COUNT(*) AS n FROM users")

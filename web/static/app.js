@@ -191,7 +191,7 @@
     el.scrim.hidden = !open;
     document.body.classList.toggle("sidebar-visible", open);
     if (sidebarToggle) sidebarToggle.setAttribute("aria-expanded", open ? "true" : "false");
-    if (open) {
+    if (open && !(opts && opts.silent)) {
       const target = canHover.matches ? $("#conv-search") : sidebarClose;
       if (target) requestAnimationFrame(() => target.focus({ preventScroll: true }));
     } else if (wasOpen && (opts && opts.restoreFocus) && sidebarToggle) {
@@ -208,9 +208,21 @@
 
   if (sidebarToggle) {
     sidebarToggle.addEventListener("click", () => {
-      if (sidebarIsOpen()) closeSidebar({ restoreFocus: true });
-      else openSidebar();
+      if (sidebarIsOpen()) { closeSidebar({ restoreFocus: true }); rememberSidebar(false); }
+      else { openSidebar(); rememberSidebar(true); }
     });
+  }
+
+  // روی نمایشگر بزرگ، نوار گفتگوها پیش‌فرض باز است تا فضای صفحه هدر نرود؛
+  // انتخاب کاربر (باز یا بسته) برای دفعهٔ بعد یادش می‌ماند.
+  const wideScreen = window.matchMedia("(min-width: 1080px)");
+  function rememberSidebar(open) {
+    try { localStorage.setItem("rayan.sidebar", open ? "open" : "closed"); } catch { /* حالت خصوصی */ }
+  }
+  function restoreSidebar() {
+    let saved = null;
+    try { saved = localStorage.getItem("rayan.sidebar"); } catch { /* حالت خصوصی */ }
+    if (saved === "open" || (saved === null && wideScreen.matches)) setSidebar(true, { silent: true });
   }
   if (sidebarClose) sidebarClose.addEventListener("click", () => closeSidebar({ restoreFocus: true }));
   el.scrim.addEventListener("click", () => closeSidebar());
@@ -235,7 +247,11 @@
     state.usage = stateAuth.usage;
     const name = state.user ? (state.user.name || state.user.email.split("@")[0]) : "مهمان";
     $$("[data-user-name]").forEach((n) => { n.textContent = name; });
-    $$("[data-user-plan]").forEach((n) => { n.textContent = planLabel(state.plan); });
+    const plan = planLabel(state.plan);
+    $$("[data-user-plan]").forEach((n) => {
+      n.textContent = plan;
+      n.hidden = plan === name;   // «مهمان» را دو بار پشت هم ننویس
+    });
     $$("[data-user-initials]").forEach((n) => { n.textContent = initials(name); });
     $$("[data-auth='guest']").forEach((n) => { n.hidden = !!state.user; });
     $$("[data-auth='user']").forEach((n) => { n.hidden = !state.user; });
@@ -263,8 +279,8 @@
   // نام برند همیشه تصویر است: پیشوند «رایان» از دادهٔ سرور جدا و با لوگوتایپ
   // نمایش داده می‌شود، بقیهٔ نام (مثلاً «۱ — کوچک») متن می‌ماند.
   const MODEL_LOGO = (
-    '<img class="wm-inline model-logo wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="514" height="262" decoding="async">' +
-    '<img class="wm-inline model-logo wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="514" height="262" decoding="async">'
+    '<img class="wm-inline model-logo wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async">' +
+    '<img class="wm-inline model-logo wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async">'
   );
   function modelNameCore(name) {
     return String(name || "").replace(/^\s*(رایان|Rayan)\s*/u, "").trim();
@@ -627,15 +643,15 @@
     return box;
   }
 
+  // فقط چیزی که به کار کاربر می‌آید؛ شمار توکن و اطمینان داخلی را نشان نمی‌دهیم
   function statsEl(stats, deep) {
     const elx = document.createElement("div");
     elx.className = "msg-stats";
-    const bits = [
-      `${nf(stats.tokens || 0)} توکن`,
-      `${nf(stats.tokens_per_second || 0)} توکن/ث`,
-      `اطمینان ${nf((stats.confidence || 0) * 100, 0)}٪`,
-    ];
-    if (deep) bits.push("اندیشهٔ ژرف · ۴ مسیر");
+    const bits = [];
+    const secs = Number(stats?.seconds || 0);
+    if (secs > 0) bits.push(`پاسخ در ${nf(secs, 1)} ثانیه`);
+    if (deep) bits.push("اندیشهٔ ژرف · چهار مسیر");
+    if (!bits.length) bits.push("پاسخ آماده");
     elx.textContent = bits.join(" · ");
     return elx;
   }
@@ -726,6 +742,12 @@
     return bar;
   }
 
+  // هر پاسخ کامل، یک رویداد می‌شود تا حالت صوتی بتواند بلند بخواند
+  function announceAnswer(text) {
+    if (!text) return;
+    document.dispatchEvent(new CustomEvent("rayan:answer", { detail: { text } }));
+  }
+
   async function sendFeedback(msg, value) {
     try {
       await request("/api/feedback", { method: "POST", body: { message_id: msg.id || null, value } });
@@ -799,7 +821,7 @@
       const remaining = Math.max(0, chat.limit - (chat.used || 0));
       el.hint.textContent = `${nf(remaining)} پیام باقی‌مانده امروز`;
     } else {
-      el.hint.textContent = "Enter برای ارسال · Shift+Enter خط تازه";
+      el.hint.textContent = "برای ارسال Enter · برای خط تازه Shift+Enter";
     }
   }
 
@@ -853,6 +875,7 @@
         if (data.trace) body.prepend(traceEl(data.trace));
         if (data.tool) body.prepend(toolEl(data.tool));
         if (data.usage) { state.usage = Object.assign({}, state.usage, { chat: data.usage }); renderUsage(); }
+        announceAnswer(msg.content);
         await afterTurn(data);
       } catch (err) {
         failShell(bubble, err);
@@ -923,15 +946,17 @@
           } else if (event.type === "done") {
             msg.content = event.answer || answer;
             msg.id = event.message_id;
-            msg.meta = { stats: event.stats, tool: event.tool, deep: false };
+            msg.meta = { stats: event.stats, tool: event.tool, deep: false, sources: event.sources || [] };
             msg.streaming = false;
             bubble.classList.remove("streaming");
             if (state.streamOrb) { state.streamOrb.dataset.state = "happy"; state.streamOrb = null; }
             paintStreaming(bubble, msg.content, true);
             if (event.tool) bubble.parentElement.append(toolEl(event.tool));
+            if (event.sources && event.sources.length) bubble.parentElement.append(sourcesEl(event.sources));
             if (event.stats) bubble.parentElement.append(statsEl(event.stats, false));
             bubble.parentElement.append(toolsFor(msg));
             if (event.usage) { state.usage = Object.assign({}, state.usage, { chat: event.usage }); renderUsage(); }
+            announceAnswer(msg.content);
             await afterTurn(event);
           } else if (event.type === "error") {
             throw new Error(event.error || "تولید پاسخ متوقف شد.");
@@ -1083,6 +1108,26 @@
   });
 
   // --------------------------------------------------------- سرورها/فرم
+  // پل کوچک برای حالت صوتی: پر کردن کادر و ارسال همان مسیر معمول
+  window.RAYAN_CHAT = {
+    setPrompt(text) {
+      el.prompt.value = text;
+      el.prompt.dispatchEvent(new Event("input", { bubbles: true }));
+      el.prompt.focus({ preventScroll: true });
+    },
+    submit() {
+      el.composer.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+    },
+    say(text) {
+      el.prompt.value = text;
+      el.prompt.dispatchEvent(new Event("input", { bubbles: true }));
+      el.composer.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+    },
+    isBusy() {
+      return !!state.controller;
+    },
+  };
+
   el.composer.addEventListener("submit", (event) => {
     event.preventDefault();
     send();
@@ -1259,6 +1304,7 @@
     if (!state.settings) state.settings = Object.assign({}, DEFAULTS);
 
     const params = new URLSearchParams(location.search);
+    restoreSidebar();
     loadModels();
     loadSuggestions();
     loadConversations();
