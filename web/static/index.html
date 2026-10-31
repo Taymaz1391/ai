@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>رایان | هوش مصنوعی فارسی، ساخته‌شده از صفر</title>
+  <meta name="description" content="رایان، دستیار هوش مصنوعی فارسی: مدل زبانی بومی که بدون هیچ مدل آماده، از صفر روی متن فارسی آموزش دیده است. گفتگو، شعر و ادامهٔ متن با شفافیت کامل.">
+  <meta name="theme-color" content="#050b1a">
+  <meta property="og:title" content="رایان | هوش مصنوعی فارسی">
+  <meta property="og:description" content="دستیار هوش مصنوعی فارسی؛ ساخته‌شده از صفر با NumPy و آموزش‌دیده روی متن فارسی.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/static/assets/brand/og-image.png">
+  <meta property="og:locale" content="fa_IR">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="/static/assets/brand/og-image.png">
+  <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/static/assets/icons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="preload" href="/static/assets/fonts/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/assets/fonts/Vazirmatn-Black.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/landing.css">
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true">
+    <div class="glow glow-a"></div>
+    <div class="glow glow-b"></div>
+    <div class="glow glow-c"></div>
+  </div>
+
+  <div class="demo-banner" id="demo-banner" hidden>
+    <b>نسخهٔ نمایشی</b>
+    <span>این صفحه بدون سرور باز شده است. برای گفتگوی واقعی، مدل را اجرا کنید.</span>
+    <a href="/docs" class="demo-link">راهنمای اجرا</a>
+  </div>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/" aria-label="رایان، خانه">
+        <img class="brand-orb" src="/static/assets/brand/orb-128.png" alt="" width="34" height="34">
+        <span class="brand-name">
+          <b>رایان</b>
+          <span>RAYAN</span>
+        </span>
+      </a>
+      <nav class="nav-links" aria-label="پیمایش اصلی">
+        <a class="nav-link" href="#features">قابلیت‌ها</a>
+        <a class="nav-link" href="#how">چطور ساخته شد</a>
+        <a class="nav-link" href="/models">مدل‌ها</a>
+        <a class="nav-link" href="/pricing">تعرفه</a>
+        <a class="nav-link" href="/about">درباره</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-ghost btn-sm" href="/login" data-auth="guest">ورود</a>
+        <a class="btn btn-primary btn-sm" href="/chat" data-auth="guest">شروع گفتگو</a>
+        <a class="btn btn-primary btn-sm" href="/chat" data-auth="user" hidden>رفتن به گفتگو</a>
+        <a class="btn btn-ghost btn-sm" href="#" data-auth="user" data-action="logout" hidden>خروج</a>
+        <button class="nav-toggle" aria-label="منو" aria-expanded="false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ============================================================ هیرو -->
+    <section class="hero">
+      <div class="wrap">
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <span class="eyebrow">هوش مصنوعی فارسی · نسخهٔ ۱٫۰</span>
+            <h1 class="hero-title">فارسی را<br>می‌فهمد، <span class="grad-text">از صفر</span><span class="dot">.</span></h1>
+            <p class="hero-sub">
+              رایان یک دستیار هوش مصنوعی فارسی است که <em>هیچ</em> مدل آماده‌ای ندارد.
+              توکنایزر، معماری، آموزش و استنتاج همه در همین پروژه از پایه نوشته شده‌اند و
+              روی یک سرور ساده اجرا می‌شوند.
+            </p>
+            <div class="hero-cta">
+              <a class="btn btn-primary btn-lg" href="/chat">
+                گفتگو با رایان
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+              </a>
+              <a class="btn btn-lg" href="/login">ساخت حساب رایگان</a>
+            </div>
+            <p class="hero-note"><span class="dot-live"></span><span id="hero-status">در حال خواندن وضعیت مدل…</span></p>
+            <div class="hero-stats">
+              <div class="hero-stat"><b id="stat-params">۶٫۵۷ میلیون</b><span>پارامتر</span></div>
+              <div class="hero-stat"><b id="stat-tokens">۱۴٫۷ میلیون</b><span>توکن آموزش</span></div>
+              <div class="hero-stat"><b id="stat-loss">۵٫۳۱</b><span>خطای اعتبارسنجی</span></div>
+              <div class="hero-stat"><b>۱۰۰٪</b><span>فارسی و محلی</span></div>
+            </div>
+          </div>
+
+          <div class="preview reveal">
+            <div class="preview-frame">
+              <div class="preview-bar">
+                <i></i><i></i><i></i>
+                <span>رایان · گفتگوی تازه</span>
+              </div>
+              <div class="preview-body">
+                <div class="preview-msg user">
+                  <span class="who">ش</span>
+                  <div class="bubble">یک شعر بگو دربارهٔ عشق و شب</div>
+                </div>
+                <div class="preview-msg bot">
+                  <span class="who"><img src="/static/assets/brand/orb-128.png" alt="" width="28" height="28"></span>
+                  <div class="bubble" id="preview-answer">به نام گل و به هر دم<br>گر بنماید از وی تو چو برآمده از من<br>که در نظر ما چو هر چه کنم چو تو از چه کار ما<br>چه باشد چو مرا ز خاک و چه خوش است چه باشد</div>
+                </div>
+                <div class="preview-msg user">
+                  <span class="who">ش</span>
+                  <div class="bubble">خودت را معرفی کن</div>
+                </div>
+                <div class="preview-msg bot">
+                  <span class="who"><img src="/static/assets/brand/orb-128.png" alt="" width="28" height="28"></span>
+                  <div class="bubble">من رایان هستم؛ یک مدل زبانی فارسی کوچک که از صفر آموزش دیده است.</div>
+                </div>
+              </div>
+              <div class="preview-foot">
+                <div class="preview-input">پیام خود را بنویسید…</div>
+                <div class="preview-send" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="preview-float">
+              <span class="dot-live"></span>
+              <span>بدون API بیرونی · اجرا روی CPU</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="wrap"><div class="logos">
+      <span>NumPy</span><span>FastAPI</span><span>SQLite</span><span>Vazirmatn</span><span>Ganjoor</span><span>Hamshahri</span>
+    </div></div>
+
+    <!-- ======================================================= قابلیت‌ها -->
+    <section class="section" id="features">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">قابلیت‌ها</span>
+          <h2 class="section-title">یک دستیار کامل، نه یک دمو</h2>
+          <p class="section-sub">
+            از حساب کاربری و تاریخچهٔ گفتگو تا اشتراک‌گذاری، خروجی گرفتن و اندیشهٔ ژرف؛
+            همه‌چیز داخل همین پروژه ساخته شده است.
+          </p>
+        </div>
+        <div class="grid-3">
+          <article class="feature reveal">
+            <div class="feature-icon">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.7 9.7 0 0 1-2.8-.4L3 21l1.6-4.7A8.4 8.4 0 1 1 21 11.5Z"/></svg>
+            </div>
+            <h3>گفتگوی جریانی</h3>
+            <p>پاسخ توکن‌به‌توکن ساخته و بی‌درنگ نمایش داده می‌شود؛ می‌توانید در میانه کار متوقفش کنید.</p>
+          </article>
+          <article class="feature reveal">
+            <div class="feature-icon">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="4.2"/></svg>
+            </div>
+            <h3>اندیشهٔ ژرف</h3>
+            <p>چند مسیر موازی تولید می‌شود و بهترین پاسخ با امتیاز واقعی مدل انتخاب می‌شود؛ استدلال انتخاب را می‌بینید.</p>
+          </article>
+          <article class="feature reveal">
+            <div class="feature-icon">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 6h16M4 12h10M4 18h13"/></svg>
+            </div>
+            <h3>تاریخچهٔ همیشگی</h3>
+            <p>همهٔ گفتگوها ذخیره می‌شوند: جست‌وجو، تغییر نام، سنجاق‌کردن و حذف، بدون از دست دادن چیزی.</p>
+          </article>
+          <article class="feature reveal">
+            <div class="feature-icon">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 12v7h16v-7"/><path d="M12 16V3M7 8l5-5 5 5"/></svg>
+            </div>
+            <h3>اشتراک و خروجی</h3>
+            <p>گفتگو را با یک لینک عمومی به اشتراک بگذارید یا به‌صورت متن و JSON خروجی بگیرید.</p>
+          </article>
+          <article class="feature reveal">
+            <div class="feature-icon">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18"/></svg>
+            </div>
+            <h3>دسترسی آزاد</h3>
+            <p>بدون حساب هم می‌توانید گفتگو کنید؛ با ساخت حساب رایگان، سهمیه و تاریخچهٔ دائمی می‌گیرید.</p>
+          </article>
+          <article class="feature reveal">
+            <div class="feature-icon">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3l8 4v6c0 4.2-3.2 7.3-8 8-4.8-.7-8-3.8-8-8V7l8-4Z"/><path d="M9 12l2 2 4-4"/></svg>
+            </div>
+            <h3>حریم خصوصی واقعی</h3>
+            <p>هیچ درخواستی به سرویس بیرونی نمی‌رود. مدل، داده و پایگاه‌داده روی همان سروری است که سایت را اجرا می‌کند.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================= چطور ساخته شد -->
+    <section class="section" id="how">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">از صفر تا مدل</span>
+          <h2 class="section-title">پنج مرحله، بدون میان‌بر</h2>
+          <p class="section-sub">همهٔ کدها و اعداد در مخزن عمومی است؛ هر مرحله قابل بازتولید است.</p>
+        </div>
+        <div class="steps">
+          <div class="step-row reveal">
+            <div class="step-num">۰۱ / DATA</div>
+            <div class="step-body">
+              <h3>پیکرهٔ فارسی</h3>
+              <p>خبر فارسی، روزنامهٔ همشهری و شعر کلاسیک گنجور: ۱۶٫۹ میلیون نویسه پس از پاک‌سازی، نرمال‌سازی و حذف تبلیغات.</p>
+              <div class="step-tags"><span class="tag">۷۸٪ خبر</span><span class="tag">۲۰٪ شعر</span><span class="tag">۲٪ گفتگو</span></div>
+            </div>
+          </div>
+          <div class="step-row reveal">
+            <div class="step-num">۰۲ / TOKENIZER</div>
+            <div class="step-body">
+              <h3>توکنایزر BPE فارسی</h3>
+              <p>۱۰٬۰۰۰ توکن، آموزش‌دیده روی همین پیکره؛ با حفظ نیم‌فاصله و چسباندن نشانه‌گذاری به واژه. ۴٫۲۳ نویسه در هر توکن.</p>
+              <div class="step-tags"><span class="tag">بدون کتابخانهٔ بیرونی</span><span class="tag">ZWNJ-safe</span></div>
+            </div>
+          </div>
+          <div class="step-row reveal">
+            <div class="step-num">۰۳ / MODEL</div>
+            <div class="step-body">
+              <h3>ترنسفورمر ۶٫۵۷ میلیون پارامتری</h3>
+              <p>۵ لایه، ۴ سر توجه، بُعد ۲۵۶ و زمینهٔ ۲۵۶ توکن؛ پیش‌رو، پس‌رو و AdamW همه با NumPy پیاده شده‌اند.</p>
+              <div class="step-tags"><span class="tag">پس‌انتشار دستی</span><span class="tag">بدون PyTorch</span><span class="tag">CPU</span></div>
+            </div>
+          </div>
+          <div class="step-row reveal">
+            <div class="step-num">۰۴ / TRAIN</div>
+            <div class="step-body">
+              <h3>۲٬۴۰۰ گام آموزش واقعی</h3>
+              <p>۱۴٫۷ میلیون توکن در دو فاز؛ از loss ۹٫۲۵ تا ۵٫۳۱ روی دادهٔ نگه‌داشته‌شده. حدود ۱۳۵ دقیقه روی دو هستهٔ CPU.</p>
+              <div class="step-tags"><span class="tag-blue tag">val_loss ۵٫۳۱</span><span class="tag-blue tag">ppl ۲۰۲</span><span class="tag-blue tag">۱٬۸۹۰ توکن/ث</span></div>
+            </div>
+          </div>
+          <div class="step-row reveal">
+            <div class="step-num">۰۵ / SERVE</div>
+            <div class="step-body">
+              <h3>سرویس و رابط کاربری</h3>
+              <p>FastAPI با کش KV، جریان NDJSON، حساب کاربری SQLite و همین رابط فارسی بدون هیچ فریم‌ورک ظاهری.</p>
+              <div class="step-tags"><span class="tag">جریان توکنی</span><span class="tag">SQLite</span><span class="tag">PWA</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================== نمونه‌ها -->
+    <section class="section" id="showcase">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">خروجی واقعی</span>
+          <h2 class="section-title">بدون ویرایش، بدون ادعا</h2>
+          <p class="section-sub">این نمونه‌ها مستقیماً از مدل گرفته شده‌اند. مدل کوچک است و خروجی‌اش هم به همین اندازه صادقانه محدود است.</p>
+        </div>
+        <div class="showcase-grid" id="showcase-list">
+          <article class="showcase-item">
+            <span class="q">ادامهٔ متن · «در دل کویر، شب‌ها آسمان پر از ستاره است و»</span>
+            <p class="a">به نام گل و به هر دم<br>گر بنماید از وی تو چو برآمده از من<br>که در نظر ما چو هر چه کنم چو تو از چه کار ما</p>
+            <div class="m"><span>۱۴۰ توکن</span><span>۱۴۰ توکن/ث</span><span class="tag">end</span></div>
+          </article>
+          <article class="showcase-item">
+            <span class="q">گفتگو · «سلام! خودت را معرفی کن»</span>
+            <p class="a">من به فارسی و با نام تو گفتگو کنم.</p>
+            <div class="m"><span>۹ توکن</span><span class="tag tag-blue">اندیشهٔ ژرف</span></div>
+          </article>
+          <article class="showcase-item">
+            <span class="q">شعر · «یک شعر بگو»</span>
+            <p class="a">ای دوست بگو که به فارسی فارسی یاد بنویس تا تو را نمی‌شناسم.</p>
+            <div class="m"><span>۱۵ توکن</span><span class="tag">شعر</span></div>
+          </article>
+        </div>
+        <div class="showcase-note">
+          <span class="dot-live"></span>
+          <span>همهٔ نمونه‌ها از گام ۲۴۰۰ آموزش، روی دادهٔ واقعی.</span>
+          <a href="/models" class="link-arrow">کارت کامل مدل ←</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================== آمار -->
+    <section class="section-sm">
+      <div class="wrap">
+        <div class="stats-band card card-glow">
+          <div class="stat-cell"><b id="live-answers">۰</b><span>پاسخ تولیدشده</span></div>
+          <div class="stat-cell"><b id="live-users">۰</b><span>کاربر</span></div>
+          <div class="stat-cell"><b id="live-convs">۰</b><span>گفتگو</span></div>
+          <div class="stat-cell"><b id="live-uptime">—</b><span>زمان کار سرور</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= تعرفه -->
+    <section class="section" id="pricing">
+      <div class="wrap">
+        <div class="section-head center">
+          <span class="eyebrow">تعرفه</span>
+          <h2 class="section-title">رایگان شروع کن، هر وقت خواستی بیشتر</h2>
+          <p class="section-sub">همهٔ پلن‌ها روی همین سرور و با همین مدل اجرا می‌شوند. هیچ اشتراک پولی فعال نیست.</p>
+        </div>
+        <div class="plans">
+          <article class="plan reveal">
+            <div class="plan-head"><h3>مهمان</h3><span class="tag">بدون ثبت‌نام</span></div>
+            <div class="plan-price">۰ <small>تومان</small></div>
+            <p class="plan-desc">برای امتحان کردن. تاریخچه در همین دستگاه می‌ماند.</p>
+            <ul>
+              <li>۲۵ پیام در روز</li>
+              <li>۱۰ درخواست اندیشهٔ ژرف</li>
+              <li>گفتگو، شعر و ادامهٔ متن</li>
+              <li>بدون تاریخچهٔ دائمی</li>
+            </ul>
+            <a class="btn" href="/chat">شروع بدون حساب</a>
+          </article>
+          <article class="plan is-featured reveal">
+            <div class="plan-head"><h3>رایگان</h3><span class="tag tag-blue">پیشنهادی</span></div>
+            <div class="plan-price">۰ <small>تومان</small></div>
+            <p class="plan-desc">حساب کامل با تاریخچهٔ همیشگی و سهمیهٔ بیشتر.</p>
+            <ul>
+              <li>۲۰۰ پیام در روز</li>
+              <li>۸۰ درخواست اندیشهٔ ژرف</li>
+              <li>تاریخچهٔ دائمی و جست‌وجو</li>
+              <li>اشتراک‌گذاری و خروجی گفتگو</li>
+            </ul>
+            <a class="btn btn-primary" href="/signup">ساخت حساب رایگان</a>
+          </article>
+          <article class="plan reveal">
+            <div class="plan-head"><h3>حرفه‌ای</h3><span class="tag tag-amber">نقشهٔ راه</span></div>
+            <div class="plan-price">به‌زودی <small>—</small></div>
+            <p class="plan-desc">وقتی مدل‌های بزرگ‌تر آماده شوند.</p>
+            <ul>
+              <li>دسترسی زودهنگام به مدل متوسط</li>
+              <li>زمینهٔ بلندتر و پاسخ‌های بیشتر</li>
+              <li>خروجی گرفتن از داده‌ها</li>
+              <li>پشتیبانی از مسیر آموزش</li>
+            </ul>
+            <a class="btn" href="/models">وضعیت مدل‌ها</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================== پرسش -->
+    <section class="section">
+      <div class="wrap-narrow">
+        <div class="section-head center">
+          <span class="eyebrow">پرسش‌های رایج</span>
+          <h2 class="section-title">شفاف، حتی وقتی به نفع ما نیست</h2>
+        </div>
+        <div class="faq">
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">آیا رایان مثل ChatGPT است؟ <span class="chev">+</span></button>
+            <div class="faq-a"><p>نه. رایان از نظر مقیاس با مدل‌های میلیاردپارامتری فاصلهٔ زیادی دارد: ۶٫۵۷ میلیون پارامتر در برابر صدها میلیارد. هدف این پروژه ساختن یک جایگزین نیست؛ نمایش شفاف ساخت یک مدل زبانی فارسی از صفر است. اما تجربهٔ محصولش — حساب، تاریخچه، جریان پاسخ، اشتراک‌گذاری — کامل است.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">از هیچ مدل آماده‌ای استفاده شده؟ <span class="chev">+</span></button>
+            <div class="faq-a"><p>خیر. وزن‌ها از صفر مقداردهی و آموزش داده شده‌اند؛ توکنایزر هم روی پیکرهٔ خودمان آموزش دیده. تنها وابستگی‌ها NumPy، FastAPI و SQLite هستند — نه وزن آماده، نه API بیرونی.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">چرا پاسخ‌ها گاهی نامفهوم‌اند؟ <span class="chev">+</span></button>
+            <div class="faq-a"><p>چون مدل کوچک و آموزش کوتاه است. مدل جمله‌های فارسیِ محلی و بافت‌دار می‌سازد، اما دانش عمومی، استدلال و انسجام طولانی‌مدت در آن ضعیف است. این محدودیت در کارت مدل مستند شده و در رابط کاربری هم اعلام می‌شود.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">داده‌های من کجا ذخیره می‌شود؟ <span class="chev">+</span></button>
+            <div class="faq-a"><p>در یک پایگاه‌دادهٔ SQLite روی همان سروری که سایت را اجرا می‌کند. هیچ داده‌ای به سرویس‌های خارجی فرستاده نمی‌شود. رمز عبور با scrypt و نمک یکتا ذخیره می‌شود و نشست‌ها با کوکی HttpOnly مدیریت می‌شوند.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">چطور می‌توانم خودم اجرا کنم؟ <span class="chev">+</span></button>
+            <div class="faq-a"><p>مخزن عمومی است: کافی است <span class="mono">pip install -r requirements.txt</span> و سپس <span class="mono">python web/server.py</span>. همه‌چیز روی CPU کار می‌کند. راهنمای استقرار رایگان (Hugging Face Spaces و Render) هم در مستندات آمده است.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ CTA -->
+    <section class="section">
+      <div class="wrap">
+        <div class="cta-band reveal">
+          <img src="/static/assets/brand/orb-256.png" alt="" width="72" height="72" class="cta-orb">
+          <h2>همین حالا با رایان حرف بزن</h2>
+          <p>بدون ثبت‌نام شروع کن. اگر خوشت آمد، حساب بساز تا گفتگوهایت بمانند.</p>
+          <div class="cta-actions">
+            <a class="btn btn-primary btn-lg" href="/chat">شروع گفتگو</a>
+            <a class="btn btn-lg" href="/models">مشاهدهٔ مدل</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap">
+      <div class="footer-grid">
+        <div class="footer-about">
+          <a class="brand" href="/">
+            <img class="brand-orb" src="/static/assets/brand/orb-128.png" alt="" width="34" height="34">
+            <span class="brand-name"><b>رایان</b><span>RAYAN</span></span>
+          </a>
+          <p>هوش مصنوعی فارسی، ساخته‌شده از صفر. کد، داده و وزن‌ها عمومی‌اند.</p>
+        </div>
+        <div>
+          <h4>محصول</h4>
+          <ul>
+            <li><a href="/chat">گفتگو</a></li>
+            <li><a href="/models">مدل‌ها</a></li>
+            <li><a href="/pricing">تعرفه</a></li>
+            <li><a href="/login">ورود</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>پروژه</h4>
+          <ul>
+            <li><a href="/about">درباره</a></li>
+            <li><a href="/docs">مستندات</a></li>
+            <li><a href="https://github.com/Taymaz1391/ai" rel="noopener">GitHub</a></li>
+            <li><a href="/api/health">وضعیت سرویس</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>قانونی</h4>
+          <ul>
+            <li><a href="/about#license">مجوز MIT</a></li>
+            <li><a href="/about#privacy">حریم خصوصی</a></li>
+            <li><a href="/about#terms">شرایط استفاده</a></li>
+            <li><a href="/about#notice">منابع داده</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© ۱۴۰۵ رایان · ساخته‌شده با NumPy، بدون مدل آماده</span>
+        <div class="footer-social">
+          <a href="https://github.com/Taymaz1391/ai" aria-label="GitHub" rel="noopener">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.95 0-1.09.39-1.99 1.03-2.69-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.03a9.4 9.4 0 0 1 5 0c1.91-1.3 2.75-1.03 2.75-1.03.55 1.38.2 2.4.1 2.65.64.7 1.03 1.6 1.03 2.69 0 3.85-2.34 4.7-4.57 4.94.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/config.js"></script>
+  <script src="/static/ui.js"></script>
+  <script src="/static/landing.js"></script>
+</body>
+</html>

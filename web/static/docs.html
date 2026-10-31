@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>مستندات · رایان</title>
+  <meta name="description" content="مستندات رایان: اجرای محلی، API، معماری مدل، آموزش و استقرار رایگان.">
+  <meta name="theme-color" content="#050b1a">
+  <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/pages.css">
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true"><div class="glow glow-a"></div><div class="glow glow-b"></div></div>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/"><img class="brand-orb" src="/static/assets/brand/orb-128.png" alt="" width="34" height="34"><span class="brand-name"><b>رایان</b><span>RAYAN</span></span></a>
+      <nav class="nav-links" aria-label="پیمایش">
+        <a class="nav-link" href="/#features">قابلیت‌ها</a>
+        <a class="nav-link" href="/models">مدل‌ها</a>
+        <a class="nav-link" href="/pricing">تعرفه</a>
+        <a class="nav-link is-active" href="/docs">مستندات</a>
+        <a class="nav-link" href="/about">درباره</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-ghost btn-sm" href="/login" data-auth="guest">ورود</a>
+        <a class="btn btn-primary btn-sm" href="/chat">شروع گفتگو</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="section">
+    <div class="wrap doc-grid">
+      <nav class="toc" aria-label="فهرست">
+        <a href="#quickstart">شروع سریع</a>
+        <a href="#api">API</a>
+        <a href="#limits">سهمیه و محدودیت</a>
+        <a href="#arch">معماری</a>
+        <a href="#deploy">استقرار</a>
+        <a href="#faq">پرسش‌ها</a>
+      </nav>
+
+      <div class="prose">
+        <h1 style="font-size:clamp(24px,3.6vw,34px);color:var(--text)">مستندات رایان</h1>
+        <p style="color:var(--text-3);font-size:13.5px">هر چیزی که برای اجرا، استفاده و استقرار لازم داری.</p>
+
+        <h2 id="quickstart">شروع سریع</h2>
+        <pre><code>git clone https://github.com/Taymaz1391/ai.git
+cd ai
+python3 -m venv .venv &amp;&amp; source .venv/bin/activate
+pip install -r requirements.txt
+python web/server.py --host 0.0.0.0 --port 8000</code></pre>
+        <p>سپس <code>http://localhost:8000</code> را باز کن. مدل از <code>checkpoints/rayan-1-small.npz</code> بارگذاری می‌شود و روی CPU اجرا می‌شود.</p>
+        <p>برای گفتگو در ترمینال:</p>
+        <pre><code>python scripts/chat_cli.py --deep</code></pre>
+
+        <h2 id="api">API</h2>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>مسیر</th><th>کار</th></tr></thead>
+            <tbody>
+              <tr><td><code>POST /api/chat</code></td><td>پاسخ کامل؛ با <code>deep: true</code> جست‌وجوی چندمسیره</td></tr>
+              <tr><td><code>POST /api/chat/stream</code></td><td>جریان NDJSON: <code>start</code>، <code>token</code>، <code>done</code></td></tr>
+              <tr><td><code>GET /api/health</code></td><td>وضعیت مدل و آموزش</td></tr>
+              <tr><td><code>GET /api/model</code></td><td>مشخصات، سخت‌افزار، پیکره و محدودیت‌ها</td></tr>
+              <tr><td><code>GET /api/models</code></td><td>فهرست مدل‌ها و وضعیت آن‌ها</td></tr>
+              <tr><td><code>GET /api/metrics</code></td><td>گزارش زندهٔ آموزش</td></tr>
+              <tr><td><code>GET /api/showcase</code></td><td>نمونه‌های واقعی تولید مدل</td></tr>
+              <tr><td><code>POST /api/auth/register</code></td><td>ساخت حساب</td></tr>
+              <tr><td><code>POST /api/auth/login</code></td><td>ورود و صدور کوکی نشست</td></tr>
+              <tr><td><code>GET /api/auth/me</code></td><td>کاربر، پلن و مصرف امروز</td></tr>
+              <tr><td><code>GET /api/conversations</code></td><td>فهرست گفتگوها</td></tr>
+              <tr><td><code>POST /api/conversations</code></td><td>ساخت گفتگوی تازه</td></tr>
+              <tr><td><code>GET/PATCH/DELETE /api/conversations/{id}</code></td><td>خواندن، تغییر نام/سنجاق، حذف</td></tr>
+              <tr><td><code>POST /api/conversations/{id}/share</code></td><td>ساخت لینک عمومی</td></tr>
+              <tr><td><code>GET /api/share/{token}</code></td><td>خواندن گفتگوی اشتراکی</td></tr>
+              <tr><td><code>POST /api/feedback</code></td><td>ثبت بازخورد پاسخ</td></tr>
+              <tr><td><code>GET /api/download/checkpoint</code></td><td>دانلود وزن‌های NPZ</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <pre><code>curl -s -X POST localhost:8000/api/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"message":"یک شعر بگو","deep":true,"candidates":4}'</code></pre>
+
+        <h2 id="limits">سهمیه و محدودیت</h2>
+        <ul>
+          <li>مهمان: ۲۵ پیام و ۱۰ اندیشهٔ ژرف در روز</li>
+          <li>حساب رایگان: ۲۰۰ پیام و ۸۰ اندیشهٔ ژرف</li>
+          <li>هر IP: حداکثر ۴۵ درخواست در دقیقه</li>
+          <li>طول متن هر پیام: ۲٬۰۰۰ نویسه؛ حداکثر ۲۲۰ توکن پاسخ</li>
+        </ul>
+
+        <h2 id="arch">معماری</h2>
+        <p>مسیر یک پیام:</p>
+        <ol>
+          <li>متن کاربر با <code>rayan.text.normalize</code> نرمال می‌شود.</li>
+          <li>قالب گفتگو ساخته می‌شود: <code>&lt;|doc|&gt; &lt;|user|&gt; … &lt;|bot|&gt;</code> و دو نوبت آخر تاریخچه.</li>
+          <li>مدل با حافظهٔ KV توکن‌به‌توکن تولید می‌کند؛ نمونه‌گیری با دما، top-p، top-k و جریمهٔ تکرار.</li>
+          <li>پاسخ در SQLite ذخیره و به مرورگر جریان داده می‌شود.</li>
+        </ol>
+
+        <h2 id="deploy">استقرار</h2>
+        <p>سه مسیر رایگان:</p>
+        <ul>
+          <li><b>Hugging Face Spaces (Docker):</b> فایل <code>Dockerfile</code> با پورت ۸۰۰۰ آماده است.</li>
+          <li><b>Render:</b> <code>render.yaml</code> و <code>Procfile</code> آماده‌اند.</li>
+          <li><b>GitHub Pages (فقط فرانت):</b> با workflow موجود، نسخهٔ استاتیک روی دامنهٔ <code>github.io</code> منتشر می‌شود و با تنظیم <code>apiBase</code> به بک‌اند وصل می‌گردد.</li>
+        </ul>
+
+        <h2 id="faq">پرسش‌ها</h2>
+        <p>اگر پاسخ پرسشت اینجا نبود، <a href="/about">صفحهٔ درباره</a> یا مخزن GitHub را ببین.</p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap"><div class="footer-bottom" style="border-top:0;margin-top:0">
+      <span>© ۱۴۰۵ رایان · MIT</span>
+      <a href="https://github.com/Taymaz1391/ai" rel="noopener">مخزن GitHub</a>
+    </div></div>
+  </footer>
+
+  <script src="/static/config.js"></script>
+  <script src="/static/ui.js"></script>
+</body>
+</html>

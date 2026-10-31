@@ -1,0 +1,19 @@
+{
+  "news_chars": 13410891,
+  "poetry_chars": 3366533,
+  "chat_chars": 15426,
+  "train_docs": 16984,
+  "val_docs": 346,
+  "chat_train_chars": 308520,
+  "train_chars": 16934756,
+  "val_chars": 307142,
+  "train_bytes": 29618572,
+  "val_bytes": 537114,
+  "news_docs": 10159,
+  "poetry_docs": 4371,
+  "chat_docs": 2800,
+  "sources": {
+    "news": "Persian News Dataset (milad-4274) + Hamshahri corpus",
+    "poetry": "JSON of Classic Persian Poems (namnamir, from ganjoor.net)"
+  }
+}

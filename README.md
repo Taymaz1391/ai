@@ -1,27 +1,267 @@
-# Local AI Studio
+<div align="center">
 
-رابط کاربری محلی، چت فارسی، حافظهٔ گفتگو و مدل GPT از صفر؛ بدون اتصال به API خارجی.
+<img src="web/static/assets/brand/orb-256.png" alt="رایان" width="104" />
+
+# رایان · RAYAN
+
+**هوش مصنوعی، به زبان فارسی**
+
+<sub>یک محصول کامل و یک مدل زبانی فارسی، هر دو ساخته‌شده از صفر — بدون API، بدون وزن آماده، بدون PyTorch</sub>
+
+`۶٬۵۷۴٬۸۴۸ پارامتر` · `توکنایزر BPE فارسی` · `ترنسفورمر با پس‌انتشار دستی در NumPy` · `آموزش واقعی روی CPU`
+
+[![tests](https://github.com/Taymaz1391/ai/actions/workflows/tests.yml/badge.svg)](https://github.com/Taymaz1391/ai/actions/workflows/tests.yml)
+[![pages](https://github.com/Taymaz1391/ai/actions/workflows/pages.yml/badge.svg)](https://github.com/Taymaz1391/ai/actions/workflows/pages.yml)
+[![license](https://img.shields.io/badge/license-MIT-2e8bff)](LICENSE)
+
+[وب‌سایت](https://taymaz1391.github.io/ai/) · [مستندات](docs/) · [کارت مدل](docs/MODEL_CARD.md) · [معماری](docs/ARCHITECTURE.md) · [استقرار رایگان](docs/DEPLOY_FREE.md)
+
+</div>
+
+---
+
+## رایان چیست؟
+
+رایان دو چیز است که کنار هم یک محصول می‌سازند:
+
+۱. **یک وب‌اپ کامل** با صفحهٔ اصلی، ثبت‌نام و ورود، صفحهٔ گفتگو با تاریخچه، اشتراک‌گذاری پاسخ، سهمیهٔ مصرف، تنظیمات نمونه‌گیری، جست‌وجوی گفتگوها و نسخهٔ نصب‌شدنی (PWA).
+۲. **یک مدل زبانی فارسی** که واقعاً در همین مخزن و روی همان CPU‌ای که سرور روی آن اجراست، آموزش دیده و اجرا می‌شود.
+
+هیچ‌کدام از این‌ها به سرویس بیرونی وصل نیست: نه OpenAI، نه Anthropic، نه هیچ API دیگری. توکنایزر، ترنسفورمر، پس‌انتشار دستی، بهینه‌ساز، استنتاج با حافظهٔ KV، سرور و رابط کاربری همه در همین مخزن نوشته شده‌اند.
+
+> این پروژه ادعای رقابت با مدل‌های میلیاردپارامتری را ندارد. مدلی با ۶٫۵ میلیون پارامتر در سطح توان زبانی آن‌ها نیست. اما کل مسیر ساخت — از نرمال‌سازی متن فارسی تا دکمهٔ «ارسال» — خوانا، آزمون‌پذیر و قابل بازتولید است.
+
+---
+
+## محصول در یک نگاه
+
+| صفحه | آدرس | چه می‌کند |
+|---|---|---|
+| صفحهٔ اصلی | `/` | معرفی، قابلیت‌ها، آمار زنده، نمونهٔ پاسخ‌ها، تعرفه و پرسش‌های متداول |
+| گفتگو | `/chat` | گفتگوی جریانی، تاریخچهٔ گفتگوها، جست‌وجو، سنجاق، اشتراک‌گذاری، «اندیشهٔ ژرف» |
+| ورود / ثبت‌نام | `/login` · `/signup` | حساب با ایمیل و گذرواژه (scrypt)، نشست ۳۰ روزه |
+| تعرفه | `/pricing` | مقایسهٔ پلن‌ها و سهمیه‌ها |
+| مدل‌ها | `/models` | مشخصات مدل، سنجه‌های آموزش و سخت‌افزار |
+| مستندات | `/docs` | شروع سریع، جدول API، معماری، استقرار |
+| درباره | `/about` | چرا، چگونه، مجوز داده‌ها، حریم خصوصی و شرایط استفاده |
+| اشتراک | `/s/{token}` | نمایش فقط‌خواندنی یک گفتگوی منتشرشده |
+
+**حساب کاربری بدون اصطکاک:** می‌توانی بدون ثبت‌نام گفتگو کنی (۲۵ پیام در روز) و بعداً حساب بسازی. گفتگوها به کاربر یا شناسهٔ مهمانِ کوکی‌محور بسته‌اند و کسی به گفتگوی دیگری دسترسی ندارد.
+
+**سهمیه‌ها** (پنجرهٔ ۲۴ ساعتهٔ لغزان):
+
+| پلن | پیام | اندیشهٔ ژرف |
+|---|---|---|
+| مهمان | ۲۵ | ۱۰ |
+| رایگان | ۲۰۰ | ۸۰ |
+| حرفه‌ای | ۳٬۰۰۰ | ۱٬۲۰۰ |
+
+---
 
 ## شروع سریع
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
+git clone https://github.com/Taymaz1391/ai.git
+cd ai
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-
-# ساخت دادهٔ آموزشی UTF-8 و آموزش مدل
-python train.py --input data.txt --output checkpoints/local_model.pt --steps 3000
-
-# اجرای رابط کاربری در مرورگر
-python ui/server.py --checkpoint checkpoints/local_model.pt --host 127.0.0.1 --port 8000
+python web/server.py --host 0.0.0.0 --port 8000
 ```
 
-سپس به `http://127.0.0.1:8000` بروید. سرور کاملاً روی دستگاه شما اجرا می‌شود و هیچ سرویس هوش مصنوعی خارجی استفاده نمی‌کند.
+سپس <http://localhost:8000> را باز کن. مدل از `checkpoints/rayan-1-small.npz` بارگذاری می‌شود و پایگاه‌داده خودکار در `data/rayan.sqlite3` ساخته می‌شود (با `RAYAN_DB` قابل تغییر است).
 
-## ساخت APK
+گفتگو در ترمینال:
 
-پوشهٔ `android/` یک برنامهٔ Android WebView است که رابط محلی را باز می‌کند. برای ساخت APK با Android Studio آن را باز کنید و از منوی **Build > Build APK(s)** استفاده کنید. برای اجرای روی دستگاه، ابتدا سرور محلی را روی کامپیوتر اجرا کنید؛ سپس آدرس آن را در تنظیمات برنامه وارد کنید.
+```bash
+python scripts/chat_cli.py --deep
+```
 
-## واقع‌بینی فنی
+> اولین اجرا چند ثانیه برای بارگذاری مدل و گرم‌شدن NumPy زمان می‌برد.
 
-این مخزن موتور پایه و قابل‌آموزش است، نه یک مدل صنعتی آماده. کیفیت مدل به حجم و کیفیت داده، تعداد پارامترها، GPU و زمان آموزش وابسته است. ساخت مدلی در سطح ChatGPT بدون زیرساخت عظیم ممکن نیست؛ اما این پروژه یک مسیر واقعی و بدون API برای توسعهٔ مدل شخصی است.
+---
+
+## API
+
+همهٔ پاسخ‌ها JSON‌اند و هویت از کوکی `rayan_session` (کاربر) یا `rayan_guest` (مهمان) خوانده می‌شود.
+
+| مسیر | کار |
+|---|---|
+| `POST /api/chat` | پاسخ کامل؛ با `deep: true` جست‌وجوی چندمسیره |
+| `POST /api/chat/stream` | جریان NDJSON: `start` → `token` → `done` |
+| `GET /api/health` | وضعیت مدل و آموزش |
+| `GET /api/model` | مشخصات، سخت‌افزار، پیکره و محدودیت‌ها |
+| `GET /api/models` | فهرست مدل‌ها و وضعیت هرکدام |
+| `GET /api/metrics` | گزارش زندهٔ آموزش (`logs/metrics.jsonl`) |
+| `GET /api/showcase` | نمونه‌های واقعی تولید مدل |
+| `GET /api/stats` | آمار عمومی سرویس |
+| `GET /api/samples` | پیشنهادهای شروع گفتگو |
+| `POST /api/auth/register` · `POST /api/auth/login` · `POST /api/auth/logout` | ساخت حساب، ورود، خروج |
+| `GET /api/auth/me` · `PATCH /api/auth/me` | کاربر، پلن و مصرف امروز؛ ویرایش نام |
+| `GET /api/conversations` · `POST /api/conversations` | فهرست و ساخت گفتگو |
+| `GET / PATCH / DELETE /api/conversations/{id}` | خواندن، تغییر نام/سنجاق، حذف |
+| `DELETE /api/conversations` | پاک‌کردن همهٔ گفتگوها |
+| `POST` · `DELETE /api/conversations/{id}/share` | ساخت و حذف لینک عمومی |
+| `GET /api/share/{token}` | خواندن گفتگوی اشتراکی |
+| `POST /api/feedback` | ثبت بازخورد پاسخ |
+| `GET /api/usage` | سهمیهٔ مصرف |
+| `GET /api/download/checkpoint` | دانلود وزن‌ها (NPZ) |
+
+```bash
+curl -s -X POST localhost:8000/api/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"message":"یک شعر بگو","deep":true,"candidates":4}' | python -m json.tool
+```
+
+قالب جریان گفتگو:
+
+```text
+{"type":"start","prompt_tokens":21}
+{"type":"token","text":"..."}
+{"type":"done","answer":"...","stats":{...},"usage":{"used":3,"limit":25},"conversation_id":"c_..."}
+```
+
+---
+
+## از صفر تا مدل
+
+```bash
+# ۱) دانلود پیکره‌های عمومی فارسی (در پوشهٔ بیرونی)
+bash scripts/fetch_corpora.sh
+
+# ۲) ساخت پیکرهٔ تمیز
+python data/build_corpus.py --sources ../corpora --out data
+
+# ۳) آموزش توکنایزر BPE با ۱۰٬۰۰۰ توکن
+python data/train_tokenizer.py --vocab-size 10000
+
+# ۴) آموزش پایه (حدود ۱۰۳ دقیقه روی ۲ هستهٔ CPU)
+python -m rayan.train --steps 1800 --batch-size 24 --block-size 256 \
+    --layers 5 --heads 4 --embed 256 --lr 1.2e-3
+
+# ۵) ادامهٔ آموزش روی پیکرهٔ گفتگویی بزرگ‌تر
+python -m rayan.train --resume checkpoints/rayan-1-small.npz --steps 2400 \
+    --batch-size 24 --block-size 256 --lr 3.5e-4 --min-lr 3e-5 --warmup 60
+
+# ۶) ارزیابی و ساخت نمونه‌های نمایش
+python scripts/evaluate.py --checkpoint checkpoints/rayan-1-small.npz
+python scripts/build_showcase.py --evaluation reports/evaluation.json
+```
+
+---
+
+## معماری در یک نگاه
+
+```
+متن فارسی
+   │  نرمال‌سازی: ي→ی، ك→ک، حذف اعراب، یکسان‌سازی ارقام و نشانه‌ها
+   ▼
+BPE فارسی (۱۰٬۰۰۰ توکن) ──► دنبالهٔ توکن‌ها
+   ▼
+امبدینگ واژه + امبدینگ موقعیت (۲۵۶ بُعد، زمینهٔ ۲۵۶)
+   ▼
+۵ × بلوک ترنسفورمر
+   ├─ LayerNorm → توجه چندسری (۴ سر، ماسک علّی) → اتصال باقی‌مانده
+   └─ LayerNorm → خطی ۲۵۶→۱۰۲۴ → SiLU → خطی ۱۰۲۴→۲۵۶ → اتصال باقی‌مانده
+   ▼
+LayerNorm پایانی ─► پیش‌بینی واژگان (وزن مشترک با امبدینگ)
+   ▼
+نمونه‌گیری: دما · top-k · top-p · جریمهٔ تکرار · توقف روی نشانه‌های گفتگو
+```
+
+قالب داده و گفتگو:
+
+```text
+<|doc|> <|user|> تو کی هستی؟ <|bot|> من رایان هستم؛ یک مدل زبانی کوچک فارسی… <|doc|> ای دل اگر به عشق…
+```
+
+جزئیات ریاضی و پیاده‌سازی در [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+---
+
+## نتایج واقعی
+
+| سنجه | مقدار |
+|---|---|
+| پارامترهای آموزش‌پذیر | ۶٬۵۷۴٬۸۴۸ |
+| توکن‌های آموزش | ۱۴٬۷۴۵٬۶۰۰ (دو فاز) |
+| طول زمینه | ۲۵۶ توکن |
+| سخت‌افزار | ۲ هستهٔ vCPU · بدون GPU |
+| خطای اعتبارسنجی | ۵٫۳۰ nats/token |
+| Perplexity | ۲۰۱٫۳ |
+| بیت بر نویسه | ۱٫۸۰ |
+| دقت top-1 / top-5 | ۱۷٫۴٪ / ۳۴٫۱٪ |
+| سرعت تولید | ~۸۴ توکن بر ثانیه (CPU) |
+
+هیچ عددی در رابط کاربری ساختگی نیست؛ همه از `logs/metrics.jsonl`، `reports/evaluation.json` و متادیتای checkpoint خوانده می‌شوند.
+
+---
+
+## ساختار مخزن
+
+```
+rayan/                    موتور مدل: text، tokenizer، model، train، generate، thinking
+web/server.py             سرور FastAPI: صفحه‌ها، احراز هویت، گفتگو، اشتراک، سهمیه
+web/store.py              پایگاه‌داده SQLite (کاربران، نشست‌ها، گفتگوها، رویدادها)
+web/static/               رابط کاربری: HTML/CSS/JS خالص، RTL، فونت وزیرمتن
+data/                     سازندهٔ پیکره، گفتگوهای آغازین، آمار
+tokenizer/                توکنایزر آموزش‌دیده (JSON)
+checkpoints/              وزن‌های نهایی مدل
+scripts/                  داده، ارزیابی، برند، خروجی سایت استاتیک
+docs/                     کارت مدل، معماری، استقرار رایگان
+tests/                    گرادیان، KV، توکنایزر، پایگاه‌داده، API و خروجی استاتیک
+legacy/                   نسخهٔ نخست پروژه (مبتنی بر PyTorch)
+```
+
+---
+
+## آزمون
+
+```bash
+python tests/gradcheck.py                          # تطابق گرادیان دستی و عددی + حافظهٔ KV
+python -m unittest discover -s tests -p "test_*.py" # ۴۰ آزمون: توکنایزر، مدل، پایگاه‌داده، API، سایت
+cd tests/ui && npm install && node uitest.js       # ۳۷ آزمون رابط کاربری با jsdom (نیازمند سرور در حال اجرا)
+```
+
+---
+
+## استقرار
+
+| گزینه | چه می‌گیرید | فایل |
+|---|---|---|
+| **Hugging Face Spaces (Docker)** | سایت کامل + مدل، رایگان | `Dockerfile` |
+| **Render** | همان، با Blueprint آماده | `render.yaml` |
+| **GitHub Pages** | نسخهٔ استاتیک صفحهٔ اصلی، تعرفه، مدل‌ها، مستندات و درباره | `.github/workflows/pages.yml` |
+
+GitHub Pages فقط فایل‌های ایستا را سرو می‌کند و نمی‌تواند مدل را اجرا کند؛ نسخهٔ Pages به‌صورت خودکار با `python scripts/export_site.py` ساخته می‌شود، مسیرها را نسبی می‌کند و یک نوار «نسخهٔ نمایشی» نشان می‌دهد. برای گفتگوی واقعی، نسخهٔ سرور را روی Render یا HF Spaces بالا بیاور و `apiBase` را در `web/static/config.js` به آن آدرس بده.
+
+راهنمای گام‌به‌گام: [`docs/DEPLOY_FREE.md`](docs/DEPLOY_FREE.md).
+
+---
+
+## محدودیت‌ها (صادقانه)
+
+- **اندازه:** ۶٫۵ میلیون پارامتر در برابر ده‌ها یا صدها میلیارد پارامتر مدل‌های امروزی.
+- **دانش:** فقط آنچه در پیکره بوده؛ بدون اینترنت، خبر تازه یا جست‌وجو.
+- **دقت:** ممکن است جمله‌های نادرست، تکراری یا بی‌ربط بسازد. پاسخ‌ها را بررسی کن.
+- **زبان:** پیکره ترکیبی خبر، شعر و گفتگوست؛ سبک خروجی بین این سه نوسان می‌کند.
+- **«اندیشهٔ ژرف»:** جست‌وجوی چندمسیره و امتیازدهی است، نه تفکر آگاهانه.
+- **حساب‌ها:** برای دموی رایگان طراحی شده‌اند؛ بازیابی گذرواژه و تأیید ایمیل ندارند.
+
+---
+
+## داده‌ها و مجوز
+
+- **کد:** MIT — [`LICENSE`](LICENSE)
+- **داده‌ها:** از منابع عمومی فارسی؛ فهرست، منشأ و شرایط در [`NOTICE.md`](NOTICE.md). پیکرهٔ خام در مخزن نیست و با اسکریپت بازسازی می‌شود.
+- **فونت:** [Vazirmatn](https://github.com/rastikerdar/vazirmatn) با مجوز OFL.
+- **شعرها:** برگرفته از [ganjoor.net](https://ganjoor.net) از طریق مجموعهٔ `namnamir/JSON_of_Classic_Persian_Poems`.
+
+---
+
+<div align="center">
+
+<img src="web/static/assets/brand/orb-128.png" alt="" width="40" />
+
+ساخته‌شده با NumPy، فارسی و حوصله — بدون هیچ API بیرونی.
+
+</div>

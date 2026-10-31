@@ -1,4 +1,6 @@
-torch>=2.2
-fastapi>=0.110
-uvicorn[standard]>=0.29
-pydantic>=2.0
+# رایان فقط به همین چند بستهٔ عمومی نیاز دارد؛ هیچ فریم‌ورک یادگیری عمیقی لازم نیست.
+numpy>=1.26,<3
+fastapi>=0.110,<1
+uvicorn[standard]>=0.29,<1
+pydantic>=2.6,<3
+email-validator>=2.1,<3

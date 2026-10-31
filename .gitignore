@@ -1,5 +1,33 @@
+# محیط اجرا
+.venv/
 __pycache__/
 *.pyc
-.venv/
-checkpoints/
-*.pt
+.pytest_cache/
+
+# داده‌های خام/ساخت‌شده (با اسکریپت بازسازی می‌شوند)
+data/train.txt
+data/val.txt
+corpora/
+*.tar.gz
+
+# checkpointهای موقت (نسخهٔ نهایی در مخزن می‌ماند)
+checkpoints/last.npz
+checkpoints/*.tmp
+checkpoints/*.npz.tmp
+
+# گزارش‌های موقت
+logs/*.log
+logs/*.pid
+
+# نسخه‌های میانی وزن‌ها
+checkpoints/*-step*.npz
+
+# خروجی سایت استاتیک (GitHub Pages)
+_site/
+
+# پایگاه‌دادهٔ محلی و وابستگی‌های آزمون رابط
+data/*.sqlite3
+data/*.sqlite3-shm
+data/*.sqlite3-wal
+tests/ui/node_modules
+node_modules/

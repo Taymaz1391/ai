@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>مدل‌ها · رایان</title>
+  <meta name="description" content="کارت مدل رایان ۱ — کوچک: ۶٫۵۷ میلیون پارامتر، آموزش از صفر، اعداد واقعی ارزیابی و محدودیت‌های صریح.">
+  <meta name="theme-color" content="#050b1a">
+  <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/static/assets/icons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/pages.css">
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true"><div class="glow glow-a"></div><div class="glow glow-b"></div></div>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/"><img class="brand-orb" src="/static/assets/brand/orb-128.png" alt="" width="34" height="34"><span class="brand-name"><b>رایان</b><span>RAYAN</span></span></a>
+      <nav class="nav-links" aria-label="پیمایش">
+        <a class="nav-link" href="/#features">قابلیت‌ها</a>
+        <a class="nav-link" href="/#how">چطور ساخته شد</a>
+        <a class="nav-link is-active" href="/models">مدل‌ها</a>
+        <a class="nav-link" href="/pricing">تعرفه</a>
+        <a class="nav-link" href="/about">درباره</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-ghost btn-sm" href="/login" data-auth="guest">ورود</a>
+        <a class="btn btn-primary btn-sm" href="/chat">شروع گفتگو</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-hero">
+      <div class="wrap">
+        <span class="eyebrow">مدل‌ها</span>
+        <h1>یک مدل کوچک، با اعداد بزرگ‌نما نشده</h1>
+        <p>رایان ۱ — کوچک فعال است. نسخه‌های بعدی در نقشهٔ راه‌اند و تا وقتی آموزششان تمام نشود، منتشر نمی‌شوند.</p>
+      </div>
+    </section>
+
+    <section class="section-sm">
+      <div class="wrap">
+        <div style="display:flex;flex-direction:column;gap:14px" id="model-list">
+          <article class="model-card is-active">
+            <img class="model-orb" src="/static/assets/brand/orb-128.png" alt="" width="64" height="64">
+            <div>
+              <h3>رایان ۱ — کوچک <span class="tag tag-blue">فعال</span></h3>
+              <p class="tagline">مدل از صفر، روی CPU · ۶٬۵۷۴٬۸۴۸ پارامتر · زمینهٔ ۲۵۶ توکن</p>
+              <p>همین مدلی که در حال گفتگوست: توکنایزر BPE فارسی، ترنسفورمر ۵ لایه با NumPy و ۲٬۴۰۰ گام آموزش روی ۱۶٫۹ میلیون نویسهٔ فارسی.</p>
+              <div class="model-meta">
+                <span>خطای اعتبارسنجی <b>۵٫۳۱</b></span>
+                <span>Perplexity <b id="m-ppl">۲۰۲٫۴</b></span>
+                <span>top-5 <b>۳۴٫۱٪</b></span>
+                <span>سرعت <b>~۴۵ توکن/ث</b></span>
+              </div>
+            </div>
+            <div class="model-actions">
+              <a class="btn btn-primary btn-sm" href="/chat">گفتگو</a>
+              <a class="btn btn-sm" href="/api/download/checkpoint">دانلود وزن‌ها</a>
+            </div>
+          </article>
+
+          <article class="model-card">
+            <img class="model-orb" src="/static/assets/brand/orb-128.png" alt="" width="64" height="64" style="opacity:.45;filter:grayscale(.5)">
+            <div>
+              <h3>رایان ۱ — متوسط <span class="tag">به‌زودی</span></h3>
+              <p class="tagline">۳۰ تا ۵۰ میلیون پارامتر · زمینهٔ ۵۱۲ توکن</p>
+              <p>همان پشته، اما با دادهٔ بیشتر و آموزش طولانی‌تر. هدف: جمله‌های بلندتر، انسجام بهتر و دانش عمومی بیشتر.</p>
+              <div class="model-meta"><span>وضعیت <b>در طراحی</b></span><span>نیازمند <b>GPU</b></span></div>
+            </div>
+            <div class="model-actions"><button class="btn btn-sm" disabled>در دسترس نیست</button></div>
+          </article>
+
+          <article class="model-card">
+            <img class="model-orb" src="/static/assets/brand/orb-128.png" alt="" width="64" height="64" style="opacity:.35;filter:grayscale(.7)">
+            <div>
+              <h3>رایان ۱ — حرفه‌ای <span class="tag tag-amber">نقشهٔ راه</span></h3>
+              <p class="tagline">آموزش دستوری · ارزیابی استاندارد فارسی</p>
+              <p>نسخه‌ای با دادهٔ دستورالعمل و ارزیابی روی بنچمارک فارسی؛ هدف، پاسخ‌های قابل‌اعتمادتر برای کار روزمره است.</p>
+              <div class="model-meta"><span>وضعیت <b>پژوهش</b></span><span>وابسته به <b>مدل متوسط</b></span></div>
+            </div>
+            <div class="model-actions"><button class="btn btn-sm" disabled>در دسترس نیست</button></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-sm">
+      <div class="wrap">
+        <div class="section-head"><h2 class="section-title" style="font-size:26px">مشخصات فنی</h2></div>
+        <div class="spec-grid" id="spec-grid">
+          <div class="spec"><span>پارامترها</span><b>۶٬۵۷۴٬۸۴۸</b></div>
+          <div class="spec"><span>لایه‌ها</span><b>۵</b></div>
+          <div class="spec"><span>سرهای توجه</span><b>۴</b></div>
+          <div class="spec"><span>بُعد مدل</span><b>۲۵۶</b></div>
+          <div class="spec"><span>واژگان</span><b>۱۰٬۰۰۰</b></div>
+          <div class="spec"><span>زمینه</span><b>۲۵۶ توکن</b></div>
+          <div class="spec"><span>دقت</span><b>float32</b></div>
+          <div class="spec"><span>پیاده‌سازی</span><b>NumPy</b></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-sm">
+      <div class="wrap">
+        <div class="section-head">
+          <h2 class="section-title" style="font-size:26px">نتایج ارزیابی</h2>
+          <p class="section-sub">روی کل مجموعهٔ اعتبارسنجی (۷۲٬۴۴۸ توکن)، بدون dropout و بدون نمونه‌گیری داغ.</p>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="eval-table">
+            <thead><tr><th>سنجه</th><th>مقدار</th><th>توضیح</th></tr></thead>
+            <tbody>
+              <tr><td>خطای اعتبارسنجی</td><td>۵٫۳۱ nats/token</td><td>میانگین cross-entropy</td></tr>
+              <tr><td>Perplexity</td><td>۲۰۲٫۳۵</td><td>exp(خطا)</td></tr>
+              <tr><td>بیت بر نویسه</td><td>۱٫۸۱</td><td>معیار مستقل از توکنایزر</td></tr>
+              <tr><td>دقت توکن بعدی (top-1)</td><td>۱۷٫۴٪</td><td>پیش‌بینی دقیق توکن بعدی</td></tr>
+              <tr><td>دقت توکن بعدی (top-5)</td><td>۳۴٫۱٪</td><td>پاسخ در میان ۵ گزینهٔ اول</td></tr>
+              <tr><td>خطای آموزش (پایان)</td><td>۵٫۲۴</td><td>روی batch پایانی</td></tr>
+              <tr><td>توکن دیده‌شده</td><td>۱۴٬۷۴۵٬۶۰۰</td><td>دو فاز آموزش</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-sm">
+      <div class="wrap">
+        <div class="section-head">
+          <h2 class="section-title" style="font-size:26px">ترکیب پیکره</h2>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>منبع</th><th>سهم</th><th>توضیح</th></tr></thead>
+            <tbody>
+              <tr><td>خبر و گزارش</td><td>~۷۸٪</td><td>Persian News Dataset + Hamshahri</td></tr>
+              <tr><td>شعر کلاسیک</td><td>~۲۰٪</td><td>گنجور: خاقانی، مولانا، سعدی، حافظ، خیام</td></tr>
+              <tr><td>گفتگوی آغازین</td><td>~۲٪</td><td>۱۴۰ نمونهٔ دست‌نویس، تکرارشده برای تثبیت قالب</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-sm">
+      <div class="wrap-narrow">
+        <div class="card card-pad" style="border-color:rgba(245,183,74,.3)">
+          <h2 style="font-size:20px;margin-bottom:12px">محدودیت‌های صریح</h2>
+          <div class="prose" style="font-size:14.5px">
+            <ul>
+              <li><b>ظرفیت:</b> ۶٫۵۷ میلیون پارامتر برای دانش عمومی و استدلال کافی نیست.</li>
+              <li><b>دانش:</b> فقط آنچه در پیکره بوده؛ بدون اینترنت، خبر تازه یا جست‌وجو.</li>
+              <li><b>دقت:</b> ممکن است جمله‌های نادرست، تکراری یا بی‌ربط بسازد.</li>
+              <li><b>سبک:</b> خروجی بین خبر، شعر و گفتگو نوسان می‌کند.</li>
+              <li><b>اندیشهٔ ژرف:</b> جست‌وجوی چندمسیره و امتیازدهی است، نه تفکر آگاهانه.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap"><div class="footer-bottom" style="border-top:0;margin-top:0">
+      <span>© ۱۴۰۵ رایان · مجوز کد MIT</span>
+      <a href="/about">دربارهٔ پروژه</a>
+    </div></div>
+  </footer>
+
+  <script src="/static/config.js"></script>
+  <script src="/static/ui.js"></script>
+  <script src="/static/models.js"></script>
+</body>
+</html>
