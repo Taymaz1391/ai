@@ -68,6 +68,9 @@ async function loadPage(pagePath, { runScripts = true } = {}) {
   window.TextEncoder = TextEncoder;
   window.requestAnimationFrame = (cb) => setTimeout(() => cb(Date.now()), 0);
   window.matchMedia = window.matchMedia || (() => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
+  window.HTMLMediaElement.prototype.play = () => Promise.resolve();
+  window.HTMLMediaElement.prototype.pause = () => {};
+  window.HTMLMediaElement.prototype.load = () => {};
   window.HTMLElement.prototype.scrollIntoView = () => {};
   window.HTMLElement.prototype.scrollTo = () => {};
   window.IntersectionObserver = class {
@@ -118,6 +121,11 @@ async function testLanding() {
   check("landing: faq", doc.querySelectorAll(".faq-item").length >= 5);
   check("landing: showcase rendered", doc.querySelectorAll("#showcase-list .showcase-item").length >= 3,
     String(doc.querySelectorAll("#showcase-list .showcase-item").length));
+  check("landing: promo video", !!doc.querySelector("#promo-video"));
+  const pv = doc.querySelector("#promo-video");
+  check("landing: promo autoplay muted", !!pv && pv.hasAttribute("autoplay") && pv.hasAttribute("muted"));
+  check("landing: promo sound button", !!doc.querySelector("#promo-sound"));
+  check("landing: no academy", !doc.querySelector('a[href="/academy"]'));
   check("landing: hero status", /مدل|گام|آموزش/.test(doc.querySelector("#hero-status")?.textContent || ""),
     doc.querySelector("#hero-status")?.textContent);
   const answers = doc.querySelector("#live-answers")?.textContent || "";
@@ -180,7 +188,7 @@ async function testChat() {
   check("chat: deep toggled", doc.querySelector("#deep-toggle").getAttribute("aria-pressed") === "true");
   prompt.value = "اسمت چیست؟";
   doc.querySelector("#composer").dispatchEvent(new window.Event("submit", { cancelable: true, bubbles: true }));
-  await wait(3500);
+  await wait(9000);
   check("chat: deep trace shown", doc.querySelectorAll(".trace").length >= 1,
     String(doc.querySelectorAll(".trace").length));
   const traceText = doc.querySelector(".trace summary")?.textContent || "";
@@ -224,16 +232,6 @@ async function testPages() {
     if (page === "/pricing") check("pricing: plans", doc.querySelectorAll(".plan").length === 3);
     if (page === "/about") check("about: sections", doc.querySelectorAll(".prose h2").length >= 5);
   }
-}
-
-async function testAcademy() {
-  const { window } = await loadPage("/academy");
-  const doc = window.document;
-  check("academy: title", /آکادمی/.test(doc.title), doc.title);
-  check("academy: lessons", doc.querySelectorAll("#lesson-list .lesson, #lesson-list li, #lesson-list button").length >= 3,
-    String(doc.querySelectorAll("#lesson-list .lesson, #lesson-list li, #lesson-list button").length));
-  check("academy: progress bar", !!doc.querySelector("#course-progress"));
-  check("academy: next button", !!doc.querySelector("#next"));
 }
 
 async function testAdminGate() {
@@ -287,6 +285,27 @@ async function testThemeToggle() {
   }
 }
 
+async function testCourse() {
+  const { window } = await loadPage("/course");
+  const doc = window.document;
+  check("course: title", /۵ ساعته/.test(doc.title), doc.title);
+  const lessons = [...doc.querySelectorAll("[data-lesson]")];
+  check("course: ten lessons", lessons.length === 10, String(lessons.length));
+  const minutes = lessons.reduce((n, el) => n + Number(el.getAttribute("data-min") || 0), 0);
+  check("course: five hours", minutes === 300, String(minutes));
+  check("course: content", doc.body.textContent.length > 15000, String(doc.body.textContent.length));
+  check("course: progress bar", !!doc.getElementById("course-bar-fill"));
+  check("course: read aloud buttons", doc.querySelectorAll("[data-read]").length === 10);
+  const first = doc.querySelector("[data-done]");
+  first.click();
+  await wait(60);
+  check("course: progress updates", /۱۰٪/.test(doc.getElementById("course-percent").textContent),
+    doc.getElementById("course-percent").textContent);
+  check("course: progress stored", /rayan.course/.test(JSON.stringify(Object.keys(window.localStorage)))
+    || !!window.localStorage.getItem("rayan.course.v1"));
+  check("course: toc", doc.querySelectorAll(".course-toc a").length >= 10);
+}
+
 async function testEnglishAndSummary() {
   const en = await loadPage("/en");
   const enDoc = en.window.document;
@@ -295,7 +314,9 @@ async function testEnglishAndSummary() {
   check("en: dir ltr", enDoc.documentElement.dir === "ltr", enDoc.documentElement.dir);
   check("en: features", enDoc.querySelectorAll(".feature").length >= 4,
     String(enDoc.querySelectorAll(".feature").length));
-  check("en: video", !!enDoc.querySelector("video.intro-video source"));
+  check("en: video", !!enDoc.querySelector("#promo-video source"));
+  check("en: autoplay muted", enDoc.getElementById("promo-video")?.hasAttribute("muted") === true
+    && enDoc.getElementById("promo-video")?.hasAttribute("autoplay") === true);
   check("en: wordmark", enDoc.querySelectorAll(".brand-wordmark").length >= 2);
 
   const docs = await loadPage("/en/docs");
@@ -316,11 +337,11 @@ async function testEnglishAndSummary() {
     await testAuth();
     await testChat();
     await testPages();
-    await testAcademy();
     await testAdminGate();
     await testOfflinePage();
     await testToolChip();
     await testThemeToggle();
+    await testCourse();
     await testEnglishAndSummary();
   } catch (err) {
     errors.push(`FATAL: ${err.stack}`);

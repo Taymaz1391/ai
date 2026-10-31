@@ -24,7 +24,8 @@ import numpy as np
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse, RedirectResponse,
+                               StreamingResponse)
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr, Field
 
@@ -36,6 +37,7 @@ from rayan.text import normalize, prepare_user_input  # noqa: E402
 from rayan.thinking import deep_reply  # noqa: E402
 from web.store import store  # noqa: E402
 from web import admin as admin_module  # noqa: E402
+from web import locale as locale_module  # noqa: E402
 from web import tools as tools_module  # noqa: E402
 
 STATIC_DIR = os.path.join(ROOT, "web", "static")
@@ -548,9 +550,29 @@ def _page(name: str, status_code: int = 200) -> FileResponse:
 
 
 # ------------------------------------------------------------------ صفحه‌ها
-@app.get("/", response_class=HTMLResponse)
-def landing() -> FileResponse:
-    return _page("index.html")
+def _with_lang_cookie(response: Response, request: Request) -> Response:
+    """انتخاب دستی زبان را در کوکی نگه می‌دارد تا دفعهٔ بعد هم بماند."""
+    lang = (request.query_params.get("lang") or "").lower()
+    if lang in locale_module.LANGS:
+        response.set_cookie("rayan_lang", lang, max_age=365 * 24 * 3600,
+                            samesite="lax", path="/")
+    return response
+
+
+@app.get("/")
+def landing(request: Request):
+    info = locale_module.detect(request)
+    # نخستین بازدید انگلیسی‌زبان: به نسخهٔ انگلیسی هدایت می‌شود (قابل بازگشت با ?lang=fa)
+    if (info["lang"] == "en" and info["source"] in ("geo", "accept-language", "timezone")
+            and not request.cookies.get("rayan_lang")):
+        return RedirectResponse("/en?lang=en", status_code=307)
+    return _with_lang_cookie(_page("index.html"), request)
+
+
+@app.get("/api/locale")
+def api_locale(request: Request) -> dict:
+    """زبان، جهت و نسخهٔ ویدیوی پیشنهادی برای این بازدیدکننده."""
+    return locale_module.detect(request)
 
 
 @app.get("/chat", response_class=HTMLResponse)
@@ -583,6 +605,11 @@ def about_page() -> FileResponse:
     return _page("about.html")
 
 
+@app.get("/course", response_class=HTMLResponse)
+def course_page() -> FileResponse:
+    return _page("course.html")
+
+
 @app.get("/docs", response_class=HTMLResponse)
 def docs_page() -> FileResponse:
     return _page("docs.html")
@@ -594,23 +621,28 @@ def summary_page() -> FileResponse:
 
 
 @app.get("/en", response_class=HTMLResponse)
-def english_home() -> FileResponse:
-    return _page("en.html")
+def english_home(request: Request):
+    return _with_lang_cookie(_page("en.html"), request)
 
 
 @app.get("/en/docs", response_class=HTMLResponse)
-def english_docs() -> FileResponse:
-    return _page("en-docs.html")
+def english_docs(request: Request):
+    return _with_lang_cookie(_page("en-docs.html"), request)
 
 
-@app.get("/academy", response_class=HTMLResponse)
-def academy_page() -> FileResponse:
-    return _page("academy.html")
+@app.get("/academy")
+def academy_removed() -> RedirectResponse:
+    """آکادمی حذف شده است؛ بازدیدکنندهٔ قدیمی به خانه برمی‌گردد."""
+    return RedirectResponse("/", status_code=302)
 
 
 @app.get("/admin", response_class=HTMLResponse)
 def admin_page() -> FileResponse:
-    return _page("admin.html")
+    """پوستهٔ ورود مدیر؛ هیچ داده‌ای پیش از ورود در آن نیست."""
+    res = _page("admin.html")
+    res.headers["X-Robots-Tag"] = "noindex, nofollow"
+    res.headers["Cache-Control"] = "no-store"
+    return res
 
 
 @app.get("/privacy", response_class=HTMLResponse)
@@ -658,7 +690,7 @@ def robots() -> Response:
 @app.get("/sitemap.xml")
 def sitemap(request: Request) -> Response:
     base = os.environ.get("RAYAN_PUBLIC_URL", str(request.base_url).rstrip("/"))
-    pages = ["", "chat", "pricing", "models", "about", "docs", "academy", "summary", "en", "en/docs"]
+    pages = ["", "chat", "pricing", "models", "about", "docs", "course", "summary", "en", "en/docs"]
     urls = "".join(f"<url><loc>{base}/{p}</loc></url>" for p in pages)
     xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
     return Response(xml, media_type="application/xml")
@@ -741,7 +773,9 @@ def showcase() -> dict:
 
 
 @app.get("/api/download/checkpoint")
-def download_checkpoint() -> FileResponse:
+def download_checkpoint(request: Request) -> FileResponse:
+    """وزن‌های مدل فقط با نشست مدیر قابل دانلود است."""
+    admin_module.require_admin(request)
     if engine is None:
         raise HTTPException(503, "مدل بارگذاری نشده است.")
     if not os.path.exists(engine.checkpoint):
@@ -1236,7 +1270,8 @@ def tools_run(req: ToolRequest, request: Request) -> dict:
 
 # ======================================================= خودآزمون و پایش
 @app.get("/api/selftest")
-def selftest() -> dict:
+def selftest(request: Request) -> dict:
+    admin_module.require_admin(request)
     checks = []
 
     def add(name: str, ok: bool, detail: str = "") -> None:

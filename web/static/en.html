@@ -60,7 +60,7 @@
           </p>
           <div class="hero-actions">
             <a class="btn btn-primary btn-lg" href="/chat">Start chatting</a>
-            <a class="btn btn-ghost btn-lg" href="#video">Watch the 36-second intro</a>
+            <a class="btn btn-ghost btn-lg" href="#video">Watch the 12-second promo</a>
           </div>
           <ul class="hero-points">
             <li>6,574,848 parameters</li>
@@ -93,8 +93,8 @@
           <article class="feature"><div class="feature-icon">۲</div><h3>Zero external APIs</h3><p>Fonts, icons, video, images and inference are served by the same Python process.</p></article>
           <article class="feature"><div class="feature-icon">۳</div><h3>Real tools</h3><p>Jalali calendar, a safe calculator and unit conversion run locally and appear as chips in chat.</p></article>
           <article class="feature"><div class="feature-icon">۴</div><h3>Image studio</h3><p>Generate posters, cards and banners as SVG/PNG with palettes and Persian typography.</p></article>
-          <article class="feature"><div class="feature-icon">۵</div><h3>Admin panel</h3><p>Ads, plans, feature flags, audit log, backups and self-tests — no redeploy needed.</p></article>
-          <article class="feature"><div class="feature-icon">۶</div><h3>Academy</h3><p>A built-in Persian course that explains how ChatGPT-like systems are actually built.</p></article>
+          <article class="feature"><div class="feature-icon">۵</div><h3>Admin panel</h3><p>Ads, plans, feature flags, audit log, backups and self-tests — no redeploy needed. Admin-only: model weights and source surfaces stay closed to visitors.</p></article>
+          <article class="feature"><div class="feature-icon">۶</div><h3>Five-hour course</h3><p>A complete Persian curriculum — from tokeniser to deployment — free, in-browser, no sign-up.</p></article>
         </div>
       </div>
     </section>
@@ -103,16 +103,33 @@
       <div class="wrap">
         <div class="section-head">
           <span class="eyebrow">Intro</span>
-          <h2>36 seconds, rendered by the same repository</h2>
-          <p>The video was generated locally with PIL and ffmpeg — no stock footage, no external service.</p>
+          <h2>Twelve seconds, rendered by the same repository</h2>
+          <p>Autoplays muted, with a one-tap sound switch. No stock footage, no external service.</p>
         </div>
-        <div class="video-wrap">
-          <video class="intro-video" controls preload="metadata" playsinline
-                 poster="/static/assets/video/rayan-intro-poster.jpg">
-            <source src="/static/assets/video/rayan-intro.mp4" type="video/mp4">
-            <source src="/static/assets/video/rayan-intro.webm" type="video/webm">
-            Your browser cannot play this video. <a href="/static/assets/video/rayan-intro.mp4">Download it</a>.
-          </video>
+        <div class="promo-card">
+          <div class="promo-media">
+            <video id="promo-video" class="promo-video" muted autoplay loop playsinline
+                   preload="metadata" poster="/static/assets/video/promo-en-poster.jpg"
+                   aria-label="Rayan promo film">
+              <source src="/static/assets/video/promo-en-16x9.mp4" type="video/mp4">
+              Your browser cannot play this video.
+              <a href="/static/assets/video/promo-en-16x9.mp4">Download it</a>.
+            </video>
+            <button id="promo-sound" class="promo-sound" type="button" aria-pressed="false">
+              <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z" fill="currentColor"/></svg>
+              <span>Sound on</span>
+            </button>
+          </div>
+          <div class="promo-copy">
+            <span class="eyebrow">Promo</span>
+            <h3>Twelve seconds, with music and motion</h3>
+            <p>Rendered frame by frame in this repository with PIL and ffmpeg — gradient, particles, sweep, chip animations and a synthesised soundtrack. The clip adapts to your language and your screen shape.</p>
+            <div class="promo-actions">
+              <a class="btn btn-primary btn-sm" href="/chat">Try it now</a>
+              <a class="btn btn-ghost btn-sm" href="/static/assets/video/promo-en-1x1.mp4" download>Download the square cut</a>
+            </div>
+            <p class="promo-note" id="promo-note" hidden></p>
+          </div>
         </div>
       </div>
     </section>
@@ -205,14 +222,14 @@
         <p class="footer-note">Persian-first AI, trained from zero.</p>
       </div>
       <div><h4>Product</h4>
-        <a href="/chat">Chat</a><a href="/models">Models</a><a href="/en#pricing">Pricing</a><a href="/academy">Academy</a>
+        <a href="/chat">Chat</a><a href="/models">Models</a><a href="/en#pricing">Pricing</a>
       </div>
       <div><h4>Developers</h4>
         <a href="/en/docs">Docs</a><a href="/docs">Persian docs</a>
         <a href="https://github.com/Taymaz1391/ai" rel="noopener">GitHub</a>
       </div>
       <div><h4>Project</h4>
-        <a href="/about">About</a><a href="/privacy">Privacy</a><a href="/">نسخهٔ فارسی</a>
+        <a href="/about">About</a><a href="/course">Five-hour course (Persian)</a><a href="/privacy">Privacy</a><a href="/">نسخهٔ فارسی</a>
       </div>
     </div>
     <div class="wrap footer-bottom"><span>© 2026 Rayan · self-hosted, no external APIs</span><span>Made with NumPy</span></div>
@@ -220,5 +237,6 @@
 
   <script src="/static/config.js"></script>
   <script src="/static/ui.js"></script>
+  <script src="/static/promo.js"></script>
 </body>
 </html>

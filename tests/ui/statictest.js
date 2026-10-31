@@ -1,7 +1,7 @@
 const fs = require("fs");
 const { JSDOM, VirtualConsole } = require("jsdom");
 const BASE = "http://127.0.0.1:8078";
-const pages = ["/index.html", "/chat.html", "/login.html", "/signup.html", "/pricing.html", "/models.html", "/about.html", "/docs.html"];
+const pages = ["/index.html", "/chat.html", "/login.html", "/signup.html", "/pricing.html", "/models.html", "/about.html", "/docs.html", "/course.html"];
 (async () => {
   const errors = [];
   for (const p of pages) {
@@ -16,6 +16,9 @@ const pages = ["/index.html", "/chat.html", "/login.html", "/signup.html", "/pri
     window.IntersectionObserver = class { observe() {} unobserve() {} disconnect() {} };
     window.requestAnimationFrame = (cb) => setTimeout(() => cb(Date.now()), 0);
     window.TextDecoder = TextDecoder; window.TextEncoder = TextEncoder;
+    window.HTMLMediaElement.prototype.play = () => Promise.resolve();
+    window.HTMLMediaElement.prototype.pause = () => {};
+    window.HTMLMediaElement.prototype.load = () => {};
     window.fetch = async (url) => { throw new Error("offline static"); };
     const scripts = [...window.document.querySelectorAll("script[src]")].map((s) => s.getAttribute("src"));
     for (const src of scripts) {

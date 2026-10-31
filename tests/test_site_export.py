@@ -24,7 +24,7 @@ class ExportSiteTest(unittest.TestCase):
     def test_pages_exist(self):
         for name in ("index.html", "chat.html", "login.html", "signup.html",
                      "pricing.html", "models.html", "about.html", "docs.html",
-                     "academy.html", "offline.html", "summary.html", "en.html", "en-docs.html",
+                     "offline.html", "summary.html", "en.html", "en-docs.html", "course.html",
                      "404.html"):
             self.assertTrue((self.out / name).exists(), name)
 
@@ -44,10 +44,9 @@ class ExportSiteTest(unittest.TestCase):
 
     def test_new_pages_wired(self):
         index = (self.out / "index.html").read_text(encoding="utf-8")
-        self.assertIn("academy.html", index)
+        self.assertNotIn("/academy", index)
         self.assertNotIn('src="/static/', index)
-        academy = (self.out / "academy.html").read_text(encoding="utf-8")
-        self.assertIn("static/academy.js", academy)
+        self.assertFalse((self.out / "academy.html").exists())
 
     def test_static_config(self):
         config = (self.out / "static" / "config.js").read_text(encoding="utf-8")

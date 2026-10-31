@@ -31,6 +31,8 @@
       color: var(--amber, #b5760a); background: color-mix(in srgb, var(--amber, #b5760a) 12%, transparent);
     }
     .offline-badge i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .offline-wordmark { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line); display: flex; justify-content: center; }
+    .offline-wordmark img { height: 40px; width: auto; }
   </style>
 </head>
 <body>
@@ -54,6 +56,10 @@
           <li>در بعضی شبکه‌های داخلی، دسترسی به دامنه محدود می‌شود؛ شبکه یا DNS را بررسی کن.</li>
           <li>اگر خودت رایان را اجرا می‌کنی، سرویس پایتون باید روی پورت ۸۰۰۰ بالا باشد.</li>
         </ul>
+      </div>
+      <div class="offline-wordmark">
+        <img class="wordmark-for-light" src="/static/assets/brand/wordmark-ink.png" alt="رایان" width="116" height="47">
+        <img class="wordmark-for-dark" src="/static/assets/brand/wordmark-white.png" alt="رایان" width="116" height="47">
       </div>
     </section>
   </main>

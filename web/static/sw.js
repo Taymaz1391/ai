@@ -1,5 +1,5 @@
 /* رایان — سرویس‌ورکر: دارایی‌های ایستا کش، صفحه‌ها شبکه-اول، آفلاین‌پذیر */
-const VERSION = "rayan-v3";
+const VERSION = "rayan-v5";
 const SHELL = [
   "/static/styles.css",
   "/static/pages.css",
@@ -7,15 +7,19 @@ const SHELL = [
   "/static/config.js",
   "/static/theme-boot.js",
   "/static/offline.js",
+  "/static/promo.js",
+  "/static/course.js",
   "/static/studio.js",
   "/static/ads.js",
   "/static/assets/brand/orb-128.png",
+  "/static/assets/brand/wordmark-ink.png",
+  "/static/assets/brand/wordmark-white.png",
   "/static/assets/brand/lockup-ink.png",
   "/static/assets/brand/lockup-glow.png",
   "/static/assets/fonts/Vazirmatn-Regular.woff2",
   "/static/assets/fonts/Vazirmatn-Bold.woff2",
 ];
-const PAGES = ["/", "/chat", "/pricing", "/models", "/about", "/docs", "/academy", "/offline"];
+const PAGES = ["/", "/chat", "/pricing", "/models", "/about", "/docs", "/course", "/offline"];
 const OFFLINE_HTML = `<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>رایان — آفلاین</title>
 <style>

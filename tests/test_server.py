@@ -57,10 +57,11 @@ class ApiTest(unittest.TestCase):
         self.assertGreaterEqual(len(data["limitations"]), 3)
 
     def test_pages(self):
-        for path in ("/", "/chat", "/login", "/signup", "/pricing", "/models", "/about", "/docs"):
+        for path in ("/", "/chat", "/login", "/signup", "/pricing", "/models", "/about",
+                     "/docs", "/course", "/en", "/en/docs", "/summary"):
             res = self.client.get(path)
             self.assertEqual(res.status_code, 200, path)
-            self.assertIn("رایان", res.text)
+            self.assertIn("رایان", res.text.upper() if path == "/en" else res.text)
         self.assertIn("urlset", self.client.get("/sitemap.xml").text)
         self.assertIn("User-agent", self.client.get("/robots.txt").text)
 
@@ -230,8 +231,61 @@ class V3Test(unittest.TestCase):
             self.assertIn(key, flags)
 
     def test_selftest(self):
+        anon = TestClient(self.server.app)
+        self.assertIn(anon.get("/api/selftest").status_code, (401, 403))
+        login = self.client.post("/api/admin/login",
+                                 json={"password": os.environ.get("RAYAN_ADMIN_PASSWORD", "")})
+        if login.status_code != 200:
+            self.skipTest("admin password not configured for this class")
         data = self.client.get("/api/selftest").json()
         self.assertTrue(any(c["name"] == "database" and c["ok"] for c in data["checks"]))
+        self.client.post("/api/admin/logout")
+
+    def test_locale_detection_and_cookie(self):
+        plain = self.client.get("/api/locale")
+        self.assertEqual(plain.status_code, 200)
+        self.assertIn(plain.json()["lang"], ("fa", "en"))
+        en = self.client.get("/api/locale", headers={"accept-language": "en-US,en;q=0.9"}).json()
+        self.assertEqual(en["lang"], "en")
+        self.assertEqual(en["dir"], "ltr")
+        self.assertTrue(en["videos"]["landscape"].endswith("promo-en-16x9.mp4"))
+        # جغرافیا: کشور از سرصفحهٔ پراکسی میزبان (بدون سرویس بیرونی)
+        de = self.client.get("/api/locale", headers={"cf-ipcountry": "DE"}).json()
+        self.assertEqual((de["lang"], de["source"]), ("en", "geo"))
+        ir = self.client.get("/api/locale",
+                              headers={"cf-ipcountry": "IR", "accept-language": "de"}).json()
+        self.assertEqual((ir["lang"], ir["source"]), ("fa", "geo"))
+        # منطقهٔ زمانی مرورگر به‌عنوان سیگنال جایگزین
+        tz = self.client.get("/api/locale", params={"tz": "America/New_York"}).json()
+        self.assertEqual((tz["lang"], tz["source"]), ("en", "timezone"))
+        redir = self.client.get("/", headers={"cf-ipcountry": "DE"}, follow_redirects=False)
+        self.assertEqual(redir.status_code, 307)
+        self.assertEqual(redir.headers["location"], "/en?lang=en")
+
+        forced = self.client.get("/api/locale", params={"lang": "fa"},
+                                 headers={"accept-language": "en"}).json()
+        self.assertEqual(forced["lang"], "fa")
+        # بازدید انگلیسی‌زبان بدون کوکی به نسخهٔ انگلیسی هدایت می‌شود
+        fresh = TestClient(self.server.app)
+        r = fresh.get("/", headers={"accept-language": "en-GB,en"}, follow_redirects=False)
+        self.assertEqual(r.status_code, 307)
+        self.assertEqual(r.headers["location"], "/en?lang=en")
+        # پس از انتخاب زبان، دیگر هدایت نمی‌شود
+        chosen = fresh.get("/?lang=fa", headers={"accept-language": "en"}, follow_redirects=False)
+        self.assertEqual(chosen.status_code, 200)
+        self.assertEqual(chosen.cookies.get("rayan_lang"), "fa")
+        again = fresh.get("/", headers={"accept-language": "en"}, follow_redirects=False)
+        self.assertEqual(again.status_code, 200)
+
+    def test_promo_assets_exist(self):
+        from pathlib import Path as _Path
+        video_dir = _Path(ROOT) / "web" / "static" / "assets" / "video"
+        for name in ("promo-fa-16x9.mp4", "promo-fa-9x16.mp4", "promo-fa-1x1.mp4",
+                     "promo-en-16x9.mp4", "promo-fa-poster.jpg"):
+            self.assertTrue((video_dir / name).exists(), name)
+        res = self.client.get("/static/assets/video/promo-fa-16x9.mp4")
+        self.assertEqual(res.status_code, 200)
+        self.assertGreater(int(res.headers.get("content-length", "0")), 50_000)
 
     def test_english_pages(self):
         home = self.client.get("/en")
@@ -247,11 +301,13 @@ class V3Test(unittest.TestCase):
         self.assertIn('hreflang="en"', self.client.get("/").text)
 
     def test_new_pages(self):
-        for path in ("/academy", "/admin", "/offline", "/privacy"):
+        for path in ("/admin", "/offline", "/privacy"):
             res = self.client.get(path)
             self.assertEqual(res.status_code, 200, path)
         self.assertIn("حالت بدون اتصال", self.client.get("/offline").text)
-        self.assertIn("آکادمی", self.client.get("/academy").text)
+        removed = self.client.get("/academy", follow_redirects=False)
+        self.assertEqual(removed.status_code, 302)
+        self.assertEqual(removed.headers["location"], "/")
         self.assertNotIn("/offline", self.client.get("/sitemap.xml").text)
 
     def test_tools_catalog_and_run(self):
@@ -304,6 +360,16 @@ class V3Test(unittest.TestCase):
         # نشانی ناامن رد می‌شود
         self.assertEqual(self.client.patch("/api/admin/ads/999", json={"url": "javascript:alert(1)"},
                                            headers=headers).status_code, 404)
+
+    def test_code_surfaces_are_admin_only(self):
+        """کد/وزن‌ها و خودآزمون نباید برای کاربر عادی باز باشد."""
+        fresh = TestClient(self.server.app)
+        self.assertIn(fresh.get("/api/download/checkpoint").status_code, (401, 403))
+        self.assertIn(fresh.get("/api/selftest").status_code, (401, 403))
+        page = fresh.get("/admin")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn("noindex", page.headers.get("x-robots-tag", ""))
+        self.assertNotIn("api/admin/overview?", page.text)
 
     def test_admin_requires_auth(self):
         fresh = TestClient(self.server.app)

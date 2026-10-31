@@ -27,7 +27,6 @@
         <a class="nav-link" href="/#features">قابلیت‌ها</a>
         <a class="nav-link" href="/models">مدل‌ها</a>
         <a class="nav-link" href="/pricing">تعرفه</a>
-        <a class="nav-link" href="/academy">آکادمی</a>
         <a class="nav-link is-active" href="/docs">مستندات</a>
         <a class="nav-link" href="/about">درباره</a>
       </nav>
@@ -52,7 +51,8 @@
 
       <div class="prose">
         <h1 style="font-size:clamp(24px,3.6vw,34px);color:var(--text)">مستندات رایان</h1>
-        <p style="color:var(--text-3);font-size:13.5px">هر چیزی که برای اجرا، استفاده و استقرار لازم داری.</p>
+        <p style="color:var(--text-3);font-size:13.5px">هر چیزی که برای اجرا، استفاده و استقرار لازم داری.
+          اگر می‌خواهی از صفر یاد بگیری، <a href="/course">دورهٔ ۵ ساعتهٔ رایان</a> مسیر کامل است.</p>
 
         <h2 id="quickstart">شروع سریع</h2>
         <pre><code>git clone https://github.com/Taymaz1391/ai.git
@@ -76,6 +76,9 @@ python web/server.py --host 0.0.0.0 --port 8000</code></pre>
               <tr><td><code>GET /api/models</code></td><td>فهرست مدل‌ها و وضعیت آن‌ها</td></tr>
               <tr><td><code>GET /api/metrics</code></td><td>گزارش زندهٔ آموزش</td></tr>
               <tr><td><code>GET /api/showcase</code></td><td>نمونه‌های واقعی تولید مدل</td></tr>
+              <tr><td><code>GET /api/locale</code></td><td>زبان، جهت و نسخهٔ ویدیو بر پایهٔ کشور/زمان/زبان مرورگر</td></tr>
+              <tr><td><code>GET /api/status</code></td><td>وضعیت کوتاه برای بنر و پایش</td></tr>
+              <tr><td><code>GET /api/plans</code></td><td>پلن‌ها و سقف مصرف (قابل تغییر از پنل)</td></tr>
               <tr><td><code>POST /api/auth/register</code></td><td>ساخت حساب</td></tr>
               <tr><td><code>POST /api/auth/login</code></td><td>ورود و صدور کوکی نشست</td></tr>
               <tr><td><code>GET /api/auth/me</code></td><td>کاربر، پلن و مصرف امروز</td></tr>
@@ -85,7 +88,7 @@ python web/server.py --host 0.0.0.0 --port 8000</code></pre>
               <tr><td><code>POST /api/conversations/{id}/share</code></td><td>ساخت لینک عمومی</td></tr>
               <tr><td><code>GET /api/share/{token}</code></td><td>خواندن گفتگوی اشتراکی</td></tr>
               <tr><td><code>POST /api/feedback</code></td><td>ثبت بازخورد پاسخ</td></tr>
-              <tr><td><code>GET /api/download/checkpoint</code></td><td>دانلود وزن‌های NPZ</td></tr>
+              <tr><td><code>GET /api/download/checkpoint</code></td><td>دانلود وزن‌های NPZ — فقط نشست مدیر (۴۰۱ برای بقیه)</td></tr>
             </tbody>
           </table>
         </div>
@@ -110,6 +113,15 @@ python web/server.py --host 0.0.0.0 --port 8000</code></pre>
           <li>پاسخ در SQLite ذخیره و به مرورگر جریان داده می‌شود.</li>
         </ol>
 
+        <h2 id="locale">زبان و ویدیوی تبلیغاتی</h2>
+        <p>
+          زبان پیش‌فرض فارسی است. اگر مرورگر زبان فارسی یا انگلیسی بفرستد، همان انتخاب می‌شود؛ وگرنه کشور بازدیدکننده
+          از سرصفحهٔ پراکسی میزبان (مثل <code>cf-ipcountry</code> در Cloudflare) خوانده می‌شود و در آخر منطقهٔ زمانی
+          مرورگر به‌عنوان سیگنال جایگزین به کار می‌رود. هیچ درخواستی به سرویس GeoIP بیرونی زده نمی‌شود؛ اگر جدول محلی
+          <code>data/geoip.json</code> را بگذاری، همان ملاک است. ویدیوی تبلیغاتی هم به همین زبان و به نسبت صفحه
+          (افقی، عمودی یا مربعی) انتخاب می‌شود.
+        </p>
+
         <h2 id="deploy">استقرار</h2>
         <p>سه مسیر رایگان:</p>
         <ul>
@@ -126,6 +138,10 @@ python web/server.py --host 0.0.0.0 --port 8000</code></pre>
 
   <footer class="footer">
     <div class="wrap"><div class="footer-bottom" style="border-top:0;margin-top:0">
+      <div class="footer-brandmark">
+        <img class="wordmark-for-light" src="/static/assets/brand/wordmark-ink.png" alt="رایان" width="116" height="47">
+        <img class="wordmark-for-dark" src="/static/assets/brand/wordmark-white.png" alt="رایان" width="116" height="47">
+      </div>
       <span>© ۱۴۰۵ رایان · MIT</span>
       <a href="https://github.com/Taymaz1391/ai" rel="noopener">مخزن GitHub</a><a href="/summary">خلاصهٔ پروژه</a>
     </div></div>

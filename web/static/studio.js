@@ -186,10 +186,19 @@
   <g>${textParts}</g>
   <text x="${w - pad}" y="${(blockTop + lines.length * lineH + titleSize * 0.55).toFixed(0)}" text-anchor="end"
         font-family="Vazirmatn, Tahoma" font-size="${Math.round(titleSize * 0.34)}" fill="${palette.ink}" opacity="0.82">${esc(tagline)}</text>
-  <g opacity="0.9">
-    <circle cx="${pad + titleSize * 0.5}" cy="${h - pad - titleSize * 0.5}" r="${titleSize * 0.42}" fill="#ffffff" opacity="0.16"/>
-    <text x="${pad + titleSize * 0.5}" y="${h - pad - titleSize * 0.16}" text-anchor="middle"
-          font-family="Vazirmatn, Tahoma" font-size="${Math.round(titleSize * 0.3)}" font-weight="700" fill="${palette.ink}">رایان</text>
+  <g opacity="0.95">
+    <defs>
+      <radialGradient id="orbGrad" cx="0.36" cy="0.28" r="0.78">
+        <stop offset="0" stop-color="#7df0ff"/>
+        <stop offset="0.45" stop-color="#2e8bff"/>
+        <stop offset="1" stop-color="#0b47e8"/>
+      </radialGradient>
+    </defs>
+    <circle cx="${pad + titleSize * 0.52}" cy="${h - pad - titleSize * 0.52}" r="${titleSize * 0.44}" fill="url(#orbGrad)"/>
+    <circle cx="${pad + titleSize * 0.42}" cy="${h - pad - titleSize * 0.55}" r="${titleSize * 0.075}" fill="#ffffff"/>
+    <circle cx="${pad + titleSize * 0.62}" cy="${h - pad - titleSize * 0.55}" r="${titleSize * 0.075}" fill="#ffffff"/>
+    <text x="${pad + titleSize * 0.52}" y="${h - pad + titleSize * 0.02}" text-anchor="middle"
+          font-family="Vazirmatn, Tahoma" font-size="${Math.round(titleSize * 0.2)}" font-weight="700" fill="${palette.ink}">رایان · RAYAN</text>
   </g>
 </svg>`;
     return { svg, palette, motif, kind, width: w, height: h, title };

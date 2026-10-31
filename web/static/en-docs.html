@@ -89,7 +89,7 @@ curl -s -X POST localhost:8000/api/tools/run \
   -H 'content-type: application/json' \
   -d '{"name":"calc","args":{"expression":"۲+۲"}}'</code></pre>
         <p>Streaming lives at <code>/api/chat/stream</code> and returns newline-delimited JSON events: <code>start</code>, <code>token</code>, <code>done</code>, <code>error</code>. The <code>done</code> event also carries the tool result when one was detected.</p>
-        <p>Public endpoints: <code>/api/health</code>, <code>/api/status</code>, <code>/api/flags</code>, <code>/api/plans</code>, <code>/api/models</code>, <code>/api/samples</code>, <code>/api/tools</code>, <code>/api/ads</code>, <code>/api/selftest</code>. Admin endpoints require a session cookie and the <code>x-rayan-csrf</code> header on writes.</p>
+        <p>Public endpoints: <code>/api/health</code>, <code>/api/status</code>, <code>/api/flags</code>, <code>/api/plans</code>, <code>/api/models</code>, <code>/api/samples</code>, <code>/api/tools</code>, <code>/api/ads</code>, <code>/api/locale</code>. Admin-only: <code>/api/selftest</code> and <code>/api/download/checkpoint</code> (weights). Admin endpoints require a session cookie and the <code>x-rayan-csrf</code> header on writes; anonymous calls receive <code>401</code>.</p>
 
         <h2 id="security">Security</h2>
         <ul>
@@ -100,7 +100,16 @@ curl -s -X POST localhost:8000/api/tools/run \
           <li>SQL is parameterised everywhere; ad URLs are validated and rendered escaped.</li>
           <li>No third-party script, font or image is loaded — the site keeps working on restricted networks.</li>
         </ul>
-        <p>“Unhackable” does not exist. These measures remove the common classes of failure (XSS injection points, CSRF, brute force, open redirects in ads), and <code>/api/selftest</code> verifies the deployment.</p>
+        <p>“Unhackable” does not exist. These measures remove the common classes of failure (XSS injection points, CSRF, brute force, open redirects in ads), and the admin-only <code>/api/selftest</code> verifies the deployment.</p>
+
+        <h2 id="locale">Language, video variant and privacy</h2>
+        <p>
+          The default language is Persian. An explicit browser language wins; otherwise the visitor's country is read
+          from the hosting proxy header (<code>cf-ipcountry</code> or <code>x-vercel-ip-country</code>) and finally the
+          browser timezone acts as a fallback signal. No external GeoIP service is called, and an optional local
+          <code>data/geoip.json</code> table can override the result. The promo film follows the same decision:
+          Persian or English, landscape, portrait or square.
+        </p>
 
         <h2 id="scaling">Scaling</h2>
         <p>The honest answer first: one CPU process cannot serve a billion concurrent users, and no amount of Python tuning changes that. What is realistic:</p>
@@ -132,6 +141,10 @@ python -m rayan.train --steps 2400 --batch 16 --ctx 512</code></pre>
 
   <footer class="footer">
     <div class="wrap footer-bottom" style="border-top:0;margin-top:0">
+      <div class="footer-brandmark">
+        <img class="wordmark-for-light" src="/static/assets/brand/wordmark-ink.png" alt="رایان" width="116" height="47">
+        <img class="wordmark-for-dark" src="/static/assets/brand/wordmark-white.png" alt="رایان" width="116" height="47">
+      </div>
       <span>© 2026 Rayan · self-hosted</span>
       <a href="/en">Back to overview</a>
     </div>
