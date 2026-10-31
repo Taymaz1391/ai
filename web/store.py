@@ -213,6 +213,11 @@ class Store:
             return None
         return self.get_user(int(cur.lastrowid))
 
+    def email_exists(self, email: str) -> bool:
+        """آیا با این ایمیل حسابی ساخته شده است؟ (برای هدایت به ثبت‌نام)"""
+        row = self._one("SELECT 1 FROM users WHERE email=?", ((email or "").strip().lower(),))
+        return row is not None
+
     def verify_user(self, email: str, password: str) -> dict | None:
         row = self._one("SELECT * FROM users WHERE email=?", (email.strip().lower(),))
         if row is None:

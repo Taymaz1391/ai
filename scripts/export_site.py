@@ -13,6 +13,7 @@ import argparse
 import json
 import re
 import shutil
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -152,15 +153,16 @@ def build(out: Path) -> dict:
 
     # دارایی‌ها
     shutil.copytree(STATIC / "assets", out / "static" / "assets")
-    for name in ("styles.css", "pages.css", "landing.css", "chat.css",
-                 "ui.js", "landing.js", "app.js", "auth.js", "models.js", "share.js",
-                 "studio.js", "ads.js", "theme-boot.js", "offline.js",
-                 "pricing.js", "course.js"):
-        path = STATIC / name
-        if path.exists():
-            text = read(path)
-            (out / "static" / name).write_text(rewrite_js(text), encoding="utf-8")
-    (out / "static" / "config.js").write_text(RUNTIME_CONFIG.format(version=version), encoding="utf-8")
+    # هر CSS/JS تازه هم خودکار کپی می‌شود تا صفحه‌های تازه بی‌استایل نمانند.
+    for path in sorted(STATIC.glob("*.css")):
+        (out / "static" / path.name).write_text(read(path), encoding="utf-8")
+    for path in sorted(STATIC.glob("*.js")):
+        if path.name in ("sw.js", "config.js"):
+            continue
+        (out / "static" / path.name).write_text(rewrite_js(read(path)), encoding="utf-8")
+    (out / "static" / "config.js").write_text(
+        RUNTIME_CONFIG.format(version=version, built_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())),
+        encoding="utf-8")
 
     # سرویس‌ورکر با مسیرهای نسبی
     sw = rewrite_js(read(STATIC / "sw.js"))

@@ -44,7 +44,8 @@
         <button data-tab="users"><span data-icon="users" data-size="18"></span> کاربران</button>
         <button data-tab="ads"><span data-icon="megaphone" data-size="18"></span> تبلیغات</button>
         <button data-tab="settings"><span data-icon="settings" data-size="18"></span> تنظیمات</button>
-        <button data-tab="audit"><span data-icon="shield" data-size="18"></span> لاگ امنیتی</button>
+        <button data-tab="guard"><span data-icon="shield" data-size="18"></span> سد تهاجم</button>
+        <button data-tab="audit"><span data-icon="shield" data-size="18"></span> لاگ حسابرسی</button>
         <button data-tab="system"><span data-icon="sparkle" data-size="18"></span> سامانه</button>
       </nav>
       <div class="admin-side-foot">
@@ -202,6 +203,22 @@
           <div class="panel-head"><h3>لاگ حسابرسی</h3><button class="btn btn-sm" id="audit-refresh">به‌روزرسانی</button></div>
           <div class="table-wrap"><table class="table" id="audit-table">
             <thead><tr><th>زمان</th><th>کار</th><th>هدف</th><th>جزئیات</th><th>IP</th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- سد تهاجم -->
+      <section class="admin-tab" data-panel="guard">
+        <div class="panel">
+          <div class="panel-head"><h3>فیلتر حمله</h3><button class="btn btn-sm" id="guard-refresh">به‌روزرسانی</button></div>
+          <div class="guard-grid" id="guard-stats"></div>
+          <p class="hint">هر درخواست پیش از رسیدن به مسیرها بررسی می‌شود: تراورسال، تزریق SQL، XSS، اجرای فرمان، SSRF، ابزار اسکن و روش‌های غیرمجاز. شش ضربه، همان IP را موقتاً می‌بندد.</p>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>آخرین رویدادها</h3></div>
+          <div class="table-wrap"><table class="table" id="guard-table">
+            <thead><tr><th>زمان</th><th>قاعده</th><th>نوع</th><th>مسیر</th><th>IP</th></tr></thead>
             <tbody></tbody>
           </table></div>
         </div>

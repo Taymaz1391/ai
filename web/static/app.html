@@ -72,7 +72,7 @@
             <a href="/pricing" role="menuitem">تعرفه و سهمیه</a>
             <a href="/models" role="menuitem">مدل‌ها</a>
             <a href="/download" role="menuitem">دانلود اندروید و ویندوز</a>
-            <a href="/developer" role="menuitem">توسعه‌دهنده و کلید API</a>
+            <a href="/developer" role="menuitem">توسعه‌دهنده و دسترسی</a>
             <a href="/support" role="menuitem">پشتیبانی تجاری</a>
             <button type="button" data-action="studio" role="menuitem">استودیو تصویر</button>
             <a href="/admin" role="menuitem" data-admin-link hidden>پنل مدیریت</a>
@@ -98,7 +98,7 @@
 
         <div class="picker" id="model-picker">
           <button class="picker-btn" id="model-btn" aria-haspopup="listbox" aria-expanded="false">
-            <img src="/static/assets/brand/orb-128.png" alt="" width="20" height="20">
+            <img class="picker-orb" src="/static/assets/brand/orb-live-sm.webp" alt="" width="22" height="22">
             <span id="model-label"> <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> ۱ — کوچک</span>
             <span class="tag tag-blue" id="model-tag">فعال</span>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>
@@ -127,8 +127,8 @@
               <i class="lid l"></i><i class="lid r"></i>
             </span>
           </div>
-          <h1 id="empty-title">امروز چه کاری برایت انجام دهم؟</h1>
-          <p class="empty-sub" id="empty-sub">مدل <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> ۱ — کوچک · ۶٫۵۷ میلیون پارامتر · از صفر ساخته شده</p>
+          <h1 id="empty-title">چطور می‌توانم کمکت کنم؟</h1>
+          <p class="empty-sub" id="empty-sub">هر چیزی بپرسی، همین‌جا جواب می‌گیری — فارسی، روی همین سرور، بدون ارسال داده به بیرون.</p>
           <div class="suggestions" id="suggestions"></div>
           <div class="ad-slot ad-inline" data-ad-slot="chat-empty" hidden></div>
           <div class="empty-foot">
@@ -146,6 +146,11 @@
           <textarea id="prompt" rows="1" placeholder="پیامت را بنویس…" aria-label="پیام" maxlength="2000"></textarea>
           <div class="composer-row">
             <div class="composer-left">
+              <button type="button" class="tool-plus" id="tools-btn" aria-expanded="false" aria-controls="composer-tools"
+                      title="ابزارها" aria-label="ابزارها">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+              </button>
+              <div class="composer-tools" id="composer-tools" hidden>
               <button type="button" class="tool-btn" id="web-toggle" aria-pressed="false" title="جست‌وجو در وب و استناد به منابع">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></svg>
                 <span>وب</span>
@@ -163,6 +168,7 @@
                 </select>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>
               </label>
+              </div>
             </div>
             <div class="composer-right">
               <span class="composer-hint" id="composer-hint"></span>
@@ -176,7 +182,7 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
               </button>
               <button type="submit" class="send-btn" id="send-btn" title="ارسال (Enter)" aria-label="ارسال">
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
               </button>
             </div>
           </div>

@@ -25,7 +25,6 @@
     controller: null,
     query: "",
     dragging: false,
-    apiKey: (() => { try { return !!sessionStorage.getItem("rayan.apiKey"); } catch { return false; } })(),
   };
 
   function loadSettings() {
@@ -263,7 +262,7 @@
   function renderUsage() {
     const usage = state.usage || {};
     const chat = usage.chat || { used: 0, limit: 25 };
-    el.usagePlan.textContent = state.apiKey ? "کلید API" : "سهمیهٔ امروز";
+    el.usagePlan.textContent = "سهمیهٔ امروز";
     el.usageCount.textContent = `${nf(chat.used || 0)} / ${nf(chat.limit || 0)}`;
     const pct = Math.min(100, ((chat.used || 0) / Math.max(1, chat.limit || 1)) * 100);
     el.usageFill.style.width = `${pct}%`;
@@ -1128,6 +1127,28 @@
       return !!state.controller;
     },
   };
+
+  // منوی «+» ابزارها؛ مثل دستیارهای بزرگ، ابزارها تا لحظهٔ نیاز پنهان‌اند
+  const toolsBtn = $("#tools-btn");
+  const toolsMenu = $("#composer-tools");
+  function setTools(open) {
+    if (!toolsBtn || !toolsMenu) return;
+    toolsMenu.hidden = !open;
+    toolsBtn.setAttribute("aria-expanded", String(open));
+    toolsBtn.classList.toggle("is-open", open);
+  }
+  if (toolsBtn && toolsMenu) {
+    toolsBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setTools(toolsMenu.hidden);
+    });
+    document.addEventListener("click", (event) => {
+      if (!toolsMenu.hidden && !event.target.closest("#composer-tools, #tools-btn")) setTools(false);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") setTools(false);
+    });
+  }
 
   el.composer.addEventListener("submit", (event) => {
     event.preventDefault();

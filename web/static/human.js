@@ -118,22 +118,52 @@
   function mount(box, options) {
     const opts = Object.assign({ name: "captcha", onState: null }, options || {});
     const state = { token: null, nonce: null, ready: false, busy: false, error: "" };
+    // شواهد رفتاری: سرور این‌ها را در کنار اثبات‌کار می‌سنجد.
+    const evidence = { moves: 0, keys: 0, honeypot: "", webdriver: navigator.webdriver === true };
+    const mountedAt = (window.performance && performance.now ? performance.now() : Date.now());
     box.innerHTML = "";
     box.classList.add("human-check");
 
+    const bump = (key, amount = 1) => {
+      evidence[key] = Math.min(999, evidence[key] + amount);
+    };
+    const track = (event) => {
+      if (!event) return;
+      if (event.type === "keydown") bump("keys");
+      else if (event.type === "pointerdown" || event.type === "click") bump("moves", 2);
+      else bump("moves");
+    };
+    ["pointermove", "pointerdown", "mousedown", "click", "touchstart", "scroll"].forEach((name) => {
+      document.addEventListener(name, track, { passive: true, capture: true });
+    });
+    document.addEventListener("keydown", track, { passive: true, capture: true });
+
     const row = document.createElement("label");
     row.className = "human-row";
+    const shield = document.createElement("span");
+    shield.className = "human-shield";
+    shield.setAttribute("aria-hidden", "true");
+    shield.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v5.2c0 4.3-2.9 7.6-7 9.8-4.1-2.2-7-5.5-7-9.8V6z"/><path d="m8.8 12 2.2 2.2 4.2-4.4"/></svg>';
     const input = document.createElement("input");
     input.type = "checkbox";
     input.className = "human-box";
     input.setAttribute("aria-label", "من ربات نیستم");
+    const textWrap = document.createElement("span");
+    textWrap.className = "human-label";
     const text = document.createElement("span");
     text.className = "human-text";
     text.textContent = "من ربات نیستم";
+    const sub = document.createElement("small");
+    sub.className = "human-sub";
+    sub.textContent = "بررسی محلی و سمت سرور، بدون ارسال داده به بیرون";
+    textWrap.append(text, sub);
     const badge = document.createElement("span");
     badge.className = "human-badge";
-    badge.textContent = "بررسی امن، بدون سرویس بیرونی";
-    row.append(input, text, badge);
+    badge.textContent = "سپر رایان";
+    const spinner = document.createElement("i");
+    spinner.className = "human-spin";
+    spinner.setAttribute("aria-hidden", "true");
+    row.append(shield, input, textWrap, badge, spinner);
 
     const note = document.createElement("div");
     note.className = "human-note";
@@ -144,23 +174,43 @@
     hidden.type = "hidden";
     hidden.name = opts.name;
 
-    box.append(row, note, hidden);
+    // تلهٔ ربات: فیلدی که آدم نمی‌بیند؛ اگر پر شود، درخواست خودکار است.
+    const trap = document.createElement("input");
+    trap.type = "text";
+    trap.className = "human-trap";
+    trap.name = "website";
+    trap.tabIndex = -1;
+    trap.autocomplete = "off";
+    trap.setAttribute("aria-hidden", "true");
+    trap.addEventListener("input", () => { evidence.honeypot = trap.value; });
+
+    box.append(row, note, hidden, trap);
 
     const emit = () => {
       hidden.value = state.ready ? `${state.token}|${state.nonce}` : "";
       if (opts.onState) opts.onState(Object.assign({}, state));
     };
 
+    const snapshot = () => ({
+      moves: evidence.moves,
+      keys: evidence.keys,
+      elapsed_ms: Math.round(((window.performance && performance.now ? performance.now() : Date.now()) - mountedAt)),
+      honeypot: evidence.honeypot,
+      webdriver: evidence.webdriver,
+    });
+
     function setNote(kind, message) {
-      note.className = `human-note is-${kind}`;
+      note.className = `human-note${kind ? ` is-${kind}` : ""}`;
       note.textContent = message || "";
+      box.classList.toggle("is-busy", kind === "busy");
+      box.classList.toggle("is-error", kind === "error");
     }
 
     async function start() {
       if (state.busy || state.ready) return;
       state.busy = true;
       input.disabled = true;
-      setNote("busy", "در حال بررسی…");
+      setNote("busy", "در حال بررسی امنیتی…");
       try {
         const res = await fetch(`${(window.RAYAN_CONFIG || {}).apiBase || ""}/api/captcha`, {
           headers: { accept: "application/json" },
@@ -211,7 +261,10 @@
     emit();
     return {
       get value() {
-        return state.ready ? { token: state.token, nonce: state.nonce } : null;
+        return state.ready ? { token: state.token, nonce: state.nonce, evidence: snapshot() } : null;
+      },
+      get evidence() {
+        return snapshot();
       },
       get ready() {
         return state.ready;

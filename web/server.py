@@ -51,6 +51,7 @@ from web import knowledge as knowledge_module  # noqa: E402
 from web import tools as tools_module  # noqa: E402
 from web import security as security_module  # noqa: E402
 from web import answer as answer_module  # noqa: E402
+from web import guard as guard_module  # noqa: E402
 
 STATIC_DIR = os.path.join(ROOT, "web", "static")
 CHECKPOINTS = [
@@ -214,9 +215,19 @@ class ChatRequest(BaseModel):
     web: bool = False
 
 
+class HumanEvidence(BaseModel):
+    """شواهد رفتاری مرورگر برای «من ربات نیستم»؛ همه اختیاری‌اند."""
+    moves: int = Field(default=0, ge=0, le=100000)
+    keys: int = Field(default=0, ge=0, le=100000)
+    elapsed_ms: int = Field(default=0, ge=0, le=3600000)
+    honeypot: str = Field(default="", max_length=120)
+    webdriver: bool = False
+
+
 class HumanProof(BaseModel):
     token: str = Field(min_length=20, max_length=300)
     nonce: str = Field(min_length=1, max_length=24)
+    evidence: HumanEvidence | None = None
 
 
 class RegisterRequest(BaseModel):
@@ -247,10 +258,6 @@ class ConversationCreate(BaseModel):
 class ConversationPatch(BaseModel):
     title: str | None = Field(default=None, max_length=120)
     pinned: bool | None = None
-
-
-class KeyRequest(BaseModel):
-    name: str = Field(default="", max_length=60)
 
 
 class SupportRequest(BaseModel):
@@ -471,24 +478,11 @@ def client_ip(request: Request) -> str:
     return request.client.host if request.client else "0.0.0.0"
 
 
-def _bearer(request: Request) -> str:
-    raw = (request.headers.get("x-api-key") or "").strip()
-    if raw:
-        return raw
-    auth = (request.headers.get("authorization") or "").strip()
-    if auth.lower().startswith("bearer "):
-        return auth[7:].strip()
-    return ""
-
-
 def _owner(request: Request) -> dict:
-    """هویت مالک گفتگو: کلید API، کاربر واردشده یا مهمان با شناسهٔ کوکی."""
-    key = _bearer(request)
-    if key:
-        owner = store().api_key_owner(key)
-        if owner is None:
-            raise HTTPException(401, "کلید API معتبر نیست یا لغو شده است.")
-        return owner
+    """هویت مالک گفتگو: کاربر وارد‌شده یا مهمان با شناسهٔ کوکی.
+
+    کلید API و توکن Bearer وجود ندارند: هوش فقط از داخل همین سایت در دسترس است.
+    """
     user = store().session_user(request.cookies.get(SESSION_COOKIE, ""))
     if user:
         return {"user_id": user["id"], "guest_id": None, "plan": user.get("plan", "free"), "user": user}
@@ -541,13 +535,29 @@ WEAK_PASSWORDS = {"password", "12345678", "123456789", "qwertyui", "iloveyou",
                   "admin123", "welcome1", "passw0rd", "1234567890", "abc12345"}
 
 
-def _require_human(proof: HumanProof | None, ip: str) -> None:
-    """«من ربات نیستم» اجباری است؛ بدون اثبات معتبر حساب ساخته نمی‌شود."""
+HUMAN_ERRORS = {
+    "honeypot": "درخواست خودکار تشخیص داده شد؛ صفحه را تازه کنید.",
+    "automation": "مرورگر خودکار اجازهٔ ساخت حساب ندارد.",
+    "too_fast": "فرم بسیار سریع پر شد؛ یک لحظه صبر کنید و دوباره بزنید.",
+    "no_interaction": "تعامل انسانی دیده نشد؛ کادر «من ربات نیستم» را دوباره تأیید کنید.",
+    "invalid_proof": "تأیید «من ربات نیستم» منقضی شده است؛ دوباره تأیید کنید.",
+}
+
+
+def _require_human(proof: HumanProof | None, request: Request, ip: str) -> None:
+    """«من ربات نیستم» اجباری و سرور-محور: امضا، اثر انگشت، شواهد رفتاری، مصرف یک‌باره."""
     if not security_module.captcha_limiter.allow(f"human:{ip}", cost=1):
         retry = security_module.captcha_limiter.retry_after(f"human:{ip}")
         raise HTTPException(429, f"تلاش‌های زیاد؛ {retry} ثانیهٔ دیگر دوباره امتحان کنید.")
-    if proof is None or not security_module.human.redeem(proof.token, proof.nonce):
+    if proof is None:
         raise HTTPException(400, "تأیید «من ربات نیستم» لازم است؛ صفحه را تازه کنید و دوباره تلاش کنید.")
+    fp = security_module.fingerprint(ip, request.headers.get("user-agent", ""))
+    evidence = proof.evidence.model_dump() if proof.evidence else None
+    ok, reason = security_module.human.assess(proof.token, proof.nonce, evidence, fp)
+    if not ok:
+        security_module.human.note_failure(fp)
+        security_module.captcha_limiter.allow(f"fail:{ip}", cost=1)
+        raise HTTPException(400, HUMAN_ERRORS.get(reason, HUMAN_ERRORS["invalid_proof"]))
 
 
 def _check_password(password: str) -> None:
@@ -628,10 +638,51 @@ async def security_headers(request: Request, call_next):
     # ممکن باشد و فراخوانی مستقیم API بدون هویت رد شود.
     ctype = response.headers.get("content-type", "")
     if (ctype.startswith("text/html") and "rayan_guest" not in request.cookies
-            and SESSION_COOKIE not in request.cookies and not _bearer(request)):
+            and SESSION_COOKIE not in request.cookies):
         response.set_cookie(GUEST_COOKIE, secrets.token_urlsafe(18), max_age=180 * 86400,
                             httponly=True, samesite="lax", secure=IS_PROD, path="/")
     return response
+
+
+# --------------------------------------------------------------- سد تهاجم
+_CHAT_PATHS = ("/api/chat", "/api/chat/stream", "/api/search")
+
+
+@app.middleware("http")
+async def attack_filter(request: Request, call_next):
+    """فیلتر حمله‌های رایج: تراورسال، تزریق، اسکن‌گر و بستن موقت IP پرخطر."""
+    ip = client_ip(request)
+    wait = guard_module.strikes.banned(ip)
+    if wait:
+        return JSONResponse(
+            {"detail": f"دسترسی این نشانی موقتاً بسته است؛ {wait} ثانیهٔ دیگر تلاش کنید."},
+            status_code=403, headers={"Retry-After": str(wait), "x-rayan-guard": "banned"},
+        )
+
+    path = request.url.path
+    verdict = guard_module.screen(path=path, query=request.url.query,
+                                  user_agent=request.headers.get("user-agent", ""),
+                                  method=request.method)
+    if not verdict.blocked and request.method in MUTATING and path not in _CHAT_PATHS:
+        raw = await request.body()
+        if raw:
+            try:
+                text = raw.decode("utf-8", "replace")
+            except Exception:  # pragma: no cover
+                text = ""
+            verdict = guard_module.screen(path=path, query=request.url.query, body=text,
+                                          user_agent=request.headers.get("user-agent", ""),
+                                          method=request.method)
+    if verdict.blocked:
+        banned, wait = guard_module.strikes.hit(ip, verdict.score or 1)
+        guard_module.log_event(ip, path, request.method, verdict,
+                               request.headers.get("user-agent", ""), 403)
+        detail = verdict.detail or "درخواست به‌دلیل الگوی ناامن مسدود شد."
+        if banned:
+            detail = f"تلاش‌های ناامن تکرار شد؛ دسترسی این نشانی {wait // 60 or 1} دقیقه بسته شد."
+        return JSONResponse({"detail": detail, "code": "blocked_by_guard", "rule": verdict.rule},
+                            status_code=403, headers={"x-rayan-guard": verdict.rule})
+    return await call_next(request)
 
 
 def _page(name: str, status_code: int = 200) -> FileResponse:
@@ -804,40 +855,10 @@ def api_captcha(request: Request) -> dict:
     ip = client_ip(request)
     if not security_module.captcha_limiter.allow(f"issue:{ip}"):
         raise HTTPException(429, "درخواست چالش زیاد است؛ یک دقیقه بعد دوباره تلاش کنید.")
-    return security_module.human.issue()
-
-
-@app.get("/api/keys")
-def api_keys(request: Request) -> dict:
-    owner = _owner(request)
-    if not owner.get("user_id"):
-        raise HTTPException(401, "برای مدیریت کلید API وارد شوید.")
-    return {"keys": store().list_api_keys(owner["user_id"])}
-
-
-@app.post("/api/keys")
-def api_key_create(req: KeyRequest, request: Request) -> dict:
-    owner = _owner(request)
-    if not owner.get("user_id"):
-        raise HTTPException(401, "برای ساخت کلید API وارد شوید.")
-    if not limiter.allow(f"key:{owner['user_id']}"):
-        raise HTTPException(429, "ساخت کلید پیاپی زیاد است؛ کمی بعد دوباره تلاش کنید.")
-    if len(store().list_api_keys(owner["user_id"])) >= 10:
-        raise HTTPException(400, "حداکثر ۱۰ کلید فعال می‌توانید داشته باشید.")
-    row, raw = store().create_api_key(owner["user_id"], req.name)
-    store().record_event("api_key_created", user_id=owner["user_id"], ip=client_ip(request))
-    return {"key": row, "secret": raw,
-            "note": "این کلید فقط همین یک‌بار نمایش داده می‌شود؛ جایی امن ذخیره‌اش کن."}
-
-
-@app.delete("/api/keys/{key_id}")
-def api_key_revoke(key_id: int, request: Request) -> dict:
-    owner = _owner(request)
-    if not owner.get("user_id"):
-        raise HTTPException(401, "برای لغو کلید وارد شوید.")
-    if not store().revoke_api_key(owner["user_id"], key_id):
-        raise HTTPException(404, "کلید پیدا نشد.")
-    return {"ok": True}
+    fp = security_module.fingerprint(ip, request.headers.get("user-agent", ""))
+    challenge = security_module.human.issue(fp, bonus=security_module.human.difficulty_bonus(fp))
+    challenge["required"] = ["sha256-proof", "browser-evidence", "same-origin"]
+    return challenge
 
 
 @app.post("/api/support")
@@ -979,7 +1000,7 @@ def register(req: RegisterRequest, request: Request, response: Response) -> dict
     if not limiter.allow(f"auth:{ip}"):
         raise HTTPException(429, "تلاش‌های زیاد؛ یک دقیقه بعد دوباره امتحان کنید.")
     _check_password(req.password)
-    _require_human(req.captcha, ip)
+    _require_human(req.captcha, request, ip)
     user = store().create_user(req.email, req.password, req.name)
     if user is None:
         raise HTTPException(409, "این ایمیل قبلاً ثبت شده است.")
@@ -1031,7 +1052,7 @@ def login(req: LoginRequest, request: Request, response: Response) -> dict:
     ip = client_ip(request)
     if not limiter.allow(f"auth:{ip}"):
         raise HTTPException(429, "تلاش‌های زیاد؛ یک دقیقه بعد دوباره امتحان کنید.")
-    _require_human(req.captcha, ip)
+    _require_human(req.captcha, request, ip)
     ident = (req.identifier or req.email or "").strip()
     if not ident:
         raise HTTPException(422, "ایمیل یا نام کاربری لازم است.")
@@ -1043,6 +1064,14 @@ def login(req: LoginRequest, request: Request, response: Response) -> dict:
     key = f"login:{ident.lower()}:{ip}"
     if store().note_attempt(key) > 8:
         raise HTTPException(429, "تلاش‌های ناموفق زیاد است؛ ۱۵ دقیقه بعد دوباره امتحان کنید.")
+    if "@" in ident and not store().email_exists(ident):
+        # ایمیل ساخته نشده است؛ کاربر باید به پنل ثبت‌نام برود.
+        raise HTTPException(404, detail={
+            "code": "account_not_found",
+            "message": "با این ایمیل حسابی ساخته نشده است؛ می‌توانی همین حالا ثبت‌نام کنی.",
+            "email": ident,
+            "next": "/signup",
+        })
     user = store().verify_user(ident, req.password)
     if user is None:
         raise HTTPException(401, "ایمیل یا رمز عبور نادرست است.")
@@ -1220,9 +1249,9 @@ def _generation_kwargs(req: ChatRequest) -> dict:
 
 def _prepare(req: ChatRequest, owner: dict, ip: str) -> tuple[Engine, str, list[tuple[str, str]], str | None]:
     _guard_flags(deep=req.deep)
-    # دسترسی به مدل فقط از خودِ سایت (کوکی نشست/مهمان) یا با کلید API
-    if not (owner.get("user_id") or owner.get("api_key_id") or owner.get("guest_cookie")):
-        raise HTTPException(401, "دسترسی به مدل فقط از سایت یا با کلید API ممکن است.")
+    # دسترسی به مدل فقط از خودِ سایت (کوکی نشست/مهمان)؛ هیچ کلید یا توکنی نیست.
+    if not (owner.get("user_id") or owner.get("guest_cookie")):
+        raise HTTPException(401, "دسترسی به مدل فقط از داخل سایت ممکن است.")
     if owner.get("user_id") is None and not _flag("guest_chat"):
         raise HTTPException(403, "گفتگوی مهمان موقتاً بسته است؛ برای ادامه وارد شوید.")
     if not limiter.allow(f"chat:{ip}"):

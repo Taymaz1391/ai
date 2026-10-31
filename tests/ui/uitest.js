@@ -160,7 +160,7 @@ async function testAuth() {
   check("signup: reel shows animated logo", /logo-motion(-dark)?\.webp/.test(
     doc.querySelector("#welcome-reel .reel-logo")?.getAttribute("src") || ""));
   check("signup: reel has no video", !doc.querySelector("#welcome-reel video"));
-  check("signup: api key sign-in", !!doc.querySelector("#key-form") && !!doc.querySelector("#api-key"));
+  check("signup: no api key panel", !doc.querySelector("#key-form") && !doc.querySelector("#api-key"));
   return { window };
 }
 
@@ -172,7 +172,10 @@ async function testSignupReel() {
   window.HTMLMediaElement.prototype.play = function () { return Promise.resolve(); };
   window.HTMLMediaElement.prototype.pause = function () {};
   const email = `reel${Date.now()}@example.com`;
-  // «من ربات نیستم»: کادر را می‌زنیم و منتظر می‌مانیم اثبات آماده شود
+  // «من ربات نیستم»: مثل آدم، کمی صبر و تعامل، بعد کادر را می‌زنیم
+  await wait(900);
+  doc.dispatchEvent(new window.Event("pointermove", { bubbles: true }));
+  doc.dispatchEvent(new window.Event("pointermove", { bubbles: true }));
   doc.querySelector(".human-box").click();
   for (let i = 0; i < 60; i++) {
     const value = doc.querySelector("#human-slot input[name='captcha']")?.value || "";

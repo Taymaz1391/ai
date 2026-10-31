@@ -25,6 +25,8 @@ CSRF_HEADER = "x-rayan-csrf"
 ADMIN_FILE = os.environ.get("RAYAN_ADMIN_FILE") or os.path.join(ROOT, "data", "admin.json")
 LOGIN_WINDOW = 900
 MAX_ATTEMPTS = 5
+# گذرواژهٔ پیش‌فرض پنل مدیریت (با متغیر محیطی RAYAN_ADMIN_PASSWORD عوض می‌شود)
+DEFAULT_PASSWORD = os.environ.get("RAYAN_ADMIN_DEFAULT", "13911391")
 
 
 def _hash(value: str, salt: str) -> str:
@@ -83,8 +85,8 @@ def admin_credentials() -> dict:
     local = _load_local()
     if local.get("pw_hash") and local.get("pw_salt"):
         return local
-    # راه‌اندازی نخست: گذرواژهٔ تصادفی و ذخیرهٔ محلی (فقط یک‌بار)
-    password = os.environ.get("RAYAN_ADMIN_PASSWORD") or secrets.token_urlsafe(9)
+    # راه‌اندازی نخست: گذرواژهٔ پیش‌فرض مالک، ذخیرهٔ محلی و هشدار تغییر
+    password = os.environ.get("RAYAN_ADMIN_PASSWORD") or DEFAULT_PASSWORD
     salt = secrets.token_hex(16)
     data = {
         "email": os.environ.get("RAYAN_ADMIN_EMAIL", "admin@rayan.local"),
@@ -94,13 +96,24 @@ def admin_credentials() -> dict:
         "generated_password": password,
     }
     _save_local(data)
-    print(f"[rayan-admin] گذرواژهٔ مدیریت ساخته شد: {password}  (فایل: {ADMIN_FILE})", flush=True)
+    print(f"[rayan-admin] گذرواژهٔ مدیریت تنظیم شد (پیش‌فرض={DEFAULT_PASSWORD}). "
+          f"برای امنیت بیشتر RAYAN_ADMIN_PASSWORD را عوض کن. فایل: {ADMIN_FILE}", flush=True)
     return data
 
 
+def using_default_password() -> bool:
+    """آیا گذرواژهٔ مدیریت همان مقدار پیش‌فرض است؟ (هشدار در پنل)"""
+    try:
+        creds = admin_credentials()
+        salt = creds.get("pw_salt", "")
+        return bool(salt) and hmac.compare_digest(_hash(DEFAULT_PASSWORD, salt), creds.get("pw_hash", ""))
+    except Exception:  # pragma: no cover
+        return False
+
+
 def set_admin_password(password: str) -> None:
-    if len(password) < 10:
-        raise HTTPException(400, "گذرواژهٔ مدیر باید حداقل ۱۰ نویسه باشد.")
+    if len(password) < 8:
+        raise HTTPException(400, "گذرواژهٔ مدیر باید حداقل ۸ نویسه باشد.")
     salt = secrets.token_hex(16)
     data = _load_local()
     data.update({"pw_hash": _hash(password, salt), "pw_salt": salt, "updated_at": time.time()})
@@ -250,6 +263,22 @@ def overview(request: Request, days: int = 14) -> dict:
         "flags": flags(),
         "system": system_info(),
     }
+
+
+@router.get("/security")
+def security_stats(request: Request) -> dict:
+    """آمار سد تهاجم و انسان‌سنجی برای پنل مدیریت."""
+    require_admin(request)
+    from web import guard
+    data = guard.stats()
+    data["human_checks"] = {
+        "allowance_per_minute": 24,
+        "min_fill_ms": 900,
+        "bound_to_browser": True,
+        "single_use": True,
+    }
+    data["default_admin_password"] = using_default_password()
+    return data
 
 
 @router.get("/users")

@@ -24,7 +24,8 @@ def human_proof(client) -> dict:
 
     challenge = client.get("/api/captcha").json()
     return {"token": challenge["token"],
-            "nonce": security.HumanCheck.solve(challenge["salt"], challenge["bits"])}
+            "nonce": security.HumanCheck.solve(challenge["salt"], challenge["bits"]),
+            "evidence": {"moves": 14, "keys": 7, "elapsed_ms": 2400}}
 
 
 @unittest.skipUnless(HAVE_CLIENT, "httpx/fastapi TestClient unavailable")
@@ -352,8 +353,9 @@ class V3Test(unittest.TestCase):
         self.assertEqual(self.client.delete(f"/api/admin/ads/{ad_id}", headers=headers).status_code, 200)
         self.assertEqual(self.client.get("/api/ads", params={"slot": "home-top"}).json()["ads"], [])
         # نشانی ناامن رد می‌شود
-        self.assertEqual(self.client.patch("/api/admin/ads/999", json={"url": "javascript:alert(1)"},
-                                           headers=headers).status_code, 404)
+        # نشانی ناامن یا در لایهٔ اعتبارسنجی رد می‌شود (۴۰۴) یا سد تهاجم (۴۰۳)
+        self.assertIn(self.client.patch("/api/admin/ads/999", json={"url": "javascript:alert(1)"},
+                                        headers=headers).status_code, (403, 404))
 
     def test_code_surfaces_are_admin_only(self):
         """کد/وزن‌ها و خودآزمون نباید برای کاربر عادی باز باشد."""

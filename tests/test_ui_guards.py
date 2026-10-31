@@ -186,12 +186,90 @@ class WelcomeReelTest(unittest.TestCase):
         self.assertIn("position: fixed", block.group(1))
         self.assertIn("inset: 0", block.group(1))
 
-    def test_api_key_sign_in_available(self):
-        """ورود با کلید API، در کنار حساب و مهمان."""
-        self.assertIn('id="key-form"', self.html)
-        self.assertIn('id="api-key"', self.html)
-        self.assertIn('"x-api-key"', (STATIC / "ui.js").read_text(encoding="utf-8"))
+    def test_no_api_keys_anywhere(self):
+        """کلید API کاملاً حذف شده است؛ دسترسی فقط از خود سایت."""
+        self.assertNotIn('id="key-form"', self.html)
+        self.assertNotIn("api-key", self.html)
+        self.assertNotIn("x-api-key", (STATIC / "ui.js").read_text(encoding="utf-8"))
+        self.assertNotIn("x-api-key", (STATIC / "app.js").read_text(encoding="utf-8"))
         self.assertIn("/api/auth/me", self.js)
+        developer = (STATIC / "developer.html").read_text(encoding="utf-8")
+        self.assertIn("فقط از همین سایت", developer)
+
+
+class HumanShieldTest(unittest.TestCase):
+    """«من ربات نیستم» امضاشده، یک‌بارمصرف و همراه شواهد رفتاری است."""
+
+    def setUp(self):
+        self.human = (STATIC / "human.js").read_text(encoding="utf-8")
+        self.css = (STATIC / "pages.css").read_text(encoding="utf-8")
+        self.auth = (STATIC / "auth.js").read_text(encoding="utf-8")
+
+    def test_widget_sends_evidence(self):
+        for needle in ("evidence:", "elapsed_ms", "honeypot", "moves", "keys"):
+            self.assertIn(needle, self.human)
+
+    def test_honeypot_field_is_hidden_from_people(self):
+        self.assertIn("human-trap", self.human)
+        self.assertIn("tabIndex = -1", self.human)
+        self.assertIn(".human-trap", self.css)
+
+    def test_verification_is_bound_and_single_use_server_side(self):
+        security = (ROOT / "web" / "security.py").read_text(encoding="utf-8")
+        self.assertIn("bound_fp", security)
+        self.assertIn("MIN_FILL_TIME", security)
+        self.assertIn("honeypot", security)
+        self.assertIn("_used", security)
+
+    def test_auth_page_has_no_key_panel(self):
+        self.assertNotIn("api-key", self.auth)
+        self.assertNotIn("x-api-key", self.auth)
+
+
+class MotionShowcaseTest(unittest.TestCase):
+    """بخش حرکت برند فقط خودِ نشان است؛ زیرش نوشته‌ای نیست."""
+
+    def setUp(self):
+        self.html = (STATIC / "index.html").read_text(encoding="utf-8")
+        self.css = (STATIC / "styles.css").read_text(encoding="utf-8")
+
+    def test_no_copy_under_motion(self):
+        start = self.html.index('id="motion"')
+        end = self.html.index("<!-- ========================================================= تعرفه -->")
+        block = self.html[start:end]
+        self.assertNotIn("motion-copy", block)
+        self.assertNotIn("motion-points", block)
+        self.assertNotIn("<p", block)
+        self.assertIn("logo-motion.webp", block)
+        self.assertIn("orb-live.webp", block)
+
+    def test_stage_is_wide_and_animated(self):
+        self.assertIn(".motion-halo", self.css)
+        self.assertIn("haloSpin", self.css)
+        self.assertIn("prefers-reduced-motion", self.css)
+
+
+class ChatComposerTest(unittest.TestCase):
+    """نوار نوشتن به سبک دستیارهای بزرگ: یک کادر، ابزارها زیر دکمهٔ +."""
+
+    def setUp(self):
+        self.html = (STATIC / "app.html").read_text(encoding="utf-8")
+        self.css = (STATIC / "chat.css").read_text(encoding="utf-8")
+        self.js = (STATIC / "app.js").read_text(encoding="utf-8")
+
+    def test_tools_live_behind_plus(self):
+        self.assertIn('id="tools-btn"', self.html)
+        self.assertIn('id="composer-tools"', self.html)
+        self.assertIn("function setTools", self.js)
+
+    def test_composer_is_one_rounded_box(self):
+        self.assertIn(".composer-tools", self.css)
+        self.assertIn("border-radius: 26px", self.css)
+
+    def test_orb_is_animated_in_chat(self):
+        self.assertIn("orb-live.webp", self.html)
+        self.assertIn("orb-live-sm.webp", self.js)
+        self.assertNotIn("orb-128.png", self.html)
 
 
 class OrbMotionTest(unittest.TestCase):

@@ -82,49 +82,9 @@
     setTimeout(() => skip?.focus({ preventScroll: true }), 120);
   }
 
-  // -------------------------------------------------------- ورود با کلید API
-  const keyToggle = $("#key-toggle");
-  const keyForm = $("#key-form");
-  const keyError = $("#key-error");
-  if (keyToggle && keyForm) {
-    keyToggle.addEventListener("click", () => {
-      const open = keyForm.hidden;
-      keyForm.hidden = !open;
-      keyToggle.setAttribute("aria-expanded", open ? "true" : "false");
-      if (open) $("#api-key")?.focus({ preventScroll: true });
-    });
-    const submitKey = async () => {
-      const raw = ($("#api-key").value || "").trim();
-      keyError.textContent = "";
-      if (!/^rk_[A-Za-z0-9_-]{16,}$/.test(raw)) {
-        keyError.textContent = "کلید باید با rk_ شروع شود؛ کلید را کامل کپی کن.";
-        return;
-      }
-      const submit = $("#key-submit");
-      submit.disabled = true;
-      submit.textContent = "بررسی…";
-      try {
-        const me = await request("/api/auth/me", { headers: { "x-api-key": raw } });
-        if (!me || !me.user) throw new Error("این کلید به حسابی متصل نیست.");
-        window.RAYAN.apiKey(raw);
-        toast(`خوش آمدی ${me.user.name || ""}! دسترسی با کلید API فعال شد.`, "ok");
-        const next = new URLSearchParams(location.search).get("next");
-        const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : "/chat";
-        setTimeout(() => location.replace(safeNext), 420);
-      } catch (err) {
-        keyError.textContent = err.message || "کلید معتبر نیست.";
-        submit.disabled = false;
-        submit.textContent = "ورود با کلید";
-      }
-    };
-    $("#key-submit").addEventListener("click", submitKey);
-    $("#api-key").addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        submitKey();
-      }
-    });
-  }
+  const params = new URLSearchParams(location.search);
+  const notice = $("\#auth-notice");
+  const presetEmail = (params.get("email") || "").trim();
 
   if (isSignup) {
     document.title = "ساخت حساب · رایان";
@@ -142,6 +102,14 @@
       identifierInput.autocomplete = "email";
     }
     if (identifierHint) identifierHint.textContent = "این ایمیل برای ورود و بازیابی حسابت استفاده می‌شود.";
+    if (presetEmail && identifierInput) {
+      identifierInput.value = presetEmail;
+      if (notice) {
+        notice.hidden = false;
+        notice.textContent = "با این ایمیل هنوز حسابی ساخته نشده بود؛ همین‌جا در چند ثانیه بسازش.";
+      }
+      setTimeout(() => $("\#password")?.focus({ preventScroll: true }), 80);
+    }
   } else if (identifierInput) {
     identifierInput.type = "text";
     identifierInput.autocomplete = "username";
@@ -160,10 +128,12 @@
   }
 
   // «من ربات نیستم» — اثبات‌کار محلی، بدون سرویس بیرونی
+  const staticMode = !!(window.RAYAN.config && (window.RAYAN.config.static || window.RAYAN.config.offline));
   const humanBox = $("#human-slot");
-  const humanWidget = humanBox && window.RAYAN && window.RAYAN.human
+  const humanWidget = humanBox && !staticMode && window.RAYAN && window.RAYAN.human
     ? window.RAYAN.human.mount(humanBox, { onState: (st) => { if (st.ready) errorEl.textContent = ""; } })
     : null;
+  if (staticMode && humanBox) humanBox.hidden = true;
 
   async function checkExisting() {
     try {
@@ -233,6 +203,15 @@
       }
       setTimeout(() => location.replace(safeNext || "/chat"), 420);
     } catch (err) {
+      const detail = err && err.data && err.data.detail;
+      if (!isSignup && detail && typeof detail === "object" && detail.code === "account_not_found") {
+        // حساب ساخته نشده است؛ مستقیم به پنل ثبت‌نام می‌رویم و ایمیل را از پیش پر می‌کنیم.
+        const target = new URLSearchParams({ email: detail.email || identifier, from: "login" });
+        const next = params.get("next");
+        if (next && next.startsWith("/") && !next.startsWith("//")) target.set("next", next);
+        location.replace(`/signup?${target.toString()}`);
+        return;
+      }
       fail(err.message);
       submit.disabled = false;
       label.textContent = original;
@@ -241,8 +220,15 @@
     }
   });
 
-  if (window.RAYAN.config && window.RAYAN.config.offline) {
-    fail("این صفحه در حالت استاتیک باز شده است؛ برای ورود، سرور را اجرا کن.");
+  if (staticMode) {
+    if (notice) {
+      notice.hidden = false;
+      notice.textContent = "این نسخهٔ نمایشی روی GitHub Pages است؛ ورود و ساخت حساب فقط روی سرور فعال است.";
+    }
+    submit.disabled = true;
+    label.textContent = "نسخهٔ نمایشی";
+    $("#password").disabled = true;
+    identifierInput.disabled = true;
   }
 
   checkExisting();

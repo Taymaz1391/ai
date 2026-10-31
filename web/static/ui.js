@@ -50,24 +50,9 @@
 
   const apiBase = (cfg.apiBase || "").replace(/\/$/, "");
 
-  // کلید API که کاربر در صفحهٔ ورود وارد کرده است (فقط تا پایان همین نشست مرورگر)
-  const KEY_STORE = "rayan.apiKey";
-  function apiKey(value) {
-    try {
-      if (value === undefined) return sessionStorage.getItem(KEY_STORE) || "";
-      if (value) sessionStorage.setItem(KEY_STORE, String(value));
-      else sessionStorage.removeItem(KEY_STORE);
-    } catch { /* نادیده */ }
-    return value || "";
-  }
-
   async function request(path, options = {}) {
     const url = `${apiBase}${path}`;
     const opts = Object.assign({ credentials: "include", headers: {} }, options);
-    const key = apiKey();
-    if (key && !opts.headers["x-api-key"] && !opts.headers["X-API-Key"]) {
-      opts.headers["x-api-key"] = key;
-    }
     if (opts.body && typeof opts.body !== "string") {
       opts.body = JSON.stringify(opts.body);
       opts.headers["Content-Type"] = "application/json";
@@ -262,7 +247,6 @@
     applyTheme, toggleTheme, preferredTheme, orbState, icon, hydrateIcons, asset,
     initOrbs,
     calmMotion,
-    apiKey,
     config: cfg,
     href(path) { return `${apiBase}${path}`; },
   });

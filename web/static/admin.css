@@ -155,3 +155,9 @@
 .admin-warn b { font-size: 13.5px; }
 .admin-warn .btn { margin-inline-start: auto; background: var(--surface-solid); color: var(--text); }
 .admin-warn[hidden] { display: none; }
+
+/* سد تهاجم */
+.guard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 8px; }
+.guard-cell { padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); display: grid; gap: 4px; }
+.guard-cell span { font-size: 11.5px; color: var(--text-3); }
+.guard-cell b { font-size: 16px; }

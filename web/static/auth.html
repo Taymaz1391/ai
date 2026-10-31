@@ -49,6 +49,8 @@
           <p id="auth-sub">خوش برگشتی! ادامه بده از همان‌جایی که بودی.</p>
         </div>
 
+        <p class="auth-notice" id="auth-notice" role="status" hidden></p>
+
         <form id="auth-form" class="auth-form" novalidate>
           <div class="field" id="name-field" hidden>
             <label for="name">نام نمایشی</label>
@@ -82,21 +84,6 @@
             ادامه بدون حساب
           </a>
 
-          <div class="auth-key" id="auth-key">
-            <button class="auth-key-toggle" type="button" id="key-toggle" aria-expanded="false" aria-controls="key-form">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 4l3 3M14 7l3 3"/></svg>
-              ورود با کلید API
-            </button>
-            <div class="auth-key-form" id="key-form" hidden>
-              <label class="sr-only" for="api-key">کلید API</label>
-              <input class="input" id="api-key" name="api-key" type="text" dir="ltr" inputmode="text"
-                     autocomplete="off" spellcheck="false" placeholder="rk_…">
-              <button class="btn btn-primary" type="button" id="key-submit">ورود با کلید</button>
-              <span class="field-error" id="key-error"></span>
-              <span class="auth-key-note">کلید را از <a href="/developer">صفحهٔ توسعه‌دهنده</a> بساز. کلید فقط تا پایان همین نشست در مرورگر می‌ماند.</span>
-            </div>
-          </div>
-
           <p class="auth-switch">
             <span id="switch-text">حساب نداری؟</span>
             <a href="/signup" id="switch-link">ساخت حساب رایگان</a>
@@ -121,21 +108,11 @@
            alt="" aria-hidden="true" width="640" height="320" decoding="async">
       <span class="reel-orb"><img src="/static/assets/brand/orb-live.webp" alt="" width="168" height="168"></span>
     </div>
-    <div class="reel-hooks" aria-hidden="true">
-      <span class="reel-hook is-on" data-at="0">حسابت ساخته شد — خوش آمدی</span>
-      <span class="reel-hook" data-at="2.6">همه‌چیز از صفر ساخته شده</span>
-      <span class="reel-hook" data-at="4.8">بدون هیچ API بیرونی</span>
-      <span class="reel-hook" data-at="6.6">حالا نوبت گفتگوست</span>
-    </div>
     <div class="welcome-progress" aria-hidden="true"><i id="welcome-progress"></i></div>
     <button class="welcome-skip-x" type="button" id="welcome-close" aria-label="بستن معرفی">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg>
     </button>
     <div class="welcome-bar">
-      <div class="welcome-copy">
-        <b>حسابت ساخته شد — خوش آمدی!</b>
-        <span>چند ثانیه نگاه کن تا ببینی <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> چه می‌کند.</span>
-      </div>
       <div class="welcome-actions">
         <button class="btn btn-sm" type="button" id="welcome-full" aria-pressed="false" title="تمام‌صفحهٔ واقعی">تمام‌صفحه</button>
         <a class="btn btn-primary btn-sm" id="welcome-skip" href="/chat">شروع گفتگو</a>

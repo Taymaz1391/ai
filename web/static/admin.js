@@ -132,7 +132,8 @@
     users: ["کاربران", "جست‌وجو، تغییر پلن، مسدودسازی"],
     ads: ["تبلیغات", "جایگاه، نمایش، کلیک و وزن"],
     settings: ["تنظیمات", "پرچم‌های قابلیت، اعلان و گذرواژه"],
-    audit: ["لاگ امنیتی", "هر کار مدیر با زمان و IP ثبت می‌شود"],
+    guard: ["سد تهاجم", "فیلتر درخواست‌های ناامن و بستن موقت مهاجم"],
+    audit: ["لاگ حسابرسی", "هر کار مدیر با زمان و IP ثبت می‌شود"],
     system: ["سامانه", "نگهداری، بکاپ و مشخصات سرور"],
   };
 
@@ -152,6 +153,7 @@
     if (tab === "users") loadUsers();
     if (tab === "ads") loadAds();
     if (tab === "audit") loadAudit();
+    if (tab === "guard") loadGuard();
     if (tab === "settings") loadSettings();
     if (tab === "system") loadSystem();
   }
@@ -469,6 +471,29 @@
     }
   }
   $("#audit-refresh").addEventListener("click", loadAudit);
+
+  // ------------------------------------------------------------ سد تهاجم
+  async function loadGuard() {
+    try {
+      const data = await api("/api/admin/security");
+      const rules = Object.entries(data.by_rule || {});
+      const bans = Object.entries(data.bans || {});
+      $("#guard-stats").innerHTML = [
+        ["رویدادهای اخیر", nf(data.total_today || 0)],
+        ["قاعده‌های فعال", nf((data.rules || []).length)],
+        ["IPهای بسته‌شده", nf(bans.length)],
+        ["انسان‌سنجی", data.human_checks?.bound_to_browser ? "امضاشده + شواهد" : "ساده"],
+      ].map(([k, v]) => `<div class="guard-cell"><span>${k}</span><b>${v}</b></div>`).join("");
+      const recent = (data.recent || []);
+      $("#guard-table tbody").innerHTML = recent.map((e) => (
+        `<tr><td>${timeAgo(e.t)}</td><td dir="ltr">${e.rule || "—"}</td><td>${e.label || "—"}</td>
+         <td dir="ltr">${(e.method || "")} ${e.path || ""}</td><td dir="ltr">${e.ip || "—"}</td></tr>`
+      )).join("") || '<tr><td colspan="5" class="hint">هنوز حمله‌ای دیده نشده.</td></tr>';
+    } catch (err) {
+      toast(err.message, "error");
+    }
+  }
+  $("#guard-refresh").addEventListener("click", loadGuard);
 
   // ------------------------------------------------------------- سامانه
   async function loadSystem() {

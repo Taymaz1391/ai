@@ -67,21 +67,18 @@
 .auth-legal a { color: var(--text-2); text-decoration: underline; text-underline-offset: 3px; }
 
 /* ورود با کلید API در همان کارت */
-.auth-key { display: grid; gap: 10px; }
-.auth-key-toggle {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 9px 12px; border-radius: 12px;
-  border: 1px dashed color-mix(in srgb, var(--blue) 32%, var(--line));
-  background: color-mix(in srgb, var(--blue) 5%, transparent);
-  color: var(--text-2); font-size: 13px; font-weight: 600;
-  transition: 0.18s var(--ease);
+.auth-notice {
+  margin: 0 0 14px;
+  padding: 11px 13px;
+  border-radius: 13px;
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--blue-2);
+  background: color-mix(in srgb, var(--blue) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--blue) 24%, transparent);
 }
-.auth-key-toggle:hover { color: var(--blue); border-color: color-mix(in srgb, var(--blue) 60%, var(--line)); }
-.auth-key-form { display: grid; gap: 10px; padding: 14px; border-radius: 14px; background: var(--panel-soft); border: 1px solid var(--line); }
-.auth-key-form[hidden] { display: none; }
-.auth-key-form .input { direction: ltr; text-align: left; font-family: var(--mono); font-size: 13px; }
-.auth-key-note { font-size: 11.5px; color: var(--text-3); line-height: 1.85; }
-.auth-key-note a { color: var(--blue-2); text-decoration: underline; text-underline-offset: 3px; }
+.auth-notice[hidden] { display: none; }
+
 .brand-motion { height: 34px; width: auto; aspect-ratio: 2 / 1; }
 
 /* ---------------------------------------------------- نمایش نشان (تمام‌صفحه) */
@@ -318,10 +315,9 @@ body.reel-open { overflow: hidden; overscroll-behavior: none; }
 }
 .reel-hook.is-on { opacity: 1; transform: none; }
 .welcome-bar {
-  position: absolute; inset-inline: 0; bottom: 0;
-  display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  padding: 16px clamp(16px, 4vw, 44px) calc(16px + env(safe-area-inset-bottom));
-  background: linear-gradient(0deg, rgba(4, 10, 24, 0.94), rgba(4, 10, 24, 0.0));
+  position: absolute; inset-block-end: 18px; inset-inline: 0;
+  display: flex; justify-content: center; align-items: center; gap: 10px;
+  padding-inline: 18px; z-index: 5;
 }
 .welcome-copy { display: grid; gap: 3px; color: #eaf3ff; font-size: 14px; min-width: 0; }
 .welcome-copy b { font-size: 15px; }
@@ -354,9 +350,7 @@ body.reel-open { overflow: hidden; overscroll-behavior: none; }
   border-color: rgba(26, 99, 240, 0.18);
   box-shadow: 0 8px 24px rgba(10, 23, 48, 0.12);
 }
-[data-theme="light"] .welcome-bar {
-  background: linear-gradient(0deg, rgba(255, 255, 255, 0.97), rgba(255, 255, 255, 0));
-}
+[data-theme="light"] .welcome-bar { background: none; }
 [data-theme="light"] .welcome-copy { color: var(--text); }
 [data-theme="light"] .welcome-copy span { color: var(--text-2); }
 [data-theme="light"] .welcome-copy .wm-inline { filter: none; }
@@ -390,28 +384,61 @@ body.reel-open { overflow: hidden; overscroll-behavior: none; }
 /* ---------------------------------------------- «من ربات نیستم» (محلی) */
 .human-slot { margin: 4px 0 2px; }
 .human-check {
-  display: grid; gap: 6px;
-  padding: 13px 15px;
+  position: relative;
+  display: grid; gap: 7px;
+  padding: 14px 16px;
   border: 1px solid var(--line-strong);
-  border-radius: 16px;
-  background: var(--panel);
+  border-radius: 18px;
+  background:
+    linear-gradient(140deg, color-mix(in srgb, var(--blue) 5%, transparent), transparent 55%),
+    var(--panel);
   box-shadow: var(--shadow-sm);
   transition: border-color 0.2s, box-shadow 0.25s, background 0.2s;
+  overflow: hidden;
 }
+.human-check::after {
+  content: ""; position: absolute; inset-inline-start: -40%; inset-block-start: -120%;
+  width: 60%; height: 260%; rotate: 18deg;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--blue) 9%, transparent), transparent);
+  opacity: 0; transition: opacity 0.3s;
+  pointer-events: none;
+}
+.human-check.is-busy::after { opacity: 1; animation: humanSweep 1.6s linear infinite; }
+@keyframes humanSweep { from { inset-inline-start: -60%; } to { inset-inline-start: 130%; } }
 .human-check:focus-within { border-color: color-mix(in srgb, var(--blue) 46%, transparent); box-shadow: var(--glow); }
+.human-check.is-error { border-color: color-mix(in srgb, var(--danger-fg) 46%, transparent); }
 .human-row {
   display: flex; align-items: center; gap: 11px;
   cursor: pointer; user-select: none;
   font-size: 14.5px; font-weight: 600; color: var(--text);
 }
+.human-shield {
+  width: 34px; height: 34px; flex: none;
+  display: grid; place-items: center;
+  border-radius: 11px;
+  color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--blue) 22%, transparent);
+  transition: background 0.25s, color 0.25s, transform 0.25s;
+}
+.human-row.is-verified .human-shield {
+  color: var(--success-fg);
+  background: var(--success-bg);
+  border-color: transparent;
+  transform: translateY(-1px);
+}
+.human-label { flex: 1; display: grid; gap: 1px; min-width: 0; }
+.human-text { line-height: 1.5; }
+.human-sub { font-size: 11.5px; font-weight: 500; color: var(--text-3); line-height: 1.6; }
 .human-box {
   appearance: none; -webkit-appearance: none;
-  width: 24px; height: 24px; flex: none;
-  border: 1.5px solid var(--line-strong); border-radius: 8px;
+  width: 23px; height: 23px; flex: none;
+  border: 1.6px solid var(--line-strong); border-radius: 7px;
   background: var(--surface-solid);
   display: grid; place-items: center;
   transition: background 0.2s, border-color 0.2s, transform 0.15s;
 }
+.human-box:hover { border-color: color-mix(in srgb, var(--blue) 50%, var(--line-strong)); }
 .human-box::after {
   content: ""; width: 12px; height: 7px;
   border-inline-start: 2.5px solid #fff; border-bottom: 2.5px solid #fff;
@@ -421,17 +448,39 @@ body.reel-open { overflow: hidden; overscroll-behavior: none; }
 .human-box:checked { background: var(--accent-solid); border-color: var(--accent-solid); }
 .human-box:checked::after { transform: rotate(-45deg) scale(1); }
 .human-box:disabled { opacity: 0.65; }
-.human-text { flex: 1; }
 .human-badge {
-  font-size: 11.5px; font-weight: 500; color: var(--text-3);
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600; color: var(--text-3);
   background: var(--panel-soft); border: 1px solid var(--line);
   border-radius: 999px; padding: 3px 9px;
+  white-space: nowrap;
 }
 .human-row.is-verified .human-badge { color: var(--success-fg); background: var(--success-bg); border-color: transparent; }
+.human-spin {
+  width: 15px; height: 15px; flex: none; display: none;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--blue) 28%, transparent);
+  border-top-color: var(--blue);
+  animation: humanSpin 0.8s linear infinite;
+}
+.human-check.is-busy .human-spin { display: block; }
+@keyframes humanSpin { to { transform: rotate(360deg); } }
+.human-trap {
+  position: absolute !important; inset-inline-start: -9999px !important;
+  width: 1px; height: 1px; opacity: 0; pointer-events: none;
+}
 .human-note { font-size: 12px; min-height: 16px; color: var(--text-3); }
 .human-note.is-ok { color: var(--success-fg); }
 .human-note.is-error { color: var(--danger-fg); }
 .human-note.is-busy { color: var(--blue); }
+@media (max-width: 480px) {
+  .human-badge { display: none; }
+  .human-check { padding: 12px 13px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .human-spin { animation-duration: 2s; }
+  .human-check.is-busy::after { animation: none; }
+}
 
 /* ---------------------------------------- توسعه‌دهندگان و پشتیبانی تجاری */
 .dev-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }

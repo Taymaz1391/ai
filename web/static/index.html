@@ -115,7 +115,7 @@
                   <div class="bubble">یک شعر بگو دربارهٔ عشق و شب</div>
                 </div>
                 <div class="preview-msg bot">
-                  <span class="who"><img src="/static/assets/brand/orb-128.png" alt="" width="28" height="28"></span>
+                  <span class="who"><img src="/static/assets/brand/orb-live-sm.webp" alt="" width="28" height="28"></span>
                   <div class="bubble" id="preview-answer">شب است و پنجره باز؛<br>باران برایت شعر می‌گوید.</div>
                 </div>
                 <div class="preview-msg user">
@@ -123,7 +123,7 @@
                   <div class="bubble">خودت را معرفی کن</div>
                 </div>
                 <div class="preview-msg bot">
-                  <span class="who"><img src="/static/assets/brand/orb-128.png" alt="" width="28" height="28"></span>
+                  <span class="who"><img src="/static/assets/brand/orb-live-sm.webp" alt="" width="28" height="28"></span>
                   <div class="bubble">من <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> هستم؛ یک مدل زبانی فارسی کوچک که از صفر آموزش دیده است.</div>
                 </div>
               </div>
@@ -296,10 +296,13 @@
     </section>
 
     <!-- ====================================================== نشانِ زندهٔ برند -->
-    <section class="section-sm" id="motion" aria-label="نشان زندهٔ رایان">
+    <section class="section-sm motion-section" id="motion" aria-labelledby="motion-title">
       <div class="wrap">
+        <h2 class="sr-only" id="motion-title">نشان زندهٔ رایان</h2>
         <div class="motion-shell reveal">
           <div class="motion-stage">
+            <span class="motion-halo" aria-hidden="true"></span>
+            <span class="motion-grid" aria-hidden="true"></span>
             <img class="motion-logo motion-for-light" src="/static/assets/brand/logo-motion.webp"
                  alt="نشان رایان" width="640" height="320" loading="lazy" decoding="async">
             <img class="motion-logo motion-for-dark" src="/static/assets/brand/logo-motion-dark.webp"
@@ -307,21 +310,7 @@
             <span class="motion-orb">
               <img src="/static/assets/brand/orb-live.webp" alt="" width="132" height="132" loading="lazy" decoding="async">
             </span>
-          </div>
-          <div class="motion-copy">
-            <span class="eyebrow">نشان زنده</span>
-            <h2 class="section-title">حرکت، بخشی از هویت است</h2>
-            <p class="section-sub">
-              نشان و کرهٔ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async">
-              با حرکت ساخته شده‌اند: حرف‌ها یکی‌یکی می‌رسند و کره نفس می‌کشد. این‌ها فایل‌های سبک‌اند،
-              نه ویدیو و نه سرویس بیرونی؛ در تم روشن و تیره هم درست می‌نشینند.
-            </p>
-            <ul class="motion-points">
-              <li><b>۱</b><span>نشان متحرک، ۱۸۰ کیلوبایت، شفاف و بی‌قاب</span></li>
-              <li><b>۲</b><span>کرهٔ زنده با پلک‌زدن و حالِ پاسخ‌دادن</span></li>
-              <li><b>۳</b><span>توقف خودکار با «کم‌کردن حرکت» در سیستم</span></li>
-            </ul>
-            <a class="btn btn-primary" href="/chat">گفتگو با <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> </a>
+            <span class="motion-vignette" aria-hidden="true"></span>
           </div>
         </div>
       </div>
@@ -453,7 +442,7 @@
             <li><a href="/about">درباره</a></li>
             <li><a href="/docs">مستندات</a></li>
             <li><a href="/summary">خلاصهٔ پروژه</a></li>
-            <li><a href="/developer">کلید API</a></li>
+            <li><a href="/developer">توسعه‌دهنده</a></li>
             <li><a href="/support">پشتیبانی تجاری</a></li>
             <li><a href="https://github.com/Taymaz1391/ai" rel="noopener">GitHub</a></li>
             <li><a href="/api/health">وضعیت سرویس</a></li>

@@ -10,7 +10,8 @@ on:
     branches: ["main", "arena/ddad3f43-ai"]
     paths:
       - "web/static/**"
-      - "scripts/export_site.py"
+      - "scripts/**"
+      - "web/lang.py"
       - ".github/workflows/pages.yml"
 
 permissions:

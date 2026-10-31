@@ -45,3 +45,7 @@ data/secret.key
 data/.scale_state.json
 data/.scale_seen.txt
 data/scale_stats.json
+
+# رویدادهای سد تهاجم (زمان اجرا)
+data/security_events.jsonl
+data/security_events.jsonl.1

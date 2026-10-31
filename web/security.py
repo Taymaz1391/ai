@@ -26,6 +26,7 @@ SECRET_FILE = os.path.join(ROOT, "data", "secret.key")
 DEFAULT_BITS = int(os.environ.get("RAYAN_CAPTCHA_BITS", "15"))
 CAPTCHA_TTL = 15 * 60          # ثانیه
 MIN_SOLVE_TIME = 0.6           # ثانیه؛ پاسخ فوری یعنی ربات
+MIN_FILL_TIME = 0.6            # کمترین زمان معقول برای پر کردن فرم
 _FA_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
 
 
@@ -61,6 +62,23 @@ def normalize_digits(value: str) -> str:
     return (value or "").translate(_FA_DIGITS).strip()
 
 
+def _coarse_ip(ip: str) -> str:
+    """IP را به شبکهٔ گسترده‌تر تبدیل می‌کند تا تغییر جزئی آدرس، فرم را نشکند."""
+    ip = (ip or "").strip()
+    if ":" in ip:                     # IPv6: شصت‌وچهار بیت نخست
+        return ":".join(ip.split(":")[:4])
+    parts = ip.split(".")
+    if len(parts) == 4 and all(p.isdigit() for p in parts):
+        return ".".join(parts[:3])
+    return ip[:24]
+
+
+def fingerprint(ip: str = "", user_agent: str = "") -> str:
+    """اثر انگشت سبکِ مرورگر: شبکهٔ IP + عامل کاربر. هیچ داده‌ای ذخیره نمی‌شود."""
+    raw = f"{_coarse_ip(ip)}|{(user_agent or '')[:180]}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:20]
+
+
 class HumanCheck:
     """چالش اثبات‌کار با امضای سرور و مصرف یک‌باره.
 
@@ -75,21 +93,24 @@ class HumanCheck:
         self.bits = max(10, min(22, int(bits)))
         self.ttl = ttl
         self._used: dict[str, float] = {}
+        self._fails: dict[str, tuple[int, float]] = {}
         self._lock = threading.Lock()
 
     # ---------------------------------------------------------------- صدور
-    def issue(self) -> dict:
+    def issue(self, fp: str = "", bonus: int = 0) -> dict:
         now = time.time()
         salt = secrets.token_hex(12)
-        body = f"{salt}:{self.bits}:{int(now + self.ttl)}"
+        bits = max(10, min(22, self.bits + max(0, min(6, int(bonus)))))
+        body = f"{salt}:{bits}:{int(now + self.ttl)}:{(fp or '')[:20]}"
         token = f"{body}:{sign(body)}"
         self._gc(now)
         return {
             "token": token,
             "salt": salt,
-            "bits": self.bits,
+            "bits": bits,
             "expires_in": self.ttl,
             "algorithm": "sha256-leading-zero-bits",
+            "min_ms": int(MIN_FILL_TIME * 1000),
         }
 
     # ---------------------------------------------------------------- بررسی
@@ -108,13 +129,16 @@ class HumanCheck:
                 return nonce
         raise RuntimeError("چالش حل نشد")
 
-    def redeem(self, token: str, nonce: str) -> bool:
+    def redeem(self, token: str, nonce: str, fp: str = "") -> bool:
         parts = (token or "").split(":")
-        if len(parts) != 4:
+        if len(parts) != 5:
             return False
-        salt, bits_raw, expires_raw, signature = parts
-        body = f"{salt}:{bits_raw}:{expires_raw}"
+        salt, bits_raw, expires_raw, bound_fp, signature = parts
+        body = f"{salt}:{bits_raw}:{expires_raw}:{bound_fp}"
         if not verify(body, signature):
+            return False
+        # اگر چالش به مرورگر بسته شده باشد، همان مرورگر باید پاسخ بدهد.
+        if bound_fp and fp and not hmac.compare_digest(bound_fp, (fp or "")[:20]):
             return False
         try:
             bits = int(bits_raw)
@@ -136,6 +160,56 @@ class HumanCheck:
         with self._lock:
             self._used[token] = now
         return True
+
+    # ------------------------------------------------- ارزیابی شواهد رفتاری
+    @staticmethod
+    def evidence_ok(evidence: dict | None) -> tuple[bool, str]:
+        """شواهد رابط کاربری را می‌سنجد: زمان پر کردن، حرکت اشاره‌گر، تلهٔ ربات."""
+        ev = evidence or {}
+        if str(ev.get("honeypot") or "").strip():
+            return False, "honeypot"
+        if ev.get("webdriver") is True:
+            return False, "automation"
+        try:
+            elapsed = float(ev.get("elapsed_ms") or 0)
+        except (TypeError, ValueError):
+            elapsed = 0.0
+        try:
+            moves = int(ev.get("moves") or 0)
+            keys = int(ev.get("keys") or 0)
+        except (TypeError, ValueError):
+            moves = keys = 0
+        if elapsed < MIN_FILL_TIME * 1000:
+            return False, "too_fast"
+        if moves + keys < 2 and elapsed < 3000:
+            return False, "no_interaction"
+        return True, ""
+
+    def assess(self, token: str, nonce: str, evidence: dict | None = None,
+               fp: str = "") -> tuple[bool, str]:
+        ok, reason = self.evidence_ok(evidence)
+        if not ok:
+            return False, reason
+        if not self.redeem(token, nonce, fp):
+            return False, "invalid_proof"
+        return True, ""
+
+    # ------------------------------------------------ سختی پویا پس از خطا
+    def note_failure(self, fp: str) -> None:
+        if not fp:
+            return
+        with self._lock:
+            count, stamp = self._fails.get(fp, (0, time.time()))
+            if time.time() - stamp > 1800:
+                count = 0
+            self._fails[fp] = (min(6, count + 1), time.time())
+
+    def difficulty_bonus(self, fp: str) -> int:
+        with self._lock:
+            count, stamp = self._fails.get(fp, (0, 0))
+            if time.time() - stamp > 1800:
+                return 0
+            return min(4, count * 2)
 
     def _gc(self, now: float) -> None:
         if len(self._used) < 2000:

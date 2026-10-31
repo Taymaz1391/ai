@@ -1,9 +1,15 @@
 /* رایان — سرویس‌ورکر: دارایی‌های ایستا کش، صفحه‌ها شبکه-اول، آفلاین‌پذیر */
-const VERSION = "rayan-v12";
+const VERSION = "rayan-v16";
 const SHELL = [
   "/static/styles.css",
   "/static/pages.css",
+  "/static/chat.css",
+  "/static/admin.css",
   "/static/ui.js",
+  "/static/app.js",
+  "/static/auth.js",
+  "/static/admin.js",
+  "/static/human.js",
   "/static/config.js",
   "/static/theme-boot.js",
   "/static/offline.js",
@@ -14,9 +20,7 @@ const SHELL = [
   "/static/scroll.js",
   "/static/perf.js",
   "/static/speed.js",
-  "/static/developer.js",
   "/static/support.js",
-  "/static/human.js",
   "/static/assets/brand/orb-128.png",
   "/static/assets/brand/orb-live-sm.webp",
   "/static/assets/brand/orb-live.webp",

@@ -90,7 +90,8 @@ class OwnerLoginTest(unittest.TestCase):
         from web import security
         challenge = client.get("/api/captcha").json()
         proof = {"token": challenge["token"],
-                 "nonce": security.HumanCheck.solve(challenge["salt"], challenge["bits"])}
+                 "nonce": security.HumanCheck.solve(challenge["salt"], challenge["bits"]),
+                 "evidence": {"moves": 14, "keys": 7, "elapsed_ms": 2400}}
         return client.post(
             "/api/auth/login",
             json={"identifier": identifier, "password": password, "captcha": proof},
@@ -130,6 +131,15 @@ class OwnerLoginTest(unittest.TestCase):
         resp = self.login("کاربر ناشناس", owner_module.DEV_DEFAULT_PASSWORD)
         self.assertEqual(resp.status_code, 401)
 
+    def test_unknown_email_points_to_signup(self):
+        """ورود با ایمیل ثبت‌نشده → هدایت به پنل ثبت‌نام."""
+        resp = self.login("no-account-here@example.com", "some-password-9")
+        self.assertEqual(resp.status_code, 404, resp.text)
+        detail = resp.json()["detail"]
+        self.assertEqual(detail["code"], "account_not_found")
+        self.assertEqual(detail["next"], "/signup")
+        self.assertEqual(detail["email"], "no-account-here@example.com")
+
     def test_email_login_still_works(self):
         client = TestClient(self.server.app)
         client.get("/chat")
@@ -138,7 +148,8 @@ class OwnerLoginTest(unittest.TestCase):
         created = client.post("/api/auth/register", json={
             "name": "آزمون", "email": "owner-test@example.com", "password": "long-enough-pass",
             "captcha": {"token": challenge["token"],
-                        "nonce": security.HumanCheck.solve(challenge["salt"], challenge["bits"])},
+                        "nonce": security.HumanCheck.solve(challenge["salt"], challenge["bits"]),
+                        "evidence": {"moves": 14, "keys": 7, "elapsed_ms": 2400}},
         })
         self.assertEqual(created.status_code, 200, created.text)
         body = created.json()
