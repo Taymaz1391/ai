@@ -230,3 +230,10 @@
   .course-grid { grid-template-columns: 1fr; }
   body { background: #fff; }
 }
+
+/* جدول‌های درس */
+.course-table { width: 100%; border-collapse: collapse; margin: 12px 0 16px; font-size: 13px; }
+.course-table th, .course-table td { border: 1px solid var(--line); padding: 8px 10px; text-align: right; }
+.course-table th { background: var(--bg-2); color: var(--text); font-weight: 700; }
+.course-table tbody tr:nth-child(even) { background: rgba(26, 99, 240, .03); }
+@media print { .course-table { font-size: 11px; } }

@@ -14,7 +14,7 @@
 [![pages](https://github.com/Taymaz1391/ai/actions/workflows/pages.yml/badge.svg)](https://github.com/Taymaz1391/ai/actions/workflows/pages.yml)
 [![license](https://img.shields.io/badge/license-MIT-2e8bff)](LICENSE)
 
-[وب‌سایت](https://taymaz1391.github.io/ai/) · [مستندات](docs/) · [کارت مدل](docs/MODEL_CARD.md) · [معماری](docs/ARCHITECTURE.md) · [استقرار رایگان](docs/DEPLOY_FREE.md)
+[وب‌سایت](https://taymaz1391.github.io/ai/) · [دورهٔ ۵ ساعته](web/static/course.html) · [بستهٔ تبلیغات گوگل](docs/ADS.md) · [مستندات](docs/) · [کارت مدل](docs/MODEL_CARD.md) · [معماری](docs/ARCHITECTURE.md) · [استقرار رایگان](docs/DEPLOY_FREE.md)
 
 </div>
 
@@ -43,7 +43,7 @@
 | ورود / ثبت‌نام | `/login` · `/signup` | حساب با ایمیل و گذرواژه (scrypt)، نشست ۳۰ روزه |
 | تعرفه | `/pricing` | مقایسهٔ پلن‌ها و سهمیه‌ها |
 | مدل‌ها | `/models` | مشخصات مدل، سنجه‌های آموزش و سخت‌افزار |
-| دورهٔ ۵ ساعته | `/course` | ده درس کامل: پیکره، توکنایزر، ترنسفورمر، آموزش، استنتاج، امنیت و استقرار — با پیشرفت ذخیره‌شده و خواندن با صدای مرورگر |
+| دورهٔ ۵ ساعته | `/course` · `/en/course` | ده درس کامل: پیکره، توکنایزر، ترنسفورمر، آموزش، استنتاج، امنیت و استقرار — با پیشرفت ذخیره‌شده و خواندن با صدای مرورگر |
 | مستندات | `/docs` | شروع سریع، جدول API، معماری، استقرار |
 | درباره | `/about` | چرا، چگونه، مجوز داده‌ها، حریم خصوصی و شرایط استفاده |
 | اشتراک | `/s/{token}` | نمایش فقط‌خواندنی یک گفتگوی منتشرشده |

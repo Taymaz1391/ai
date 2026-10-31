@@ -625,6 +625,11 @@ def english_home(request: Request):
     return _with_lang_cookie(_page("en.html"), request)
 
 
+@app.get("/en/course", response_class=HTMLResponse)
+def english_course(request: Request):
+    return _with_lang_cookie(_page("en-course.html"), request)
+
+
 @app.get("/en/docs", response_class=HTMLResponse)
 def english_docs(request: Request):
     return _with_lang_cookie(_page("en-docs.html"), request)
@@ -683,14 +688,15 @@ def manifest() -> FileResponse:
 
 @app.get("/robots.txt")
 def robots() -> Response:
-    body = "User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: /sitemap.xml\n"
+    body = ("User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /admin\n"
+            "Sitemap: /sitemap.xml\n")
     return Response(body, media_type="text/plain")
 
 
 @app.get("/sitemap.xml")
 def sitemap(request: Request) -> Response:
     base = os.environ.get("RAYAN_PUBLIC_URL", str(request.base_url).rstrip("/"))
-    pages = ["", "chat", "pricing", "models", "about", "docs", "course", "summary", "en", "en/docs"]
+    pages = ["", "chat", "pricing", "models", "about", "docs", "course", "summary", "en", "en/course", "en/docs"]
     urls = "".join(f"<url><loc>{base}/{p}</loc></url>" for p in pages)
     xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
     return Response(xml, media_type="application/xml")
