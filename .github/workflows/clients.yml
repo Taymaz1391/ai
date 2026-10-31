@@ -127,13 +127,24 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -e
+          set +e
           if ! gh release view clients --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create clients \
+            out=$(gh release create clients \
               --repo "$GITHUB_REPOSITORY" \
               --title "رایان — نسخه‌های نصب (APK و EXE)" \
-              --notes "کلاینت‌های نازک رایان. هر دو به همان سرور وصل می‌شوند؛ ورود، نقش مدیر و سهمیه فقط سمت سرور تعیین می‌شود."
+              --notes "کلاینت‌های نازک رایان. هر دو به همان سرور وصل می‌شوند؛ ورود، نقش مدیر و سهمیه فقط سمت سرور تعیین می‌شود." 2>&1)
+            code=$?
+            if [ $code -ne 0 ]; then
+              echo "::error title=release-create-failed::${out//$'\n'/ | }"
+              exit 1
+            fi
           fi
-          gh release upload clients dist/rayan-android/rayan-android.apk dist/rayan-windows/rayan-windows.exe \
-            --repo "$GITHUB_REPOSITORY" --clobber
+          out=$(gh release upload clients dist/rayan-android/rayan-android.apk dist/rayan-windows/rayan-windows.exe \
+            --repo "$GITHUB_REPOSITORY" --clobber 2>&1)
+          code=$?
+          if [ $code -ne 0 ]; then
+            echo "::error title=release-upload-failed::${out//$'\n'/ | }"
+            exit 1
+          fi
+          echo "::notice title=release-ok::assets uploaded to the clients release"
           gh release view clients --repo "$GITHUB_REPOSITORY" --json assets,url
