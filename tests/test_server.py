@@ -241,6 +241,22 @@ class V3Test(unittest.TestCase):
         self.assertTrue(any(c["name"] == "database" and c["ok"] for c in data["checks"]))
         self.client.post("/api/admin/logout")
 
+    def test_geoip_table_override(self):
+        """جدول GeoIP محلی باید بدون هیچ سرویس بیرونی زبان را تعیین کند."""
+        import json
+        from unittest import mock
+        tmp = tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w", encoding="utf-8")
+        json.dump({"default": "", "ranges": [{"cidr": "203.0.113.0/24", "lang": "en"}]}, tmp)
+        tmp.close()
+        try:
+            with mock.patch.dict(os.environ, {"RAYAN_GEOIP": tmp.name}):
+                data = self.client.get("/api/locale",
+                                       headers={"x-forwarded-for": "203.0.113.9"}).json()
+            self.assertEqual((data["lang"], data["source"]), ("en", "geo"))
+        finally:
+            os.unlink(tmp.name)
+            os.environ.pop("RAYAN_GEOIP", None)
+
     def test_locale_detection_and_cookie(self):
         plain = self.client.get("/api/locale")
         self.assertEqual(plain.status_code, 200)
