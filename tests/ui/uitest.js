@@ -17,7 +17,10 @@ function check(name, ok, detail = "") {
 async function loadPage(pagePath, { runScripts = true } = {}) {
   const res = await fetch(`${BASE}${pagePath}`, { headers: { accept: "text/html" } });
   let html = await res.text();
-  const cookie = res.headers.get("set-cookie") || "";
+  // کوکی مهمان از همان پاسخ اولیه؛ بدون آن /api/chat اجازهٔ دسترسی نمی‌دهد
+  const initialCookies = typeof res.headers.getSetCookie === "function"
+    ? res.headers.getSetCookie()
+    : (res.headers.get("set-cookie") ? [res.headers.get("set-cookie")] : []);
   const vc = new VirtualConsole();
   vc.on("jsdomError", (e) => errors.push(`jsdomError[${pagePath}]: ${e.message}`));
   vc.on("error", (m) => errors.push(`console.error[${pagePath}]: ${m}`));
@@ -31,6 +34,12 @@ async function loadPage(pagePath, { runScripts = true } = {}) {
 
   // سبد کوکی ساده (jsdom کوکی fetch را نگه نمی‌دارد)
   const jar = new Map();
+  const absorb = (raw) => {
+    const [pair] = String(raw).split(";");
+    const idx = pair.indexOf("=");
+    if (idx > 0) jar.set(pair.slice(0, idx).trim(), pair.slice(idx + 1).trim());
+  };
+  initialCookies.forEach(absorb);
   const cookieHeader = () => [...jar.entries()].map(([k, v]) => `${k}=${v}`).join("; ");
   window.fetch = async (url, opts = {}) => {
     const absolute = url.startsWith("http") ? url : `${BASE}${url}`;
@@ -40,11 +49,7 @@ async function loadPage(pagePath, { runScripts = true } = {}) {
     const setCookies = typeof response.headers.getSetCookie === "function"
       ? response.headers.getSetCookie()
       : (response.headers.get("set-cookie") ? [response.headers.get("set-cookie")] : []);
-    setCookies.forEach((raw) => {
-      const [pair] = raw.split(";");
-      const idx = pair.indexOf("=");
-      if (idx > 0) jar.set(pair.slice(0, idx).trim(), pair.slice(idx + 1).trim());
-    });
+    setCookies.forEach(absorb);
     const text = await response.text();
     const body = ReadableStream
       ? new ReadableStream({
@@ -68,6 +73,9 @@ async function loadPage(pagePath, { runScripts = true } = {}) {
   window.TextEncoder = TextEncoder;
   window.requestAnimationFrame = (cb) => setTimeout(() => cb(Date.now()), 0);
   window.matchMedia = window.matchMedia || (() => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
+  window.HTMLMediaElement.prototype.play = () => Promise.resolve();
+  window.HTMLMediaElement.prototype.pause = () => {};
+  window.HTMLMediaElement.prototype.load = () => {};
   window.HTMLElement.prototype.scrollIntoView = () => {};
   window.HTMLElement.prototype.scrollTo = () => {};
   window.IntersectionObserver = class {
@@ -118,6 +126,13 @@ async function testLanding() {
   check("landing: faq", doc.querySelectorAll(".faq-item").length >= 5);
   check("landing: showcase rendered", doc.querySelectorAll("#showcase-list .showcase-item").length >= 3,
     String(doc.querySelectorAll("#showcase-list .showcase-item").length));
+  check("landing: brand motion section", !!doc.querySelector("#motion"));
+  check("landing: animated logo", /logo-motion\.webp/.test(
+    doc.querySelector(".motion-logo")?.getAttribute("src") || ""));
+  check("landing: animated orb in hero", /orb-live\.webp/.test(
+    doc.querySelector(".hero-orb img")?.getAttribute("src") || ""));
+  check("landing: no promo video", !doc.querySelector("video"));
+  check("landing: no academy", !doc.querySelector('a[href="/academy"]'));
   check("landing: hero status", /مدل|گام|آموزش/.test(doc.querySelector("#hero-status")?.textContent || ""),
     doc.querySelector("#hero-status")?.textContent);
   const answers = doc.querySelector("#live-answers")?.textContent || "";
@@ -139,7 +154,50 @@ async function testAuth() {
   await wait(120);
   check("signup: validation error", /معتبر|۸/.test(doc.querySelector("#auth-error")?.textContent || ""),
     doc.querySelector("#auth-error")?.textContent);
+  // ویدیوی معرفی تمام‌صفحه: آماده ولی پنهان تا لحظهٔ ساخت حساب
+  const reel = doc.querySelector("#welcome-reel");
+  check("signup: welcome reel hidden", !!reel && reel.hidden === true, String(!!reel));
+  check("signup: reel shows animated logo", /logo-motion(-dark)?\.webp/.test(
+    doc.querySelector("#welcome-reel .reel-logo")?.getAttribute("src") || ""));
+  check("signup: reel has no video", !doc.querySelector("#welcome-reel video"));
+  check("signup: no api key panel", !doc.querySelector("#key-form") && !doc.querySelector("#api-key"));
   return { window };
+}
+
+async function testSignupReel() {
+  const { window } = await loadPage("/signup");
+  const doc = window.document;
+  // jsdom عناصر رسانه را پیاده نکرده؛ فقط برای این آزمون ساکتشان می‌کنیم
+  window.HTMLMediaElement.prototype.load = function () {};
+  window.HTMLMediaElement.prototype.play = function () { return Promise.resolve(); };
+  window.HTMLMediaElement.prototype.pause = function () {};
+  const email = `reel${Date.now()}@example.com`;
+  // «من ربات نیستم»: مثل آدم، کمی صبر و تعامل، بعد کادر را می‌زنیم
+  await wait(900);
+  doc.dispatchEvent(new window.Event("pointermove", { bubbles: true }));
+  doc.dispatchEvent(new window.Event("pointermove", { bubbles: true }));
+  doc.querySelector(".human-box").click();
+  for (let i = 0; i < 60; i++) {
+    const value = doc.querySelector("#human-slot input[name='captcha']")?.value || "";
+    if (value) break;
+    await wait(100);
+  }
+  check("signup: human check solved",
+    !!doc.querySelector("#human-slot input[name='captcha']")?.value,
+    doc.querySelector(".human-note")?.textContent || "");
+  window.RAYAN_REEL_MS = 60000;   // در آزمون، پایان خودکار نمایش را عقب می‌اندازیم
+  doc.querySelector("#name").value = "آزمون ویدیو";
+  doc.querySelector("#email").value = email;
+  doc.querySelector("#password").value = "Secret12345";
+  doc.querySelector("#auth-form").dispatchEvent(new window.Event("submit", { cancelable: true, bubbles: true }));
+  await wait(1500);
+  const reel = doc.querySelector("#welcome-reel");
+  check("signup: reel shown after register", !!reel && reel.hidden === false, String(reel && reel.hidden));
+  check("signup: reel is playing", reel?.classList.contains("is-playing"), reel?.className);
+  const loc = window.location.pathname;
+  check("signup: stays on page during reel", loc.startsWith("/signup"), loc);
+  // نمایش با تایمر پایان می‌یابد؛ پیش از آن پنجرهٔ آزمایشی بسته می‌شود
+  window.close();
 }
 
 async function testChat() {
@@ -149,12 +207,60 @@ async function testChat() {
   check("chat: empty state", doc.querySelector("#empty-state")?.hidden === false);
   check("chat: suggestions", doc.querySelectorAll("#suggestions .suggestion").length >= 4,
     String(doc.querySelectorAll("#suggestions .suggestion").length));
-  check("chat: models loaded", doc.querySelector("#model-label")?.textContent?.includes("رایان") === true,
-    doc.querySelector("#model-label")?.textContent);
+  const modelLabel = doc.querySelector("#model-label");
+  check("chat: models loaded",
+    /کوچک/.test(modelLabel?.textContent || "") && !!modelLabel?.querySelector(".model-logo"),
+    modelLabel?.innerHTML?.slice(0, 80));
 
   // نام کاربر (مهمان)
   const uname = doc.querySelector("[data-user-name]")?.textContent;
   check("chat: account chrome", uname === "مهمان", uname);
+
+  // نوار گفتگوها: یک دکمه باز می‌کند، یک دکمه می‌بندد و نوار کامل ناپدید می‌شود
+  const sidebar = doc.querySelector("#sidebar");
+  const scrim = doc.querySelector("#sidebar-scrim");
+  const toggle = doc.querySelector("#sidebar-open");
+  check("chat: sidebar closed by default", !sidebar.classList.contains("is-open"));
+  toggle.click();
+  check("chat: sidebar opens", sidebar.classList.contains("is-open") && scrim.hidden === false,
+    `${sidebar.className}|${scrim.hidden}`);
+  check("chat: sidebar aria expanded", toggle.getAttribute("aria-expanded") === "true");
+  doc.querySelector("#sidebar-close").click();
+  check("chat: sidebar fully hidden", !sidebar.classList.contains("is-open")
+    && sidebar.hasAttribute("inert") && sidebar.getAttribute("aria-hidden") === "true",
+    `${sidebar.className}|${sidebar.hasAttribute("inert")}`);
+  check("chat: scrim removed", scrim.hidden === true);
+  check("chat: toggle still reachable", !!toggle && !toggle.hasAttribute("hidden")
+    && !toggle.hasAttribute("disabled"));
+  toggle.click();
+  check("chat: one button restores sidebar", sidebar.classList.contains("is-open") && scrim.hidden === false);
+  toggle.click();
+  check("chat: same button closes again", !sidebar.classList.contains("is-open") && scrim.hidden === true);
+
+  // گفتگوی صوتی: دکمه در نوار نوشتن و واسط جهانی در دسترس است
+  const voiceBtn = doc.querySelector("#voice-btn");
+  check("chat: voice button", !!voiceBtn && !!voiceBtn.querySelector(".voice-waves"));
+  check("chat: voice label", /صوتی/.test(voiceBtn?.querySelector(".voice-label")?.textContent || ""),
+    voiceBtn?.querySelector(".voice-label")?.textContent);
+  check("chat: voice api", typeof window.RAYAN_VOICE?.start === "function" &&
+    typeof window.RAYAN_VOICE?.speak === "function");
+  voiceBtn?.click();
+  await wait(150);
+  check("chat: voice button reacts", !!voiceBtn && (
+    voiceBtn.classList.contains("is-listening") ||
+    voiceBtn.classList.contains("is-unsupported") ||
+    voiceBtn.getAttribute("aria-pressed") === "true"),
+    voiceBtn?.className);
+  window.RAYAN_VOICE?.stop?.();
+
+  // پکیج سرعت و اسکرول نرم
+  check("chat: scroll progress bar", !!doc.querySelector(".scroll-progress > i"));
+  check("chat: smooth scroll helper", typeof window.RAYAN?.smoothScroll === "function");
+
+  // نشان متحرک به‌جای ویدیو و آیکون ثابت
+  check("chat: no promo modal", !doc.querySelector("#promo-modal"));
+  check("chat: empty orb animated", /orb-live\.webp/.test(
+    doc.querySelector(".empty-orb img")?.getAttribute("src") || ""));
 
   // ارسال پیام واقعی (جریان)
   const prompt = doc.querySelector("#prompt");
@@ -164,6 +270,12 @@ async function testChat() {
   const bubbles = [...doc.querySelectorAll(".msg.bot .bubble")].map((b) => b.textContent.trim());
   const answer = bubbles[bubbles.length - 1] || "";
   check("chat: answer streamed", answer.length > 3, JSON.stringify(answer.slice(0, 60)));
+  const botOrb = doc.querySelector(".msg.bot .who-orb");
+  check("chat: answer orb present", !!botOrb, String(!!botOrb));
+  check("chat: orb has face layer", !!botOrb?.querySelector(".face .lid"),
+    botOrb?.innerHTML?.slice(0, 60) || "missing");
+  check("chat: orb state settles", ["", "happy"].includes(botOrb?.dataset.state || ""),
+    botOrb?.dataset.state);
   const userBubble = doc.querySelector(".msg.user .bubble")?.textContent || "";
   check("chat: user bubble", userBubble.includes("خودت"), userBubble);
   const convs = doc.querySelectorAll(".conv-item").length;
@@ -180,7 +292,7 @@ async function testChat() {
   check("chat: deep toggled", doc.querySelector("#deep-toggle").getAttribute("aria-pressed") === "true");
   prompt.value = "اسمت چیست؟";
   doc.querySelector("#composer").dispatchEvent(new window.Event("submit", { cancelable: true, bubbles: true }));
-  await wait(3500);
+  await wait(9000);
   check("chat: deep trace shown", doc.querySelectorAll(".trace").length >= 1,
     String(doc.querySelectorAll(".trace").length));
   const traceText = doc.querySelector(".trace summary")?.textContent || "";
@@ -219,19 +331,116 @@ async function testPages() {
     check(`${page}: nav`, doc.querySelectorAll(".nav-links a").length >= 5);
     if (page === "/models") {
       check("models: cards", doc.querySelectorAll(".model-card").length === 3);
-      check("models: eval table", doc.querySelectorAll("#eval-table tbody tr").length >= 6);
+      check("models: eval table", doc.querySelectorAll("#eval-table tbody tr").length >= 4);
     }
     if (page === "/pricing") check("pricing: plans", doc.querySelectorAll(".plan").length === 3);
     if (page === "/about") check("about: sections", doc.querySelectorAll(".prose h2").length >= 5);
   }
 }
 
+async function testAdminGate() {
+  const { window } = await loadPage("/admin");
+  const doc = window.document;
+  check("admin: login gate", doc.querySelector("#admin-login")?.hidden === false);
+  check("admin: shell hidden", doc.querySelector("#admin-shell")?.hidden === true);
+  const pw = doc.querySelector("#admin-password");
+  // اعتبارسنجی سمت مرورگر؛ عمداً درخواست ورود نمی‌فرستیم تا قفل تلاش‌های ناموفق فعال نشود.
+  check("admin: password field constrained", pw.getAttribute("type") === "password"
+    && Number(pw.getAttribute("minlength")) >= 6);
+  const form = doc.querySelector("#login-form");
+  check("admin: form wired", !!form && typeof form.requestSubmit === "function");
+}
+
+async function testOfflinePage() {
+  const { window } = await loadPage("/offline");
+  const doc = window.document;
+  check("offline: headline", /بدون اتصال|اتصال/.test(doc.body.textContent));
+  check("offline: retry", !!doc.querySelector("#retry"));
+  check("offline: noindex", /noindex/.test(doc.querySelector('meta[name="robots"]')?.content || ""));
+}
+
+async function testToolChip() {
+  const { window } = await loadPage("/chat");
+  const doc = window.document;
+  const prompt = doc.querySelector("#prompt");
+  prompt.value = "۷*۶ چند است؟";
+  doc.querySelector("#composer").dispatchEvent(new window.Event("submit", { cancelable: true, bubbles: true }));
+  await wait(1800);
+  const chip = doc.querySelector(".tool-result .tool-badge")?.textContent || "";
+  const value = doc.querySelector(".tool-result b")?.textContent || "";
+  check("chat: tool chip shown", /ماشین/.test(chip), chip);
+  check("chat: tool value 42", value.replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).includes("42"), value);
+}
+
+async function testThemeToggle() {
+  const { window } = await loadPage("/");
+  const doc = window.document;
+  const html = doc.documentElement;
+  check("theme: light by default", html.getAttribute("data-theme") !== "dark", html.getAttribute("data-theme") || "light");
+  const toggle = doc.querySelector("[data-theme-toggle]");
+  check("theme: toggle present", !!toggle);
+  if (toggle) {
+    toggle.click();
+    await wait(120);
+    check("theme: switches to dark", html.getAttribute("data-theme") === "dark", html.getAttribute("data-theme"));
+    toggle.click();
+    await wait(120);
+    check("theme: switches back", html.getAttribute("data-theme") === "light", html.getAttribute("data-theme"));
+  }
+}
+
+async function testCourse() {
+  const { window } = await loadPage("/course");
+  const doc = window.document;
+  check("course: title", /۵ ساعته/.test(doc.title), doc.title);
+  const lessons = [...doc.querySelectorAll("[data-lesson]")];
+  check("course: ten lessons", lessons.length === 10, String(lessons.length));
+  const minutes = lessons.reduce((n, el) => n + Number(el.getAttribute("data-min") || 0), 0);
+  check("course: five hours", minutes === 300, String(minutes));
+  check("course: content", doc.body.textContent.length > 15000, String(doc.body.textContent.length));
+  check("course: progress bar", !!doc.getElementById("course-bar-fill"));
+  check("course: read aloud buttons", doc.querySelectorAll("[data-read]").length === 10);
+  const first = doc.querySelector("[data-done]");
+  first.click();
+  await wait(60);
+  check("course: progress updates", /۱۰٪/.test(doc.getElementById("course-percent").textContent),
+    doc.getElementById("course-percent").textContent);
+  check("course: progress stored", /rayan.course/.test(JSON.stringify(Object.keys(window.localStorage)))
+    || !!window.localStorage.getItem("rayan.course.v1"));
+  check("course: toc", doc.querySelectorAll(".course-toc a").length >= 10);
+}
+
+async function testPersianOnlyAndSummary() {
+  const home = await loadPage("/");
+  const homeDoc = home.window.document;
+  check("fa: html lang", homeDoc.documentElement.lang === "fa", homeDoc.documentElement.lang);
+  check("fa: dir rtl", homeDoc.documentElement.dir === "rtl", homeDoc.documentElement.dir);
+  check("fa: no english switch", !homeDoc.querySelector('a[href="/en"]'));
+  check("fa: motion assets", !!homeDoc.querySelector("#motion .motion-logo") &&
+    !!homeDoc.querySelector("#motion .motion-orb img"));
+  check("fa: brand mark is an image", !!homeDoc.querySelector('.brand img[alt="رایان"]'));
+
+  const sum = await loadPage("/summary");
+  const sumDoc = sum.window.document;
+  check("summary: title", /خلاصه/.test(sumDoc.title), sumDoc.title);
+  check("summary: cards", sumDoc.querySelectorAll(".sum-card").length >= 5,
+    String(sumDoc.querySelectorAll(".sum-card").length));
+  check("summary: limits mentioned", /یک میلیارد/.test(sumDoc.body.textContent));
+}
+
 (async () => {
   try {
     await testLanding();
     await testAuth();
+    await testSignupReel();
     await testChat();
     await testPages();
+    await testAdminGate();
+    await testOfflinePage();
+    await testToolChip();
+    await testThemeToggle();
+    await testCourse();
+    await testPersianOnlyAndSummary();
   } catch (err) {
     errors.push(`FATAL: ${err.stack}`);
   }

@@ -13,6 +13,7 @@ import argparse
 import json
 import re
 import shutil
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -25,6 +26,12 @@ PAGES = {
     "models.html": "models.html",
     "about.html": "about.html",
     "docs.html": "docs.html",
+    "download.html": "download.html",
+    "course.html": "course.html",
+    "offline.html": "offline.html",
+    "summary.html": "summary.html",
+    "developer.html": "developer.html",
+    "support.html": "support.html",
 }
 
 # مسیرهای سرور → فایل‌های استاتیک
@@ -35,9 +42,36 @@ ROUTES = {
     "/models": "models.html",
     "/about": "about.html",
     "/docs": "docs.html",
+    "/download": "download.html",
+    "/course": "course.html",
     "/login": "login.html",
     "/signup": "signup.html",
+    "/offline": "offline.html",
+    "/summary": "summary.html",
+    "/developer": "developer.html",
+    "/support": "support.html",
 }
+
+NOT_FOUND_HTML = """<!doctype html>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>۴۰۴ — صفحه پیدا نشد · رایان</title><meta name="robots" content="noindex">
+<link rel="icon" href="static/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/styles.css">
+<style>body{min-height:100dvh;display:grid;place-items:center;padding:32px 20px}
+.nf{max-width:520px;text-align:center;background:var(--surface);border:1px solid var(--line);
+border-radius:26px;padding:40px 30px;box-shadow:var(--shadow-lg)}
+.nf img{height:44px;width:auto;margin:0 auto 18px;display:block}
+.nf h1{font-size:22px;margin:0 0 10px}.nf p{color:var(--text-2);font-size:14px;line-height:2;margin:0 0 20px}
+.nf .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}</style></head>
+<body><main class="nf">
+<img src="static/assets/brand/mark-ink.png" alt="رایان" width="109" height="55">
+<h1>این صفحه پیدا نشد</h1>
+<p>نشانی اشتباه است یا صفحه جابه‌جا شده. از خانه یا مستندات شروع کن؛ دورهٔ ۵ ساعته هم همان‌جاست.</p>
+<div class="row"><a class="btn btn-primary" href="index.html">بازگشت به خانه</a>
+<a class="btn btn-ghost" href="course.html">دورهٔ ۵ ساعته</a>
+<a class="btn btn-ghost" href="docs.html">مستندات</a></div>
+</main></body></html>"""
 
 RUNTIME_CONFIG = """/* ساخته‌شده به‌صورت خودکار برای نسخهٔ استاتیک (GitHub Pages). */
 window.RAYAN_CONFIG = {{
@@ -83,6 +117,7 @@ def rewrite_js(js: str) -> str:
     js = js.replace('"/manifest.webmanifest"', '"manifest.webmanifest"')
     js = js.replace('navigator.serviceWorker.register("/sw.js")', 'navigator.serviceWorker.register("sw.js")')
     js = js.replace('"/chat"', '"chat.html"')
+    js = js.replace('"/academy"', '"academy.html"')
     js = js.replace('"/login"', '"login.html"')
     js = js.replace('"/signup"', '"signup.html"')
     return js
@@ -118,13 +153,16 @@ def build(out: Path) -> dict:
 
     # دارایی‌ها
     shutil.copytree(STATIC / "assets", out / "static" / "assets")
-    for name in ("styles.css", "pages.css", "landing.css", "chat.css",
-                 "ui.js", "landing.js", "app.js", "auth.js", "models.js", "share.js"):
-        path = STATIC / name
-        if path.exists():
-            text = read(path)
-            (out / "static" / name).write_text(rewrite_js(text), encoding="utf-8")
-    (out / "static" / "config.js").write_text(RUNTIME_CONFIG.format(version=version), encoding="utf-8")
+    # هر CSS/JS تازه هم خودکار کپی می‌شود تا صفحه‌های تازه بی‌استایل نمانند.
+    for path in sorted(STATIC.glob("*.css")):
+        (out / "static" / path.name).write_text(read(path), encoding="utf-8")
+    for path in sorted(STATIC.glob("*.js")):
+        if path.name in ("sw.js", "config.js"):
+            continue
+        (out / "static" / path.name).write_text(rewrite_js(read(path)), encoding="utf-8")
+    (out / "static" / "config.js").write_text(
+        RUNTIME_CONFIG.format(version=version, built_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())),
+        encoding="utf-8")
 
     # سرویس‌ورکر با مسیرهای نسبی
     sw = rewrite_js(read(STATIC / "sw.js"))
@@ -141,11 +179,8 @@ def build(out: Path) -> dict:
 
     (out / "robots.txt").write_text("User-agent: *\nAllow: /\n", encoding="utf-8")
     (out / ".nojekyll").write_text("", encoding="utf-8")
-    not_found = rendered.get("index.html", "").replace(
-        "</main>", "<h1 style='padding:40px'>۴۰۴ — صفحه پیدا نشد</h1></main>")
-    (out / "404.html").write_text(not_found, encoding="utf-8")
-    if not_found:
-        rendered["404.html"] = not_found
+    (out / "404.html").write_text(NOT_FOUND_HTML, encoding="utf-8")
+    rendered["404.html"] = NOT_FOUND_HTML
 
     return {"pages": pages + 2, "files": sum(1 for _ in out.rglob("*") if _.is_file()), "version": version}
 

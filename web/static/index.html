@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>رایان | هوش مصنوعی فارسی، ساخته‌شده از صفر</title>
   <meta name="description" content="رایان، دستیار هوش مصنوعی فارسی: مدل زبانی بومی که بدون هیچ مدل آماده، از صفر روی متن فارسی آموزش دیده است. گفتگو، شعر و ادامهٔ متن با شفافیت کامل.">
-  <meta name="theme-color" content="#050b1a">
+  <meta name="theme-color" content="#ffffff">
   <meta property="og:title" content="رایان | هوش مصنوعی فارسی">
   <meta property="og:description" content="دستیار هوش مصنوعی فارسی؛ ساخته‌شده از صفر با NumPy و آموزش‌دیده روی متن فارسی.">
   <meta property="og:type" content="website">
@@ -20,6 +20,7 @@
   <link rel="preload" href="/static/assets/fonts/Vazirmatn-Black.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="stylesheet" href="/static/landing.css">
+  <script src="/static/theme-boot.js"></script>
 </head>
 <body>
   <div class="backdrop" aria-hidden="true">
@@ -37,11 +38,10 @@
   <header class="nav">
     <div class="nav-inner">
       <a class="brand" href="/" aria-label="رایان، خانه">
-        <img class="brand-orb" src="/static/assets/brand/orb-128.png" alt="" width="34" height="34">
-        <span class="brand-name">
-          <b>رایان</b>
-          <span>RAYAN</span>
-        </span>
+        <img class="brand-wordmark wordmark-for-light" src="/static/assets/brand/mark-ink.png"
+             alt="رایان" width="116" height="59">
+        <img class="brand-wordmark wordmark-for-dark" src="/static/assets/brand/mark-white.png"
+             alt="رایان" width="116" height="59">
       </a>
       <nav class="nav-links" aria-label="پیمایش اصلی">
         <a class="nav-link" href="#features">قابلیت‌ها</a>
@@ -49,8 +49,7 @@
         <a class="nav-link" href="/models">مدل‌ها</a>
         <a class="nav-link" href="/pricing">تعرفه</a>
         <a class="nav-link" href="/docs">مستندات</a>
-        <a class="nav-link" href="/about">درباره</a>
-      </nav>
+        <a class="nav-link" href="/support">پشتیبانی</a></nav>
       <div class="nav-actions">
         <a class="btn btn-ghost btn-sm" href="/login" data-auth="guest">ورود</a>
         <a class="btn btn-primary btn-sm" href="/chat" data-auth="guest">شروع گفتگو</a>
@@ -64,21 +63,30 @@
   </header>
 
   <main>
+    <div class="wrap" style="padding-top:14px">
+      <div class="ad-slot" data-ad-slot="home-top" hidden></div>
+    </div>
     <!-- ============================================================ هیرو -->
     <section class="hero">
       <div class="wrap">
         <div class="hero-grid">
           <div class="hero-copy">
-            <span class="eyebrow">هوش مصنوعی فارسی · نسخهٔ ۱٫۰</span>
+            <div class="hero-orb-row">
+              <span class="orb-live hero-orb" data-size="72">
+                <img src="/static/assets/brand/orb-live.webp" alt="رایان" width="72" height="72" loading="eager">
+                <i class="lid l"></i><i class="lid r"></i>
+              </span>
+              <span class="eyebrow">هوش مصنوعی فارسی · نسخهٔ ۳٫۰</span>
+            </div>
             <h1 class="hero-title">فارسی را<br>می‌فهمد، <span class="grad-text">از صفر</span><span class="dot">.</span></h1>
             <p class="hero-sub">
-              رایان یک دستیار هوش مصنوعی فارسی است که <em>هیچ</em> مدل آماده‌ای ندارد.
+               <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> یک دستیار هوش مصنوعی فارسی است که <em>هیچ</em> مدل آماده‌ای ندارد.
               توکنایزر، معماری، آموزش و استنتاج همه در همین پروژه از پایه نوشته شده‌اند و
               روی یک سرور ساده اجرا می‌شوند.
             </p>
             <div class="hero-cta">
               <a class="btn btn-primary btn-lg" href="/chat">
-                گفتگو با رایان
+                گفتگو با <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> 
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
               </a>
               <a class="btn btn-lg" href="/login">ساخت حساب رایگان</a>
@@ -86,8 +94,7 @@
             <p class="hero-note"><span class="dot-live"></span><span id="hero-status">در حال خواندن وضعیت مدل…</span></p>
             <div class="hero-stats">
               <div class="hero-stat"><b id="stat-params">۶٫۵۷ میلیون</b><span>پارامتر</span></div>
-              <div class="hero-stat"><b id="stat-tokens">۱۴٫۷ میلیون</b><span>توکن آموزش</span></div>
-              <div class="hero-stat"><b id="stat-loss">۵٫۳۱</b><span>خطای اعتبارسنجی</span></div>
+              <div class="hero-stat"><b id="stat-speed">۸۴</b><span>توکن بر ثانیه</span></div>
               <div class="hero-stat"><b>۱۰۰٪</b><span>فارسی و محلی</span></div>
             </div>
           </div>
@@ -96,7 +103,11 @@
             <div class="preview-frame">
               <div class="preview-bar">
                 <i></i><i></i><i></i>
-                <span>رایان · گفتگوی تازه</span>
+                <span class="preview-brand">
+                  <img class="wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="62" height="32" decoding="async">
+                  <img class="wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="62" height="32" decoding="async">
+                  <em>گفتگوی تازه</em>
+                </span>
               </div>
               <div class="preview-body">
                 <div class="preview-msg user">
@@ -104,16 +115,16 @@
                   <div class="bubble">یک شعر بگو دربارهٔ عشق و شب</div>
                 </div>
                 <div class="preview-msg bot">
-                  <span class="who"><img src="/static/assets/brand/orb-128.png" alt="" width="28" height="28"></span>
-                  <div class="bubble" id="preview-answer">به نام گل و به هر دم<br>گر بنماید از وی تو چو برآمده از من<br>که در نظر ما چو هر چه کنم چو تو از چه کار ما<br>چه باشد چو مرا ز خاک و چه خوش است چه باشد</div>
+                  <span class="who"><img src="/static/assets/brand/orb-live-sm.webp" alt="" width="28" height="28"></span>
+                  <div class="bubble" id="preview-answer">شب است و پنجره باز؛<br>باران برایت شعر می‌گوید.</div>
                 </div>
                 <div class="preview-msg user">
                   <span class="who">ش</span>
                   <div class="bubble">خودت را معرفی کن</div>
                 </div>
                 <div class="preview-msg bot">
-                  <span class="who"><img src="/static/assets/brand/orb-128.png" alt="" width="28" height="28"></span>
-                  <div class="bubble">من رایان هستم؛ یک مدل زبانی فارسی کوچک که از صفر آموزش دیده است.</div>
+                  <span class="who"><img src="/static/assets/brand/orb-live-sm.webp" alt="" width="28" height="28"></span>
+                  <div class="bubble">من <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> هستم؛ یک مدل زبانی فارسی کوچک که از صفر آموزش دیده است.</div>
                 </div>
               </div>
               <div class="preview-foot">
@@ -123,17 +134,14 @@
                 </div>
               </div>
             </div>
-            <div class="preview-float">
-              <span class="dot-live"></span>
-              <span>بدون API بیرونی · اجرا روی CPU</span>
-            </div>
+            <p class="preview-caption">تصویر رابط کاربری · پاسخ نمونه · بدون API بیرونی</p>
           </div>
         </div>
       </div>
     </section>
 
     <div class="wrap"><div class="logos">
-      <span>NumPy</span><span>FastAPI</span><span>SQLite</span><span>Vazirmatn</span><span>Ganjoor</span><span>Hamshahri</span>
+      <span>NumPy</span><span>FastAPI</span><span>SQLite</span><span>Vazirmatn</span>
     </div></div>
 
     <!-- ======================================================= قابلیت‌ها -->
@@ -204,43 +212,38 @@
         </div>
         <div class="steps">
           <div class="step-row reveal">
-            <div class="step-num">۰۱ / DATA</div>
+            <div class="step-num">۰۱ / داده</div>
             <div class="step-body">
               <h3>پیکرهٔ فارسی</h3>
-              <p>خبر فارسی، روزنامهٔ همشهری و شعر کلاسیک گنجور: ۱۶٫۹ میلیون نویسه پس از پاک‌سازی، نرمال‌سازی و حذف تبلیغات.</p>
-              <div class="step-tags"><span class="tag">۷۸٪ خبر</span><span class="tag">۲۰٪ شعر</span><span class="tag">۲٪ گفتگو</span></div>
+              <p>خبر، روزنامه و شعر کلاسیک؛ ۱۶٫۹ میلیون نویسهٔ تمیزشده پس از حذف تکراری‌ها.</p>
             </div>
           </div>
           <div class="step-row reveal">
-            <div class="step-num">۰۲ / TOKENIZER</div>
+            <div class="step-num">۰۲ / توکنایزر</div>
             <div class="step-body">
               <h3>توکنایزر BPE فارسی</h3>
-              <p>۱۰٬۰۰۰ توکن، آموزش‌دیده روی همین پیکره؛ با حفظ نیم‌فاصله و چسباندن نشانه‌گذاری به واژه. ۴٫۲۳ نویسه در هر توکن.</p>
-              <div class="step-tags"><span class="tag">بدون کتابخانهٔ بیرونی</span><span class="tag">ZWNJ-safe</span></div>
+              <p>واژه‌ها را با نیم‌فاصله و نشانه‌گذاری فارسی می‌شناسد، نه با برش سادهٔ حرف.</p>
             </div>
           </div>
           <div class="step-row reveal">
-            <div class="step-num">۰۳ / MODEL</div>
+            <div class="step-num">۰۳ / مدل</div>
             <div class="step-body">
               <h3>ترنسفورمر ۶٫۵۷ میلیون پارامتری</h3>
-              <p>۵ لایه، ۴ سر توجه، بُعد ۲۵۶ و زمینهٔ ۲۵۶ توکن؛ پیش‌رو، پس‌رو و AdamW همه با NumPy پیاده شده‌اند.</p>
-              <div class="step-tags"><span class="tag">پس‌انتشار دستی</span><span class="tag">بدون PyTorch</span><span class="tag">CPU</span></div>
+              <p>یک ترنسفورمر کوچک که کاملاً با <bdi dir="ltr">NumPy</bdi> ساخته شده؛ نه <bdi dir="ltr">PyTorch</bdi>، نه وزن آماده.</p>
             </div>
           </div>
           <div class="step-row reveal">
-            <div class="step-num">۰۴ / TRAIN</div>
+            <div class="step-num">۰۴ / آموزش</div>
             <div class="step-body">
               <h3>۲٬۴۰۰ گام آموزش واقعی</h3>
-              <p>۱۴٫۷ میلیون توکن در دو فاز؛ از loss ۹٫۲۵ تا ۵٫۳۱ روی دادهٔ نگه‌داشته‌شده. حدود ۱۳۵ دقیقه روی دو هستهٔ CPU.</p>
-              <div class="step-tags"><span class="tag-blue tag">val_loss ۵٫۳۱</span><span class="tag-blue tag">ppl ۲۰۲</span><span class="tag-blue tag">۱٬۸۹۰ توکن/ث</span></div>
+              <p>۲٬۴۰۰ گام روی دو هستهٔ CPU؛ خطای اعتبارسنجی از ۹٫۲۵ به ۵٫۳۱ رسید.</p>
             </div>
           </div>
           <div class="step-row reveal">
-            <div class="step-num">۰۵ / SERVE</div>
+            <div class="step-num">۰۵ / سرو</div>
             <div class="step-body">
               <h3>سرویس و رابط کاربری</h3>
-              <p>FastAPI با کش KV، جریان NDJSON، حساب کاربری SQLite و همین رابط فارسی بدون هیچ فریم‌ورک ظاهری.</p>
-              <div class="step-tags"><span class="tag">جریان توکنی</span><span class="tag">SQLite</span><span class="tag">PWA</span></div>
+              <p>پاسخ واژه‌به‌واژه می‌رسد، گفتگوها می‌مانند و کل سایت بدون فریم‌ورک ظاهری ساخته شده است.</p>
             </div>
           </div>
         </div>
@@ -292,7 +295,31 @@
       </div>
     </section>
 
+    <!-- ====================================================== نشانِ زندهٔ برند -->
+    <section class="section-sm motion-section" id="motion" aria-labelledby="motion-title">
+      <div class="wrap">
+        <h2 class="sr-only" id="motion-title">نشان زندهٔ رایان</h2>
+        <div class="motion-shell reveal">
+          <div class="motion-stage">
+            <span class="motion-halo" aria-hidden="true"></span>
+            <span class="motion-grid" aria-hidden="true"></span>
+            <img class="motion-logo motion-for-light" src="/static/assets/brand/logo-motion.webp"
+                 alt="نشان رایان" width="640" height="320" loading="lazy" decoding="async">
+            <img class="motion-logo motion-for-dark" src="/static/assets/brand/logo-motion-dark.webp"
+                 alt="" aria-hidden="true" width="640" height="320" loading="lazy" decoding="async">
+            <span class="motion-orb">
+              <img src="/static/assets/brand/orb-live.webp" alt="" width="132" height="132" loading="lazy" decoding="async">
+            </span>
+            <span class="motion-vignette" aria-hidden="true"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ========================================================= تعرفه -->
+    
+    <div class="wrap"><div class="ad-slot ad-inline" data-ad-slot="home-mid" hidden></div></div>
+
     <section class="section" id="pricing">
       <div class="wrap">
         <div class="section-head center">
@@ -350,12 +377,12 @@
         </div>
         <div class="faq">
           <div class="faq-item">
-            <button class="faq-q" aria-expanded="false">آیا رایان مثل ChatGPT است؟ <span class="chev">+</span></button>
-            <div class="faq-a"><p>نه. رایان از نظر مقیاس با مدل‌های میلیاردپارامتری فاصلهٔ زیادی دارد: ۶٫۵۷ میلیون پارامتر در برابر صدها میلیارد. هدف این پروژه ساختن یک جایگزین نیست؛ نمایش شفاف ساخت یک مدل زبانی فارسی از صفر است. اما تجربهٔ محصولش — حساب، تاریخچه، جریان پاسخ، اشتراک‌گذاری — کامل است.</p></div>
+            <button class="faq-q" aria-expanded="false">آیا <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> مثل ChatGPT است؟ <span class="chev">+</span></button>
+            <div class="faq-a"><p>نه. <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> از نظر مقیاس با مدل‌های میلیاردپارامتری فاصلهٔ زیادی دارد: ۶٫۵۷ میلیون پارامتر در برابر صدها میلیارد. هدف این پروژه ساختن یک جایگزین نیست؛ نمایش شفاف ساخت یک مدل زبانی فارسی از صفر است. اما تجربهٔ محصولش — حساب، تاریخچه، جریان پاسخ، اشتراک‌گذاری — کامل است.</p></div>
           </div>
           <div class="faq-item">
             <button class="faq-q" aria-expanded="false">از هیچ مدل آماده‌ای استفاده شده؟ <span class="chev">+</span></button>
-            <div class="faq-a"><p>خیر. وزن‌ها از صفر مقداردهی و آموزش داده شده‌اند؛ توکنایزر هم روی پیکرهٔ خودمان آموزش دیده. تنها وابستگی‌ها NumPy، FastAPI و SQLite هستند — نه وزن آماده، نه API بیرونی.</p></div>
+            <div class="faq-a"><p>خیر. وزن‌ها از صفر مقداردهی و آموزش داده شده‌اند؛ توکنایزر هم روی پیکرهٔ خودمان آموزش دیده. تنها وابستگی‌ها <bdi dir="ltr">NumPy</bdi>، <bdi dir="ltr">FastAPI</bdi> و <bdi dir="ltr">SQLite</bdi> هستند — نه وزن آماده، نه API بیرونی.</p></div>
           </div>
           <div class="faq-item">
             <button class="faq-q" aria-expanded="false">چرا پاسخ‌ها گاهی نامفهوم‌اند؟ <span class="chev">+</span></button>
@@ -378,7 +405,7 @@
       <div class="wrap">
         <div class="cta-band reveal">
           <img src="/static/assets/brand/orb-256.png" alt="" width="72" height="72" class="cta-orb">
-          <h2>همین حالا با رایان حرف بزن</h2>
+          <h2>همین حالا با <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> حرف بزن</h2>
           <p>بدون ثبت‌نام شروع کن. اگر خوشت آمد، حساب بساز تا گفتگوهایت بمانند.</p>
           <div class="cta-actions">
             <a class="btn btn-primary btn-lg" href="/chat">شروع گفتگو</a>
@@ -393,9 +420,9 @@
     <div class="wrap">
       <div class="footer-grid">
         <div class="footer-about">
-          <a class="brand" href="/">
-            <img class="brand-orb" src="/static/assets/brand/orb-128.png" alt="" width="34" height="34">
-            <span class="brand-name"><b>رایان</b><span>RAYAN</span></span>
+          <a href="/" aria-label="رایان، خانه">
+            <img class="lockup lockup-for-light" src="/static/assets/brand/logotype-stack-ink.png" alt="رایان — هوش مصنوعی، به زبان فارسی" width="178" height="187" loading="lazy">
+            <img class="lockup lockup-for-dark" src="/static/assets/brand/logotype-stack-white.png" alt="رایان — هوش مصنوعی، به زبان فارسی" width="178" height="187" loading="lazy">
           </a>
           <p>هوش مصنوعی فارسی، ساخته‌شده از صفر. کد، داده و وزن‌ها عمومی‌اند.</p>
         </div>
@@ -405,7 +432,8 @@
             <li><a href="/chat">گفتگو</a></li>
             <li><a href="/models">مدل‌ها</a></li>
             <li><a href="/pricing">تعرفه</a></li>
-            <li><a href="/login">ورود</a></li>
+            <li><a href="/download">دانلود اپلیکیشن</a></li>
+            <li><a href="/course">دورهٔ ۵ ساعته</a></li>
           </ul>
         </div>
         <div>
@@ -413,6 +441,9 @@
           <ul>
             <li><a href="/about">درباره</a></li>
             <li><a href="/docs">مستندات</a></li>
+            <li><a href="/summary">خلاصهٔ پروژه</a></li>
+            <li><a href="/developer">توسعه‌دهنده</a></li>
+            <li><a href="/support">پشتیبانی تجاری</a></li>
             <li><a href="https://github.com/Taymaz1391/ai" rel="noopener">GitHub</a></li>
             <li><a href="/api/health">وضعیت سرویس</a></li>
           </ul>
@@ -428,18 +459,23 @@
         </div>
       </div>
       <div class="footer-bottom">
-        <span>© ۱۴۰۵ رایان · ساخته‌شده با NumPy، بدون مدل آماده</span>
+        <span>© ۱۴۰۵ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> · ساخته‌شده با NumPy، بدون مدل آماده</span>
         <div class="footer-social">
           <a href="https://github.com/Taymaz1391/ai" aria-label="GitHub" rel="noopener">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.95 0-1.09.39-1.99 1.03-2.69-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.03a9.4 9.4 0 0 1 5 0c1.91-1.3 2.75-1.03 2.75-1.03.55 1.38.2 2.4.1 2.65.64.7 1.03 1.6 1.03 2.69 0 3.85-2.34 4.7-4.57 4.94.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></svg>
           </a>
-        </div>
+        <a href="/course">دورهٔ ۵ ساعته</a></div>
       </div>
     </div>
   </footer>
 
   <script src="/static/config.js"></script>
   <script src="/static/ui.js"></script>
+  <script src="/static/studio.js"></script>
+  <script src="/static/ads.js"></script>
   <script src="/static/landing.js"></script>
+  <script src="/static/speed.js"></script>
+  <script src="/static/scroll.js"></script>
+  <script src="/static/perf.js"></script>
 </body>
 </html>

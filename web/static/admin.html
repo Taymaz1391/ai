@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>پنل مدیریت · رایان</title>
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="preload" href="/static/assets/fonts/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/pages.css">
+  <link rel="stylesheet" href="/static/admin.css">
+  <script src="/static/theme-boot.js"></script>
+</head>
+<body class="admin-body">
+  <!-- ورود -->
+  <section class="admin-login" id="admin-login">
+    <form class="admin-login-card" id="login-form" autocomplete="off">
+      <img class="brand-wordmark wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="116" height="59">
+      <img class="brand-wordmark wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="116" height="59">
+      <h1>پنل مدیریت</h1>
+      <p class="hint">این بخش فقط برای مدیر سیستم است. گذرواژه در فایل <code>data/admin.json</code> یا متغیر محیطی نگه‌داری می‌شود.</p>
+      <label class="field"><span>گذرواژهٔ مدیریت</span>
+        <input id="admin-password" type="password" required minlength="6" autocomplete="current-password" placeholder="••••••••">
+      </label>
+      <p class="form-error" id="login-error" hidden></p>
+      <button class="btn btn-primary btn-block" type="submit" id="login-btn">ورود امن</button>
+      <p class="hint" style="margin-top:12px">
+        اگر اولین بار است، گذرواژهٔ تصادفی هنگام راه‌اندازی سرور در ترمینال چاپ می‌شود.
+      </p>
+    </form>
+  </section>
+
+  <!-- پنل -->
+  <div class="admin-shell" id="admin-shell" hidden>
+    <aside class="admin-side">
+      <a class="admin-brand" href="/">
+        <img class="brand-wordmark wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="116" height="59">
+        <img class="brand-wordmark wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="116" height="59">
+      </a>
+      <nav class="admin-nav" id="admin-nav">
+        <button class="is-active" data-tab="overview"><span data-icon="chart" data-size="18"></span> نمای کلی</button>
+        <button data-tab="users"><span data-icon="users" data-size="18"></span> کاربران</button>
+        <button data-tab="ads"><span data-icon="megaphone" data-size="18"></span> تبلیغات</button>
+        <button data-tab="settings"><span data-icon="settings" data-size="18"></span> تنظیمات</button>
+        <button data-tab="guard"><span data-icon="shield" data-size="18"></span> سد تهاجم</button>
+        <button data-tab="audit"><span data-icon="shield" data-size="18"></span> لاگ حسابرسی</button>
+        <button data-tab="system"><span data-icon="sparkle" data-size="18"></span> سامانه</button>
+      </nav>
+      <div class="admin-side-foot">
+        <a href="/" class="btn btn-sm btn-block">بازگشت به سایت</a>
+        <button class="btn btn-sm btn-block" id="logout-btn">خروج</button>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+      <header class="admin-top">
+        <div>
+          <h2 id="tab-title">نمای کلی</h2>
+          <p class="hint" id="tab-sub">وضعیت زندهٔ سایت، بدون نیاز به کار روزمره</p>
+        </div>
+        <div class="admin-top-actions">
+          <span class="pill is-ok" id="health-pill">در حال بررسی…</span>
+          <span class="admin-user" id="admin-user">—</span>
+        </div>
+      </header>
+
+      <div class="admin-warn" id="owner-warning" hidden role="alert">
+        <b>گذرواژهٔ پیش‌فرض مالک فعال است.</b>
+        <span>تا وقتی آن را عوض نکنی، هر کسی که این مخزن را بخواند می‌تواند وارد شود.</span>
+        <button class="btn btn-sm" id="owner-change-pw" type="button">همین حالا عوض کن</button>
+      </div>
+
+      <!-- نمای کلی -->
+      <section class="admin-tab is-active" data-panel="overview">
+        <div class="kpi-grid" id="kpi-grid"></div>
+        <div class="panel">
+          <div class="panel-head"><h3>فعالیت ۱۴ روز گذشته</h3><span class="hint">گفتگو · ثبت‌نام · پیام</span></div>
+          <div class="chart" id="activity-chart"></div>
+        </div>
+        <div class="panel-grid">
+          <div class="panel">
+            <div class="panel-head"><h3>سلامت سامانه</h3></div>
+            <div id="selftest-list" class="check-list"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>آخرین گفتگوها</h3></div>
+            <div id="recent-activity" class="hint">—</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- کاربران -->
+      <section class="admin-tab" data-panel="users">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>کاربران</h3>
+            <div class="inline-form">
+              <input id="user-search" type="search" placeholder="جست‌وجوی ایمیل یا نام…">
+              <button class="btn btn-sm" id="user-refresh">به‌روزرسانی</button>
+            </div>
+          </div>
+          <div class="table-wrap"><table class="table" id="users-table">
+            <thead><tr><th>#</th><th>ایمیل</th><th>نام</th><th>پلن</th><th>گفتگو</th><th>عضویت</th><th>آخرین بازدید</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- تبلیغات -->
+      <section class="admin-tab" data-panel="ads">
+        <div class="panel">
+          <div class="panel-head"><h3>تبلیغ تازه</h3><span class="hint">جایگاه‌ها: home-top · home-mid · chat-empty · chat-inline · share-bottom · docs-top</span></div>
+          <form class="ad-form" id="ad-form">
+            <label class="field"><span>جایگاه</span>
+              <select name="slot">
+                <option value="home-top">home-top</option>
+                <option value="home-mid">home-mid</option>
+                <option value="chat-empty">chat-empty</option>
+                <option value="chat-inline">chat-inline</option>
+                <option value="share-bottom">share-bottom</option>
+                <option value="docs-top">docs-top</option>
+              </select>
+            </label>
+            <label class="field"><span>عنوان</span><input name="title" required maxlength="120" placeholder="مثلاً: پیشنهاد ویژهٔ پاییز"></label>
+            <label class="field wide"><span>متن کوتاه</span><input name="body" maxlength="300" placeholder="یک جملهٔ روشن"></label>
+            <label class="field"><span>دکمه</span><input name="cta" maxlength="40" value="بیشتر بدانید"></label>
+            <label class="field wide"><span>نشانی مقصد</span><input name="url" required placeholder="https://… یا /pricing"></label>
+            <label class="field"><span>وزن نمایش</span><input name="weight" type="number" min="1" max="100" value="5"></label>
+            <div class="form-actions"><button class="btn btn-primary" type="submit">افزودن تبلیغ</button></div>
+          </form>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>تبلیغ‌های موجود</h3><span class="hint" id="ads-summary"></span></div>
+          <div class="table-wrap"><table class="table" id="ads-table">
+            <thead><tr><th>#</th><th>جایگاه</th><th>عنوان</th><th>وزن</th><th>نمایش</th><th>کلیک</th><th>CTR</th><th>وضعیت</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- تنظیمات -->
+      <section class="admin-tab" data-panel="settings">
+        <div class="panel">
+          <div class="panel-head"><h3>پرچم‌های قابلیت</h3><span class="hint">بدون انتشار دوباره اعمال می‌شوند</span></div>
+          <div class="flag-list" id="flag-list"></div>
+          <div class="form-actions"><button class="btn btn-primary" id="save-flags">ذخیره</button></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>اعلان سراسری</h3></div>
+          <label class="field"><span>متن اعلان (خالی = خاموش)</span>
+            <input id="announcement" maxlength="200" placeholder="مثلاً: امشب ساعت ۲۳ به‌روزرسانی مدل داریم.">
+          </label>
+          <div class="form-actions"><button class="btn" id="save-announcement">ذخیرهٔ اعلان</button></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>پلن‌ها و پرداخت</h3><span class="hint">قیمت ۰ = فروش خاموش</span></div>
+          <div class="grid-2">
+            <label class="field"><span>قیمت پلن حرفه‌ای (تومان)</span>
+              <input id="plan-price" type="number" min="0" step="1000" placeholder="۰">
+            </label>
+            <label class="field"><span>مدت اشتراک (روز)</span>
+              <input id="plan-days" type="number" min="1" max="3650" placeholder="۳۰">
+            </label>
+            <label class="field"><span>نام درگاه</span>
+              <input id="pay-provider" maxlength="40" placeholder="مثلاً: زرین‌پال">
+            </label>
+            <label class="field"><span>نشانی صفحهٔ پرداخت</span>
+              <input id="pay-link" maxlength="300" dir="ltr" placeholder="https://gateway.example/pay/…">
+            </label>
+          </div>
+          <label class="field"><span>یادداشت برای کاربران</span>
+            <input id="pay-note" maxlength="200" placeholder="پرداخت فعلاً غیرفعال است.">
+          </label>
+          <label class="flag"><span>پرداخت فعال شود</span>
+            <span class="switch"><input type="checkbox" id="pay-enabled"><i></i></span>
+          </label>
+          <div class="form-actions"><button class="btn btn-primary" id="save-monetization">ذخیرهٔ تعرفه</button></div>
+          <p class="hint">بدون تنظیم درگاه، پلن حرفه‌ای فقط نمایش داده می‌شود و هیچ پرداختی انجام نمی‌شود.</p>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>گذرواژهٔ مدیریت</h3></div>
+          <label class="field"><span>گذرواژهٔ تازه (حداقل ۱۰ نویسه)</span>
+            <input id="new-password" type="password" minlength="10" autocomplete="new-password">
+          </label>
+          <div class="form-actions"><button class="btn" id="save-password">تغییر گذرواژه</button></div>
+          <p class="hint">نشست‌های فعال مدیریت بازنشانی نمی‌شوند؛ برای خروج کامل از «خروج» استفاده کنید.</p>
+        </div>
+        <div class="panel" id="owner-panel">
+          <div class="panel-head"><h3>گذرواژهٔ مالک</h3><span class="hint" id="owner-name">—</span></div>
+          <label class="field"><span>گذرواژهٔ تازه برای ورود با نام کاربری (حداقل ۸ نویسه)</span>
+            <input id="owner-new-password" type="password" minlength="8" autocomplete="new-password">
+          </label>
+          <div class="form-actions"><button class="btn btn-primary" id="save-owner-password">ذخیرهٔ گذرواژهٔ مالک</button></div>
+          <p class="hint">این گذرواژه فقط به‌صورت هش scrypt در <code>data/owner.json</code> ذخیره می‌شود و در Git نمی‌رود.</p>
+        </div>
+      </section>
+
+      <!-- لاگ -->
+      <section class="admin-tab" data-panel="audit">
+        <div class="panel">
+          <div class="panel-head"><h3>لاگ حسابرسی</h3><button class="btn btn-sm" id="audit-refresh">به‌روزرسانی</button></div>
+          <div class="table-wrap"><table class="table" id="audit-table">
+            <thead><tr><th>زمان</th><th>کار</th><th>هدف</th><th>جزئیات</th><th>IP</th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- سد تهاجم -->
+      <section class="admin-tab" data-panel="guard">
+        <div class="panel">
+          <div class="panel-head"><h3>فیلتر حمله</h3><button class="btn btn-sm" id="guard-refresh">به‌روزرسانی</button></div>
+          <div class="guard-grid" id="guard-stats"></div>
+          <p class="hint">هر درخواست پیش از رسیدن به مسیرها بررسی می‌شود: تراورسال، تزریق SQL، XSS، اجرای فرمان، SSRF، ابزار اسکن و روش‌های غیرمجاز. شش ضربه، همان IP را موقتاً می‌بندد.</p>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>آخرین رویدادها</h3></div>
+          <div class="table-wrap"><table class="table" id="guard-table">
+            <thead><tr><th>زمان</th><th>قاعده</th><th>نوع</th><th>مسیر</th><th>IP</th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- سامانه -->
+      <section class="admin-tab" data-panel="system">
+        <div class="panel">
+          <div class="panel-head"><h3>نگهداری</h3></div>
+          <div class="system-actions">
+            <button class="btn" data-task="vacuum">فشرده‌سازی پایگاه‌داده</button>
+            <button class="btn" data-task="purge">پاک‌سازی دادهٔ قدیمی (۳۰ روز)</button>
+            <button class="btn" data-task="backup">تهیهٔ بکاپ</button>
+          </div>
+          <p class="hint" id="system-result"></p>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>مشخصات سامانه</h3></div>
+          <div id="system-info" class="check-list"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+
+  <script src="/static/config.js"></script>
+  <script src="/static/ui.js"></script>
+  <script src="/static/admin.js"></script>
+  <script src="/static/scroll.js"></script>
+  <script src="/static/perf.js"></script>
+</body>
+</html>

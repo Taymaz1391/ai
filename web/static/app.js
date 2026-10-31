@@ -18,6 +18,7 @@
     models: [],
     model: "rayan-1-small",
     deep: false,
+    web: localStorage.getItem("rayan.web") === "1",
     mode: "chat",
     settings: loadSettings(),
     sending: false,
@@ -128,6 +129,7 @@
     send: $("#send-btn"),
     stop: $("#stop-btn"),
     deep: $("#deep-toggle"),
+    web: $("#web-toggle"),
     mode: $("#mode-select"),
     hint: $("#composer-hint"),
     convList: $("#conv-list"),
@@ -168,21 +170,71 @@
       $$(".modal-backdrop").forEach((m) => { m.hidden = true; });
       el.accountMenu.hidden = true;
       el.modelMenu.hidden = true;
-      closeSidebar();
+      closeSidebar({ restoreFocus: true });
     }
   });
 
-  function closeSidebar() {
-    el.sidebar.classList.remove("is-open");
-    el.scrim.hidden = true;
+  // نوار گفتگوها: پیش‌فرض بسته، با یک دکمه باز/بسته می‌شود و کامل ناپدید می‌گردد.
+  const sidebarToggle = $("#sidebar-open");
+  const sidebarClose = $("#sidebar-close");
+  const canHover = window.matchMedia("(hover: hover) and (pointer: fine)");
+
+  function sidebarIsOpen() {
+    return el.sidebar.classList.contains("is-open");
   }
-  function openSidebar() {
-    el.sidebar.classList.add("is-open");
-    el.scrim.hidden = false;
+
+  function setSidebar(open, opts) {
+    const wasOpen = sidebarIsOpen();
+    el.sidebar.classList.toggle("is-open", open);
+    el.sidebar.toggleAttribute("inert", !open);
+    el.sidebar.setAttribute("aria-hidden", open ? "false" : "true");
+    el.scrim.hidden = !open;
+    document.body.classList.toggle("sidebar-visible", open);
+    if (sidebarToggle) sidebarToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open && !(opts && opts.silent)) {
+      const target = canHover.matches ? $("#conv-search") : sidebarClose;
+      if (target) requestAnimationFrame(() => target.focus({ preventScroll: true }));
+    } else if (wasOpen && (opts && opts.restoreFocus) && sidebarToggle) {
+      sidebarToggle.focus({ preventScroll: true });
+    }
   }
-  $("#sidebar-open").addEventListener("click", openSidebar);
-  $("#sidebar-close").addEventListener("click", closeSidebar);
-  el.scrim.addEventListener("click", closeSidebar);
+
+  function openSidebar() { setSidebar(true); }
+  function closeSidebar(opts) {
+    if (!sidebarIsOpen()) return;
+    const inside = el.sidebar.contains(document.activeElement);
+    setSidebar(false, { restoreFocus: inside || (opts && opts.restoreFocus) });
+  }
+
+  if (sidebarToggle) {
+    sidebarToggle.addEventListener("click", () => {
+      if (sidebarIsOpen()) { closeSidebar({ restoreFocus: true }); rememberSidebar(false); }
+      else { openSidebar(); rememberSidebar(true); }
+    });
+  }
+
+  // روی نمایشگر بزرگ، نوار گفتگوها پیش‌فرض باز است تا فضای صفحه هدر نرود؛
+  // انتخاب کاربر (باز یا بسته) برای دفعهٔ بعد یادش می‌ماند.
+  const wideScreen = window.matchMedia("(min-width: 1080px)");
+  function rememberSidebar(open) {
+    try { localStorage.setItem("rayan.sidebar", open ? "open" : "closed"); } catch { /* حالت خصوصی */ }
+  }
+  function restoreSidebar() {
+    let saved = null;
+    try { saved = localStorage.getItem("rayan.sidebar"); } catch { /* حالت خصوصی */ }
+    if (saved === "open" || (saved === null && wideScreen.matches)) setSidebar(true, { silent: true });
+  }
+  if (sidebarClose) sidebarClose.addEventListener("click", () => closeSidebar({ restoreFocus: true }));
+  el.scrim.addEventListener("click", () => closeSidebar());
+  // بستن با کلیک بیرون
+  document.addEventListener("pointerdown", (event) => {
+    if (!sidebarIsOpen()) return;
+    if (el.sidebar.contains(event.target) || (sidebarToggle && sidebarToggle.contains(event.target))) return;
+    closeSidebar();
+  });
+  // در حالت بسته، فوکوس داخل نوار نماند
+  el.sidebar.toggleAttribute("inert", !sidebarIsOpen());
+  el.sidebar.setAttribute("aria-hidden", sidebarIsOpen() ? "false" : "true");
 
   // ---------------------------------------------------------- وضعیت کاربر
   function planLabel(plan) {
@@ -195,7 +247,11 @@
     state.usage = stateAuth.usage;
     const name = state.user ? (state.user.name || state.user.email.split("@")[0]) : "مهمان";
     $$("[data-user-name]").forEach((n) => { n.textContent = name; });
-    $$("[data-user-plan]").forEach((n) => { n.textContent = planLabel(state.plan); });
+    const plan = planLabel(state.plan);
+    $$("[data-user-plan]").forEach((n) => {
+      n.textContent = plan;
+      n.hidden = plan === name;   // «مهمان» را دو بار پشت هم ننویس
+    });
     $$("[data-user-initials]").forEach((n) => { n.textContent = initials(name); });
     $$("[data-auth='guest']").forEach((n) => { n.hidden = !!state.user; });
     $$("[data-auth='user']").forEach((n) => { n.hidden = !state.user; });
@@ -206,7 +262,7 @@
   function renderUsage() {
     const usage = state.usage || {};
     const chat = usage.chat || { used: 0, limit: 25 };
-    el.usagePlan.textContent = state.user ? planLabel(state.plan) : "مهمان";
+    el.usagePlan.textContent = "سهمیهٔ امروز";
     el.usageCount.textContent = `${nf(chat.used || 0)} / ${nf(chat.limit || 0)}`;
     const pct = Math.min(100, ((chat.used || 0) / Math.max(1, chat.limit || 1)) * 100);
     el.usageFill.style.width = `${pct}%`;
@@ -220,6 +276,19 @@
     } catch { /* آفلاین */ }
   }
 
+  // نام برند همیشه تصویر است: پیشوند «رایان» از دادهٔ سرور جدا و با لوگوتایپ
+  // نمایش داده می‌شود، بقیهٔ نام (مثلاً «۱ — کوچک») متن می‌ماند.
+  const MODEL_LOGO = (
+    '<img class="wm-inline model-logo wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async">' +
+    '<img class="wm-inline model-logo wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async">'
+  );
+  function modelNameCore(name) {
+    return String(name || "").replace(/^\s*(رایان|Rayan)\s*/u, "").trim();
+  }
+  function modelNameHtml(name) {
+    return `${MODEL_LOGO} ${escapeHtml(modelNameCore(name))}`;
+  }
+
   // ------------------------------------------------------------ مدل‌ها
   async function loadModels() {
     try {
@@ -228,7 +297,7 @@
       renderModelMenu();
       const active = state.models.find((m) => m.id === state.model) || state.models[0];
       if (active) {
-        el.modelLabel.textContent = active.name;
+        el.modelLabel.innerHTML = modelNameHtml(active.name);
         el.modelTag.textContent = active.badge;
       }
     } catch { /* از پیش‌فرض استفاده می‌کنیم */ }
@@ -237,7 +306,7 @@
   function renderModelMenu() {
     el.modelMenu.innerHTML = "";
     const list = state.models.length ? state.models : [{
-      id: "rayan-1-small", name: "رایان ۱ — کوچک", tagline: "مدل فعال", status: "ready",
+      id: "rayan-1-small", name: "۱ — کوچک", tagline: "مدل فعال", status: "ready",
       desc: "مدل ۶٫۵۷ میلیون پارامتری روی CPU", context: 256,
     }];
     list.forEach((model) => {
@@ -248,7 +317,7 @@
       item.setAttribute("aria-disabled", model.status === "ready" ? "false" : "true");
       item.innerHTML = `
         <span class="mi-body">
-          <b>${escapeHtml(model.name)}</b>
+          <b>${modelNameHtml(model.name)}</b>
           <small>${escapeHtml(model.tagline || "")} · ${model.context ? nf(model.context) + " توکن زمینه" : "—"}</small>
         </span>
         <span class="mi-side"><span class="tag ${model.status === "ready" ? "tag-blue" : ""}">${escapeHtml(model.badge || "")}</span></span>`;
@@ -258,11 +327,11 @@
           return;
         }
         state.model = model.id;
-        el.modelLabel.textContent = model.name;
+        el.modelLabel.innerHTML = modelNameHtml(model.name);
         el.modelTag.textContent = model.badge;
         el.modelMenu.hidden = true;
         renderModelMenu();
-        toast(`مدل از این به بعد: ${model.name}`, "ok");
+        toast(`مدل از این به بعد: ${modelNameCore(model.name)}`, "ok");
       });
       el.modelMenu.append(item);
     });
@@ -335,7 +404,7 @@
     $$(".conv-menu").forEach((n) => n.remove());
     const menu = document.createElement("div");
     menu.className = "account-menu conv-menu";
-    menu.style.cssText = "position:absolute;inset-block-start:auto;inset-block-end:auto;min-width:170px;z-index:70;padding:6px;border-radius:12px;border:1px solid var(--line-strong);background:#0b1730;box-shadow:var(--shadow-lg)";
+    menu.style.cssText = "position:absolute;inset-block-start:auto;inset-block-end:auto;min-width:170px;z-index:70;padding:6px;border-radius:12px;border:1px solid var(--line-strong);background:var(--surface-solid);box-shadow:var(--shadow-lg)";
     const rect = row.getBoundingClientRect();
     menu.style.position = "fixed";
     menu.style.top = `${Math.min(rect.bottom + 6, window.innerHeight - 220)}px`;
@@ -378,6 +447,7 @@
   }
 
   async function openConversation(id, pushState = true) {
+    closeSidebar();
     try {
       const data = await request(`/api/conversations/${id}`);
       const conv = data.conversation;
@@ -399,6 +469,7 @@
   }
 
   function newChat() {
+    closeSidebar();
     state.currentId = null;
     state.messages = [];
     renderAllMessages();
@@ -484,10 +555,28 @@
     scrollToBottom(false);
   }
 
+  // اسکرول و رندر استریم هر دو در یک فریم جمع می‌شوند؛ توکن‌های پشت‌سرهم
+  // دیگر باعث بازسازی چندبارهٔ DOM نمی‌شوند.
+  let scrollQueued = false;
+  let scrollSmooth = true;
   function scrollToBottom(smooth = true) {
+    scrollSmooth = smooth;
+    if (scrollQueued) return;
+    scrollQueued = true;
     requestAnimationFrame(() => {
-      el.scroll.scrollTo({ top: el.scroll.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+      scrollQueued = false;
+      el.scroll.scrollTo({ top: el.scroll.scrollHeight, behavior: scrollSmooth ? "smooth" : "auto" });
     });
+  }
+
+  // آیا متن تا اینجا نشانهٔ مارک‌داون دارد؟ اگر نه، مسیر سریع متن ساده.
+  const MD_HINT = /(^|\n)(#{1,6} |[-*+] |\d+\. |> |```|\|)|`[^`]+`|\*\*[^*]+\*\*/;
+  function paintStreaming(bubble, text, done) {
+    if (!done && !MD_HINT.test(text)) {
+      bubble.textContent = text;
+      return;
+    }
+    bubble.innerHTML = renderMarkdown(text);
   }
 
   function buildMessage(msg) {
@@ -500,12 +589,22 @@
     if (msg.role === "user") {
       who.textContent = initials(state.user ? (state.user.name || state.user.email) : "م");
     } else {
+      const orb = document.createElement("span");
+      orb.className = "orb-live who-orb";
+      orb.style.width = "32px";
+      orb.style.height = "32px";
       const img = document.createElement("img");
-      img.src = "/static/assets/brand/orb-128.png";
+      img.src = "/static/assets/brand/orb-live-sm.webp";
       img.alt = "رایان";
       img.width = 32;
       img.height = 32;
-      who.append(img);
+      const face = document.createElement("span"); face.className = "face";
+      const l = document.createElement("i"); l.className = "lid l";
+      const r = document.createElement("i"); r.className = "lid r";
+      face.append(l, r);
+      orb.append(img, face);
+      who.append(orb);
+      if (window.RAYAN && window.RAYAN.initOrbs) window.RAYAN.initOrbs(who);
     }
 
     const body = document.createElement("div");
@@ -522,6 +621,7 @@
       bubble.className = "bubble";
       bubble.innerHTML = renderMarkdown(msg.content);
       body.append(bubble);
+      if (msg.meta && msg.meta.tool) body.append(toolEl(msg.meta.tool));
       if (msg.meta && msg.meta.stats) body.append(statsEl(msg.meta.stats, msg.meta.deep));
       if (!msg.streaming) body.append(toolsFor(msg));
     }
@@ -529,17 +629,54 @@
     return wrap;
   }
 
+  function toolEl(tool) {
+    const box = document.createElement("div");
+    box.className = "tool-result";
+    const labels = { calc: "ماشین‌حساب", now: "تاریخ و ساعت", convert: "تبدیل یکا", text: "آمار متن" };
+    const name = labels[tool.tool] || tool.tool;
+    let value = "";
+    if (tool.tool === "calc") value = `${nf(tool.value)}`;
+    else if (tool.tool === "now") value = tool.jalali_long || tool.iso;
+    else if (tool.tool === "convert") value = `${nf(tool.value)} ${tool.to}`;
+    else if (tool.tool === "text") value = `${nf(tool.words)} واژه · ${nf(tool.chars)} نویسه`;
+    box.innerHTML = `<span class="tool-badge">${name}</span><b>${value}</b>`;
+    return box;
+  }
+
+  // فقط چیزی که به کار کاربر می‌آید؛ شمار توکن و اطمینان داخلی را نشان نمی‌دهیم
   function statsEl(stats, deep) {
     const elx = document.createElement("div");
     elx.className = "msg-stats";
-    const bits = [
-      `${nf(stats.tokens || 0)} توکن`,
-      `${nf(stats.tokens_per_second || 0)} توکن/ث`,
-      `اطمینان ${nf((stats.confidence || 0) * 100, 0)}٪`,
-    ];
-    if (deep) bits.push("اندیشهٔ ژرف · ۴ مسیر");
+    const bits = [];
+    const secs = Number(stats?.seconds || 0);
+    if (secs > 0) bits.push(`پاسخ در ${nf(secs, 1)} ثانیه`);
+    if (deep) bits.push("اندیشهٔ ژرف · چهار مسیر");
+    if (!bits.length) bits.push("پاسخ آماده");
     elx.textContent = bits.join(" · ");
     return elx;
+  }
+
+  function sourcesEl(sources) {
+    const box = document.createElement("div");
+    box.className = "msg-sources";
+    const head = document.createElement("div");
+    head.className = "sources-head";
+    head.innerHTML = `<span class="sources-badge">وب</span><span>${nf(sources.length)} منبع</span>`;
+    const list = document.createElement("div");
+    list.className = "sources-list";
+    sources.forEach((item, index) => {
+      const card = document.createElement("a");
+      card.className = "source-card";
+      card.href = item.url;
+      card.target = "_blank";
+      card.rel = "noopener noreferrer nofollow";
+      card.innerHTML = `<span class="source-index">${nf(index + 1)}</span>
+        <span class="source-body"><b>${escapeHtml(item.title || "منبع")}</b>
+        <em>${escapeHtml(item.domain || "")}</em></span>`;
+      list.append(card);
+    });
+    box.append(head, list);
+    return box;
   }
 
   function traceEl(trace) {
@@ -586,11 +723,29 @@
       toast("متن کپی شد.", "ok");
     }));
     if (msg.role === "assistant") {
+      const studio = window.RAYAN_STUDIO;
+      if (studio && msg.content) {
+        const arts = studio.extractArtifacts(msg.content);
+        if (arts.length) {
+          const fileIcon = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M14 3v5h5"/><path d="M6 3h8l5 5v13H6z"/></svg>';
+          arts.forEach((art, index) => {
+            bar.append(mk(arts.length > 1 ? `پیش‌نمایش ${index + 1}` : "پیش‌نمایش فایل", fileIcon, () => {
+              studio.openArtifact(Object.assign({ name: `rayan-${Date.now()}` }, art));
+            }));
+          });
+        }
+      }
       bar.append(mk("تولید دوباره", redoIcon, () => regenerate(msg)));
       bar.append(mk("پاسخ خوب بود", upIcon, () => sendFeedback(msg, 1)));
       bar.append(mk("پاسخ بد بود", downIcon, () => sendFeedback(msg, -1)));
     }
     return bar;
+  }
+
+  // هر پاسخ کامل، یک رویداد می‌شود تا حالت صوتی بتواند بلند بخواند
+  function announceAnswer(text) {
+    if (!text) return;
+    document.dispatchEvent(new CustomEvent("rayan:answer", { detail: { text } }));
   }
 
   async function sendFeedback(msg, value) {
@@ -610,10 +765,14 @@
   function appendBotShell() {
     const msg = { role: "assistant", content: "", streaming: true };
     state.messages.push(msg);
+    state.streamOrb = null;
     const node = buildMessage(msg);
     const bubble = node.querySelector(".bubble");
     bubble.classList.add("streaming");
-    bubble.innerHTML = '<span class="thinking"><i></i><i></i><i></i></span>';
+    bubble.innerHTML = '<span class="typing" aria-label="در حال نوشتن"><i></i><i></i><i></i></span>';
+    state.streamOrb = node.querySelector(".who-orb");
+    if (state.streamOrb) state.streamOrb.dataset.state = "writing";
+    setOrbState("thinking");
     el.messages.append(node);
     scrollToBottom();
     return { msg, node, bubble };
@@ -632,8 +791,22 @@
     return turns.slice(-2);
   }
 
+  function setOrbState(next) {
+    // اول کرهٔ پیامِ در حال پخش، بعد آخرین کرهٔ گفتگو، و فقط در گفتگوی خالی کرهٔ خوش‌آمد
+    const orbs = [...document.querySelectorAll(".who-orb")];
+    let orb = state.streamOrb && state.streamOrb.isConnected ? state.streamOrb : null;
+    if (!orb) orb = orbs[orbs.length - 1] || document.querySelector(".empty-orb .orb-live");
+    if (orb) orb.dataset.state = next || "";
+    orbs.forEach((node) => {
+      if (node !== orb) node.dataset.state = "";
+    });
+  }
+
   function setBusy(busy) {
     state.sending = busy;
+    if (busy) setOrbState("writing");
+    if (!busy) setOrbState("happy");
+    if (!busy) setTimeout(() => setOrbState(""), 1200);
     el.send.hidden = busy;
     el.stop.hidden = !busy;
     el.composer.classList.toggle("is-busy", busy);
@@ -641,14 +814,14 @@
   }
 
   function updateHint() {
-    if (state.sending) { el.hint.textContent = "رایان در حال نوشتن است…"; return; }
+    if (state.sending) { el.hint.textContent = "دستیار در حال نوشتن است…"; return; }
     const usage = state.usage || {};
     const chat = usage.chat || {};
     if (chat.limit) {
       const remaining = Math.max(0, chat.limit - (chat.used || 0));
       el.hint.textContent = `${nf(remaining)} پیام باقی‌مانده امروز`;
     } else {
-      el.hint.textContent = "Enter برای ارسال · Shift+Enter خط تازه";
+      el.hint.textContent = "برای ارسال Enter · برای خط تازه Shift+Enter";
     }
   }
 
@@ -666,7 +839,8 @@
     setBusy(true);
 
     const wantsDeep = state.deep && state.mode === "chat";
-    if (wantsDeep) {
+    const wantsWeb = state.web && state.mode === "chat" && !wantsDeep;
+    if (wantsDeep || wantsWeb) {
       const { msg, bubble } = appendBotShell();
       try {
         const data = await request("/api/chat", {
@@ -676,7 +850,8 @@
             conversation_id: state.currentId,
             model: state.model,
             mode: state.mode,
-            deep: true,
+            deep: wantsDeep,
+            web: wantsWeb,
             candidates: state.settings.candidates,
             temperature: state.settings.temperature,
             top_p: state.settings.top_p,
@@ -685,18 +860,22 @@
           },
         });
         msg.content = data.answer || "…";
-        msg.meta = { stats: data.stats, trace: data.trace, deep: true };
+        msg.meta = { stats: data.stats, trace: data.trace, deep: wantsDeep, tool: data.tool, sources: data.sources };
         msg.streaming = false;
         msg.id = data.message_id;
         bubble.classList.remove("streaming");
         bubble.innerHTML = renderMarkdown(msg.content);
         const body = bubble.parentElement;
         body.querySelector(".msg-stats")?.remove();
-        if (msg.meta.stats) body.append(statsEl(msg.meta.stats, true));
+        if (msg.meta.stats && wantsDeep) body.append(statsEl(msg.meta.stats, true));
+        body.querySelector(".msg-sources")?.remove();
+        if (data.sources && data.sources.length) body.append(sourcesEl(data.sources));
         body.querySelector(".msg-tools")?.remove();
         body.append(toolsFor(msg));
         if (data.trace) body.prepend(traceEl(data.trace));
+        if (data.tool) body.prepend(toolEl(data.tool));
         if (data.usage) { state.usage = Object.assign({}, state.usage, { chat: data.usage }); renderUsage(); }
+        announceAnswer(msg.content);
         await afterTurn(data);
       } catch (err) {
         failShell(bubble, err);
@@ -741,6 +920,7 @@
       const decoder = new Decoder();
       let buffer = "";
       let first = true;
+      let paintQueued = false;
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
@@ -753,19 +933,30 @@
           try { event = JSON.parse(line); } catch { continue; }
           if (event.type === "token") {
             answer += event.text;
-            bubble.innerHTML = renderMarkdown(answer);
             if (first) { bubble.classList.add("streaming"); first = false; }
-            scrollToBottom();
+            if (!paintQueued) {
+              paintQueued = true;
+              requestAnimationFrame(() => {
+                paintQueued = false;
+                if (!msg.streaming) return;          // «done» زودتر آمده؛ نقاشی نهایی کافی است
+                paintStreaming(bubble, answer, false);
+                scrollToBottom(false);
+              });
+            }
           } else if (event.type === "done") {
             msg.content = event.answer || answer;
             msg.id = event.message_id;
-            msg.meta = { stats: event.stats };
+            msg.meta = { stats: event.stats, tool: event.tool, deep: false, sources: event.sources || [] };
             msg.streaming = false;
             bubble.classList.remove("streaming");
-            bubble.innerHTML = renderMarkdown(msg.content);
+            if (state.streamOrb) { state.streamOrb.dataset.state = "happy"; state.streamOrb = null; }
+            paintStreaming(bubble, msg.content, true);
+            if (event.tool) bubble.parentElement.append(toolEl(event.tool));
+            if (event.sources && event.sources.length) bubble.parentElement.append(sourcesEl(event.sources));
             if (event.stats) bubble.parentElement.append(statsEl(event.stats, false));
             bubble.parentElement.append(toolsFor(msg));
             if (event.usage) { state.usage = Object.assign({}, state.usage, { chat: event.usage }); renderUsage(); }
+            announceAnswer(msg.content);
             await afterTurn(event);
           } else if (event.type === "error") {
             throw new Error(event.error || "تولید پاسخ متوقف شد.");
@@ -776,6 +967,7 @@
         msg.content = answer;
         msg.streaming = false;
         bubble.classList.remove("streaming");
+        if (state.streamOrb) { state.streamOrb.dataset.state = ""; state.streamOrb = null; }
         bubble.innerHTML = renderMarkdown(answer || "…");
       }
     } catch (err) {
@@ -796,6 +988,7 @@
 
   function failShell(bubble, err, partial = "") {
     bubble.classList.remove("streaming");
+    if (state.streamOrb) { state.streamOrb.dataset.state = ""; state.streamOrb = null; }
     bubble.innerHTML = renderMarkdown(partial) || "";
     const alert = document.createElement("div");
     alert.className = "form-alert";
@@ -845,10 +1038,23 @@
     $("#set-candidates").value = s.candidates;
     $("#temp-value").textContent = nf(s.temperature, 2);
     $("#topp-value").textContent = nf(s.top_p, 2);
+    const tokens = $("#tokens-value");
+    if (tokens) tokens.textContent = nf(s.max_new_tokens) + " توکن";
+    const cand = $("#cand-value");
+    if (cand) cand.textContent = nf(s.candidates);
   }
-  $("#settings-btn").addEventListener("click", () => {
+  $("#settings-btn").addEventListener("click", (event) => {
+    event.stopPropagation();
     syncSettingsUI();
-    openModal("settings-modal");
+    const pop = $("#settings-modal");
+    pop.hidden = !pop.hidden;
+  });
+  document.addEventListener("pointerdown", (event) => {
+    const pop = $("#settings-modal");
+    if (!pop || pop.hidden) return;
+    if (pop.contains(event.target) || $("#settings-btn").contains(event.target)) return;
+    pop.hidden = true;
+    saveSettings();
   });
   $("#set-temp").addEventListener("input", (e) => {
     state.settings.temperature = Number(e.target.value);
@@ -858,11 +1064,13 @@
     state.settings.top_p = Number(e.target.value);
     $("#topp-value").textContent = nf(state.settings.top_p, 2);
   });
-  $("#set-tokens").addEventListener("change", (e) => {
-    state.settings.max_new_tokens = Math.max(16, Math.min(220, Number(e.target.value) || 110));
+  $("#set-tokens").addEventListener("input", (e) => {
+    state.settings.max_new_tokens = Math.max(40, Math.min(220, Number(e.target.value) || 110));
+    $("#tokens-value").textContent = nf(state.settings.max_new_tokens) + " توکن";
   });
-  $("#set-candidates").addEventListener("change", (e) => {
+  $("#set-candidates").addEventListener("input", (e) => {
     state.settings.candidates = Math.max(2, Math.min(6, Number(e.target.value) || 4));
+    $("#cand-value").textContent = nf(state.settings.candidates);
   });
   $("#reset-settings").addEventListener("click", () => {
     state.settings = Object.assign({}, DEFAULTS);
@@ -889,10 +1097,10 @@
 
   $("#export-btn").addEventListener("click", () => {
     if (!state.messages.length) { toast("گفتگویی برای خروجی نیست.", ""); return; }
-    const title = state.conversations.find((c) => c.id === state.currentId)?.title || "گفتگوی رایان";
-    const markdown = [`# ${title}`, "", `_رایان ۱ — کوچک · ${new Date().toLocaleString("fa-IR")}_`, ""];
+    const title = state.conversations.find((c) => c.id === state.currentId)?.title || "گفتگوی من";
+    const markdown = [`# ${title}`, "", `_مدل ۱ — کوچک · ${new Date().toLocaleString("fa-IR")}_`, ""];
     state.messages.forEach((m) => {
-      markdown.push(m.role === "user" ? "## تو" : "## رایان");
+      markdown.push(m.role === "user" ? "## تو" : "## دستیار");
       markdown.push(m.content, "");
     });
     download(`rayan-${Date.now()}.md`, markdown.join("\n"), "text/markdown;charset=utf-8");
@@ -900,6 +1108,48 @@
   });
 
   // --------------------------------------------------------- سرورها/فرم
+  // پل کوچک برای حالت صوتی: پر کردن کادر و ارسال همان مسیر معمول
+  window.RAYAN_CHAT = {
+    setPrompt(text) {
+      el.prompt.value = text;
+      el.prompt.dispatchEvent(new Event("input", { bubbles: true }));
+      el.prompt.focus({ preventScroll: true });
+    },
+    submit() {
+      el.composer.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+    },
+    say(text) {
+      el.prompt.value = text;
+      el.prompt.dispatchEvent(new Event("input", { bubbles: true }));
+      el.composer.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+    },
+    isBusy() {
+      return !!state.controller;
+    },
+  };
+
+  // منوی «+» ابزارها؛ مثل دستیارهای بزرگ، ابزارها تا لحظهٔ نیاز پنهان‌اند
+  const toolsBtn = $("#tools-btn");
+  const toolsMenu = $("#composer-tools");
+  function setTools(open) {
+    if (!toolsBtn || !toolsMenu) return;
+    toolsMenu.hidden = !open;
+    toolsBtn.setAttribute("aria-expanded", String(open));
+    toolsBtn.classList.toggle("is-open", open);
+  }
+  if (toolsBtn && toolsMenu) {
+    toolsBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setTools(toolsMenu.hidden);
+    });
+    document.addEventListener("click", (event) => {
+      if (!toolsMenu.hidden && !event.target.closest("#composer-tools, #tools-btn")) setTools(false);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") setTools(false);
+    });
+  }
+
   el.composer.addEventListener("submit", (event) => {
     event.preventDefault();
     send();
@@ -918,6 +1168,16 @@
   el.stop.addEventListener("click", () => {
     if (state.controller) state.controller.abort();
   });
+  if (el.web) {
+    el.web.setAttribute("aria-pressed", String(state.web));
+    el.web.addEventListener("click", () => {
+      state.web = !state.web;
+      el.web.setAttribute("aria-pressed", String(state.web));
+      localStorage.setItem("rayan.web", state.web ? "1" : "0");
+      updateHint();
+      toast(state.web ? "جست‌وجوی وب روشن شد؛ پاسخ با منبع و لینک می‌آید." : "جست‌وجوی وب خاموش شد.", "");
+    });
+  }
   el.deep.addEventListener("click", () => {
     state.deep = !state.deep;
     el.deep.setAttribute("aria-pressed", String(state.deep));
@@ -1029,6 +1289,7 @@
     if (!state.settings) state.settings = Object.assign({}, DEFAULTS);
 
     const params = new URLSearchParams(location.search);
+    restoreSidebar();
     loadModels();
     loadSuggestions();
     loadConversations();

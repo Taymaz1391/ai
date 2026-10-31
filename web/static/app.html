@@ -5,23 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>گفتگو · رایان</title>
   <meta name="description" content="گفتگو با رایان، دستیار هوش مصنوعی فارسی.">
-  <meta name="theme-color" content="#050b1a">
+  <meta name="theme-color" content="#ffffff">
   <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/static/assets/icons/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="preload" href="/static/assets/fonts/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="stylesheet" href="/static/chat.css">
+  <script src="/static/theme-boot.js"></script>
 </head>
 <body class="app-body">
   <div class="app-shell">
     <!-- ========================================================= نوار کنار -->
-    <aside class="sidebar" id="sidebar" aria-label="گفتگوها">
+    <aside class="sidebar" id="sidebar" aria-label="گفتگوها" aria-hidden="true" inert>
       <div class="sidebar-head">
         <a class="brand" href="/" aria-label="رایان، خانه">
-          <img class="brand-orb" src="/static/assets/brand/orb-128.png" alt="" width="30" height="30">
-          <span class="brand-name"><b>رایان</b><span>RAYAN</span></span>
-        </a>
+        <img class="brand-wordmark wordmark-for-light" src="/static/assets/brand/mark-ink.png"
+             alt="رایان" width="116" height="59">
+        <img class="brand-wordmark wordmark-for-dark" src="/static/assets/brand/mark-white.png"
+             alt="رایان" width="116" height="59">
+      </a>
         <button class="icon-btn sidebar-close" id="sidebar-close" aria-label="بستن منو">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
@@ -48,7 +51,7 @@
       <div class="sidebar-foot">
         <div class="usage-card" id="usage-card">
           <div class="usage-head">
-            <span id="usage-plan">مهمان</span>
+            <span id="usage-plan">سهمیهٔ امروز</span>
             <span id="usage-count">—</span>
           </div>
           <div class="usage-bar"><i id="usage-fill" style="width:0%"></i></div>
@@ -59,7 +62,7 @@
             <span class="avatar" data-user-initials>م</span>
             <span class="account-meta">
               <b data-user-name>مهمان</b>
-              <small data-user-plan>مهمان</small>
+              <small data-user-plan>حساب مهمان</small>
             </span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
           </button>
@@ -68,7 +71,12 @@
             <a href="/login" data-auth="guest" role="menuitem">ورود</a>
             <a href="/pricing" role="menuitem">تعرفه و سهمیه</a>
             <a href="/models" role="menuitem">مدل‌ها</a>
-            <a href="/about" role="menuitem">دربارهٔ رایان</a>
+            <a href="/download" role="menuitem">دانلود اندروید و ویندوز</a>
+            <a href="/developer" role="menuitem">توسعه‌دهنده و دسترسی</a>
+            <a href="/support" role="menuitem">پشتیبانی تجاری</a>
+            <button type="button" data-action="studio" role="menuitem">استودیو تصویر</button>
+            <a href="/admin" role="menuitem" data-admin-link hidden>پنل مدیریت</a>
+            <a href="/about" role="menuitem">دربارهٔ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> </a>
             <button type="button" data-action="logout" data-auth="user" role="menuitem">خروج از حساب</button>
           </div>
         </div>
@@ -80,14 +88,18 @@
     <!-- ============================================================ اصلی -->
     <div class="app-main">
       <header class="app-top">
-        <button class="icon-btn sidebar-open" id="sidebar-open" aria-label="نمایش گفتگوها">
+        <button class="icon-btn sidebar-open" id="sidebar-open" aria-label="نمایش گفتگوها" aria-controls="sidebar" aria-expanded="false" title="گفتگوها">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
+        <a class="app-brand" href="/" aria-label="رایان، خانه">
+          <img class="wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="96" height="49">
+          <img class="wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="96" height="49">
+        </a>
 
         <div class="picker" id="model-picker">
           <button class="picker-btn" id="model-btn" aria-haspopup="listbox" aria-expanded="false">
-            <img src="/static/assets/brand/orb-128.png" alt="" width="20" height="20">
-            <span id="model-label">رایان ۱ — کوچک</span>
+            <img class="picker-orb" src="/static/assets/brand/orb-live-sm.webp" alt="" width="22" height="22">
+            <span id="model-label"> <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> ۱ — کوچک</span>
             <span class="tag tag-blue" id="model-tag">فعال</span>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>
           </button>
@@ -110,15 +122,19 @@
       <div class="chat-scroll" id="chat-scroll">
         <div class="empty-state" id="empty-state">
           <div class="empty-orb">
-            <img src="/static/assets/brand/orb-256.png" alt="رایان" width="88" height="88">
+            <span class="orb-live" style="width:96px;height:96px">
+              <img src="/static/assets/brand/orb-live.webp" alt="رایان" width="96" height="96">
+              <i class="lid l"></i><i class="lid r"></i>
+            </span>
           </div>
-          <h1 id="empty-title">امروز چه کاری برایت انجام دهم؟</h1>
-          <p class="empty-sub" id="empty-sub">مدل رایان ۱ — کوچک · ۶٫۵۷ میلیون پارامتر · از صفر ساخته شده</p>
+          <h1 id="empty-title">چطور می‌توانم کمکت کنم؟</h1>
+          <p class="empty-sub" id="empty-sub">هر چیزی بپرسی، همین‌جا جواب می‌گیری — فارسی، روی همین سرور، بدون ارسال داده به بیرون.</p>
           <div class="suggestions" id="suggestions"></div>
+          <div class="ad-slot ad-inline" data-ad-slot="chat-empty" hidden></div>
           <div class="empty-foot">
             <button class="chip" data-scroll="models">مدل چطور ساخته شده؟</button>
             <button class="chip" data-scroll="pricing">سهمیه‌ام چقدر است؟</button>
-            <button class="chip" data-scroll="honest">رایان چه کاری نمی‌تواند؟</button>
+            <a class="chip" href="/#motion">نشان متحرک</a>
           </div>
         </div>
 
@@ -130,6 +146,15 @@
           <textarea id="prompt" rows="1" placeholder="پیامت را بنویس…" aria-label="پیام" maxlength="2000"></textarea>
           <div class="composer-row">
             <div class="composer-left">
+              <button type="button" class="tool-plus" id="tools-btn" aria-expanded="false" aria-controls="composer-tools"
+                      title="ابزارها" aria-label="ابزارها">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+              </button>
+              <div class="composer-tools" id="composer-tools" hidden>
+              <button type="button" class="tool-btn" id="web-toggle" aria-pressed="false" title="جست‌وجو در وب و استناد به منابع">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></svg>
+                <span>وب</span>
+              </button>
               <button type="button" class="tool-btn" id="deep-toggle" aria-pressed="false" title="چند پاسخ موازی و انتخاب بهترین">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2.2 5.6L20 10l-5.8 1.4L12 17l-2.2-5.6L4 10l5.8-1.4Z"/><path d="M18 16l1 2.4 2.4 1-2.4 1L18 23l-1-2.6-2.4-1 2.4-1Z"/></svg>
                 <span>اندیشهٔ ژرف</span>
@@ -143,54 +168,68 @@
                 </select>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>
               </label>
+              </div>
             </div>
             <div class="composer-right">
               <span class="composer-hint" id="composer-hint"></span>
+              <button type="button" class="tool-btn voice-btn" id="voice-btn" aria-pressed="false"
+                      title="گفتگوی صوتی (میکروفون)" aria-label="گفتگوی صوتی">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+                <span class="voice-label">صوتی</span>
+                <span class="voice-waves" aria-hidden="true"><i></i><i></i><i></i></span>
+              </button>
               <button type="button" class="send-btn stop" id="stop-btn" hidden title="توقف تولید">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
               </button>
               <button type="submit" class="send-btn" id="send-btn" title="ارسال (Enter)" aria-label="ارسال">
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
               </button>
             </div>
           </div>
         </form>
-        <p class="disclaimer">رایان مدل کوچکی است و ممکن است اشتباه کند. پاسخ‌های مهم را بررسی کن.</p>
+        <p class="disclaimer"> <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> مدل کوچکی است و ممکن است اشتباه کند. پاسخ‌های مهم را بررسی کن.</p>
       </div>
     </div>
   </div>
 
   <!-- =========================================================== مودال‌ها -->
-  <div class="modal-backdrop" id="settings-modal" hidden>
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-      <div class="modal-head">
-        <h3 id="settings-title">تنظیمات تولید</h3>
-        <button class="icon-btn" data-close="settings-modal" aria-label="بستن">✕</button>
+  <div class="settings-pop" id="settings-modal" role="dialog" aria-labelledby="settings-title" hidden>
+    <div class="sp-head">
+      <h3 id="settings-title">تنظیمات</h3>
+      <button class="icon-btn" data-close="settings-modal" aria-label="بستن">✕</button>
+    </div>
+    <div class="sp-body">
+      <label class="sp-row" for="set-temp">
+        <span>خلاقیت</span>
+        <b id="temp-value">۰٫۸۲</b>
+      </label>
+      <input class="sp-range" id="set-temp" type="range" min="0.2" max="1.4" step="0.05" value="0.82">
+
+      <label class="sp-row" for="set-tokens">
+        <span>طول پاسخ</span>
+        <b id="tokens-value">۱۱۰ توکن</b>
+      </label>
+      <input class="sp-range" id="set-tokens" type="range" min="40" max="220" step="16" value="110">
+
+      <details class="sp-advanced">
+        <summary>پیشرفته</summary>
+        <label class="sp-row" for="set-topp">
+          <span>top-p</span>
+          <b id="topp-value">۰٫۹۰</b>
+        </label>
+        <input class="sp-range" id="set-topp" type="range" min="0.5" max="1" step="0.01" value="0.9">
+        <label class="sp-row" for="set-candidates">
+          <span>مسیرهای اندیشهٔ ژرف</span>
+          <b id="cand-value">۴</b>
+        </label>
+        <input class="sp-range" id="set-candidates" type="range" min="2" max="6" step="1" value="4">
+      </details>
+
+      <div class="sp-foot">
+        <button class="btn btn-ghost btn-sm" id="reset-settings" type="button">بازنشانی</button>
+        <button class="btn btn-primary btn-sm" data-close="settings-modal" type="button">ذخیره</button>
       </div>
-      <div class="modal-body">
-        <div class="field">
-          <label for="set-temp">دما — خلاقیت</label>
-          <input class="input" id="set-temp" type="range" min="0.2" max="1.4" step="0.05" value="0.82">
-          <span class="form-note" id="temp-value">۰٫۸۲</span>
-        </div>
-        <div class="field">
-          <label for="set-topp">top-p — تنوع واژگان</label>
-          <input class="input" id="set-topp" type="range" min="0.5" max="1" step="0.01" value="0.9">
-          <span class="form-note" id="topp-value">۰٫۹۰</span>
-        </div>
-        <div class="field">
-          <label for="set-tokens">حداکثر توکن پاسخ</label>
-          <input class="input" id="set-tokens" type="number" min="16" max="220" step="8" value="110">
-        </div>
-        <div class="field">
-          <label for="set-candidates">تعداد مسیرهای اندیشهٔ ژرف</label>
-          <input class="input" id="set-candidates" type="number" min="2" max="6" step="1" value="4">
-        </div>
-      </div>
-      <div class="modal-foot">
-        <button class="btn btn-sm" id="reset-settings">بازنشانی</button>
-        <button class="btn btn-primary btn-sm" data-close="settings-modal">ذخیره</button>
-      </div>
+      <p class="sp-note">همه‌چیز محلی است؛ تنظیمات فقط در همین مرورگر ذخیره می‌شود.</p>
     </div>
   </div>
 
@@ -230,6 +269,11 @@
 
   <script src="/static/config.js"></script>
   <script src="/static/ui.js"></script>
+  <script src="/static/voice.js"></script>
   <script src="/static/app.js"></script>
+  <script src="/static/studio.js"></script>
+  <script src="/static/ads.js"></script>
+  <script src="/static/scroll.js"></script>
+  <script src="/static/perf.js"></script>
 </body>
 </html>

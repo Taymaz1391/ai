@@ -1,0 +1,156 @@
+name: clients
+
+# ساخت APK اندروید و EXE ویندوز به‌عنوان کلاینت‌های نازکِ همان سرور.
+# خروجی‌ها به انتشار «clients» در همین مخزن پیوست می‌شوند تا از سایت
+# با نشانی ثابت .../releases/latest/download/rayan-android.apk قابل دریافت باشند.
+
+on:
+  workflow_dispatch:
+    inputs:
+      server_url:
+        description: "نشانی سرور که داخل کلاینت‌ها ساخته می‌شود"
+        required: false
+        default: ""
+  push:
+    paths:
+      - "clients/**"
+      - ".github/workflows/clients.yml"
+
+permissions:
+  contents: write
+
+env:
+  SERVER_URL: ${{ github.event.inputs.server_url || vars.RAYAN_SERVER_URL || 'https://rayan.example' }}
+
+jobs:
+  android:
+    name: APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Bake server address
+        run: |
+          cat > clients/android/app/src/main/java/ir/rayan/app/Config.java <<JAVA
+          package ir.rayan.app;
+
+          final class Config {
+              static final String SERVER_URL = "$SERVER_URL";
+              static final String VERSION = "6.0.0";
+              static final boolean DEBUG = false;
+          }
+          JAVA
+          cat clients/android/app/src/main/java/ir/rayan/app/Config.java
+      - name: Build APK with SDK build-tools (no Gradle, no downloads)
+        working-directory: clients/android
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          echo "SDK=$SDK"
+          PLATFORM_JAR="$(ls -d "$SDK"/platforms/android-*/android.jar | sort -V | tail -1)"
+          BT="$(ls -d "$SDK"/build-tools/* | sort -V | tail -1)"
+          echo "platform=$PLATFORM_JAR buildtools=$BT"
+          test -f "$PLATFORM_JAR"
+          API="$(basename "$(dirname "$PLATFORM_JAR")" | sed 's/[^0-9]//g')"
+          WORK="$(mktemp -d)"
+          "$BT/aapt2" compile --dir app/src/main/res -o "$WORK/res.zip"
+          "$BT/aapt2" link -o "$WORK/base.apk" \
+            -I "$PLATFORM_JAR" \
+            --manifest app/src/main/AndroidManifest.xml \
+            -R "$WORK/res.zip" \
+            --java "$WORK/gen" \
+            --min-sdk-version 24 --target-sdk-version "$API" \
+            --version-code 1 --version-name 6.0.0 \
+            --auto-add-overlay
+          javac -source 17 -target 17 -encoding UTF-8 -nowarn \
+            -classpath "$PLATFORM_JAR" -d "$WORK/classes" \
+            $(find app/src/main/java "$WORK/gen" -name '*.java')
+          mkdir -p "$WORK/dex"
+          "$BT/d8" --lib "$PLATFORM_JAR" --min-api 24 --output "$WORK/dex" \
+            $(find "$WORK/classes" -name '*.class')
+          (cd "$WORK/dex" && zip -q ../base.apk classes.dex)
+          "$BT/zipalign" -f -p 4 "$WORK/base.apk" "$WORK/aligned.apk"
+          "$BT/apksigner" sign --ks rayan-sideload.p12 --ks-type PKCS12 \
+            --ks-pass pass:rayan-sideload-2024 --ks-key-alias rayan \
+            --key-pass pass:rayan-sideload-2024 \
+            --out "$WORK/rayan-android.apk" "$WORK/aligned.apk"
+          "$BT/apksigner" verify "$WORK/rayan-android.apk"
+          mkdir -p ../../out
+          cp "$WORK/rayan-android.apk" ../../out/rayan-android.apk
+          ls -lh ../../out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rayan-android
+          path: out/rayan-android.apk
+          if-no-files-found: error
+
+  windows:
+    name: EXE
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Bake server address
+        shell: pwsh
+        run: |
+          @"
+          namespace Rayan;
+
+          internal static class BuildInfo
+          {
+              internal const string ServerUrl = "$env:SERVER_URL";
+          }
+          "@ | Set-Content -Encoding UTF8 clients/windows/BuildInfo.cs
+      - name: Publish single-file EXE
+        working-directory: clients/windows
+        run: dotnet publish Rayan.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o publish
+      - name: Collect artifact
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out | Out-Null
+          Copy-Item clients/windows/publish/Rayan.exe out/rayan-windows.exe
+          Get-Item out/rayan-windows.exe | Format-List Name,Length
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rayan-windows
+          path: out/rayan-windows.exe
+
+  release:
+    name: Publish downloads
+    needs: [android, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Create or update the «clients» release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          if ! gh release view clients --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            out=$(gh release create clients \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "رایان — نسخه‌های نصب (APK و EXE)" \
+              --notes "کلاینت‌های نازک رایان. هر دو به همان سرور وصل می‌شوند؛ ورود، نقش مدیر و سهمیه فقط سمت سرور تعیین می‌شود." 2>&1)
+            code=$?
+            if [ $code -ne 0 ]; then
+              echo "::error title=release-create-failed::${out//$'\n'/ | }"
+              exit 1
+            fi
+          fi
+          files=$(find dist -type f \( -name '*.apk' -o -name '*.exe' \))
+          echo "assets found: $files"
+          out=$(gh release upload clients $files --repo "$GITHUB_REPOSITORY" --clobber 2>&1)
+          code=$?
+          if [ $code -ne 0 ]; then
+            echo "::error title=release-upload-failed::${out//$'\n'/ | }"
+            exit 1
+          fi
+          echo "::notice title=release-ok::assets uploaded to the clients release"
+          gh release view clients --repo "$GITHUB_REPOSITORY" --json assets,url

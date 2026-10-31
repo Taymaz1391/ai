@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>دانلود رایان · اندروید، ویندوز و وب</title>
+  <meta name="description" content="نسخهٔ اندروید (APK) و ویندوز (EXE) رایان را دانلود کن؛ همه به یک سرور وصل می‌شوند و ورود، نقش مدیر و سهمیه سمت سرور تعیین می‌شود.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="preload" href="/static/assets/fonts/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/pages.css">
+  <script src="/static/theme-boot.js"></script>
+  <style>
+    .dl-hero { display: grid; gap: 10px; justify-items: start; margin-bottom: 26px; }
+    .dl-hero .wordmark { height: 54px; width: auto; }
+    .dl-hero h1 { font-size: clamp(26px, 4vw, 40px); line-height: 1.35; color: var(--text); margin: 0; }
+    .dl-hero p { max-width: 62ch; color: var(--text-2); font-size: 15px; line-height: 2; margin: 0; }
+    .dl-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin: 22px 0 30px; }
+    .dl-card { display: grid; gap: 10px; align-content: start; padding: 20px;
+      border: 1px solid var(--line); border-radius: 18px; background: var(--surface);
+      box-shadow: var(--shadow-soft); }
+    .dl-card .dl-icon { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center;
+      background: var(--accent-soft); color: var(--accent-solid); }
+    .dl-card h2 { font-size: 17px; margin: 0; color: var(--text); }
+    .dl-card p { margin: 0; font-size: 13px; line-height: 1.95; color: var(--text-2); }
+    .dl-card .dl-meta { font-size: 12px; color: var(--text-3); }
+    .dl-card .btn { justify-content: center; }
+    .dl-note { border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px;
+      background: var(--surface-2); font-size: 13.5px; line-height: 2; color: var(--text-2); }
+    .dl-note b { color: var(--text); }
+    .dl-steps { counter-reset: step; display: grid; gap: 10px; padding: 0; margin: 12px 0 0; list-style: none; }
+    .dl-steps li { position: relative; padding-inline-start: 34px; color: var(--text-2); font-size: 13.5px; line-height: 1.9; }
+    .dl-steps li::before { counter-increment: step; content: counter(step);
+      position: absolute; inset-inline-start: 0; top: 4px; width: 22px; height: 22px; border-radius: 8px;
+      background: var(--accent-soft); color: var(--accent-solid); display: grid; place-items: center;
+      font-size: 12px; font-weight: 700; }
+    .dl-en { direction: ltr; text-align: left; }
+    .dl-en h2 { font-size: 18px; color: var(--text); }
+    .dl-en p { color: var(--text-2); font-size: 13.5px; line-height: 1.9; }
+    .press-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin: 16px 0 18px; }
+    .press-card { display: grid; gap: 10px; text-decoration: none; border: 1px solid var(--line);
+      border-radius: 18px; padding: 10px; background: var(--surface); box-shadow: var(--shadow-soft);
+      transition: transform .3s var(--ease), border-color .3s var(--ease), box-shadow .3s var(--ease); }
+    .press-card:hover { transform: translateY(-3px); border-color: var(--line-strong); box-shadow: var(--shadow-lg); }
+    .press-card img { width: 100%; height: auto; aspect-ratio: 2 / 1; object-fit: contain; border-radius: 12px;
+      padding: 10px; background: var(--bg-2); }
+    .press-card:nth-child(3) img { aspect-ratio: 1 / 1; padding: 16px; }
+    .press-meta { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 0 4px 4px; }
+    .press-meta b { font-size: 13.5px; color: var(--text); }
+    .press-meta small { font-size: 12px; color: var(--text-3); }
+    .press-links { display: flex; flex-wrap: wrap; gap: 10px; }
+    .dl-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
+      background: var(--accent-soft); color: var(--accent-solid); font-size: 12px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true"><div class="glow glow-a"></div><div class="glow glow-b"></div></div>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/" aria-label="رایان، خانه">
+        <img class="brand-wordmark wordmark-for-light" src="/static/assets/brand/mark-ink.png"
+             alt="رایان" width="116" height="59">
+        <img class="brand-wordmark wordmark-for-dark" src="/static/assets/brand/mark-white.png"
+             alt="رایان" width="116" height="59">
+      </a>
+      <nav class="nav-links" aria-label="پیمایش اصلی">
+        <a class="nav-link" href="/#features">قابلیت‌ها</a>
+        <a class="nav-link" href="/models">مدل‌ها</a>
+        <a class="nav-link" href="/pricing">تعرفه</a>
+        <a class="nav-link" href="/docs">مستندات</a>
+        <a class="nav-link" href="/support">پشتیبانی</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-primary btn-sm" href="/chat">شروع گفتگو</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="section">
+    <div class="wrap">
+      <div class="dl-hero">
+        <span class="dl-badge"><span data-icon="download" data-size="15"></span> نسخهٔ ۶ · کلاینت نازک</span>
+        <h1><img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> <span>روی هر دستگاهی که داری</span></h1>
+        <p>یک سرور، سه در. گوشی، ویندوز یا مرورگر — همه به همان حساب و همان موتور وصل می‌شوند.
+          هیچ‌کدام از این فایل‌ها مدل را داخل خودش ندارد؛ برای همین هیچ‌کس نمی‌تواند با دست‌کاری
+          فایل نصب، خودش را آنلاین یا ویژه جا بزند.</p>
+      </div>
+
+      <div class="dl-grid">
+        <article class="dl-card">
+          <div class="dl-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="7" y="2.5" width="10" height="19" rx="2.4"/><path d="M11 18.4h2"/></svg>
+          </div>
+          <h2>اندروید — APK</h2>
+          <p>نصب مستقیم، تمام‌صفحه، بدون نوار نشانی. صفحهٔ همان سرور <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> را نشان می‌دهد.</p>
+          <span class="dl-meta">اندروید ۷ به بالا · امضاشده · حدود ۲ مگابایت</span>
+          <a class="btn btn-primary" id="dl-apk"
+             href="https://github.com/Taymaz1391/ai/releases/latest/download/rayan-android.apk"
+             rel="noopener">دریافت APK</a>
+          <p class="dl-meta">پس از دانلود، اجازهٔ «نصب از منابع نامشخص» را برای مرورگر یا فایل‌منیجر روشن کن.</p>
+        </article>
+
+        <article class="dl-card">
+          <div class="dl-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+          </div>
+          <h2>ویندوز — EXE</h2>
+          <p>پنجرهٔ بومی با WebView2؛ همان سایت، بدون مرورگر. لینک‌های بیرونی در مرورگر پیش‌فرض باز می‌شوند.</p>
+          <span class="dl-meta">ویندوز ۱۰ و ۱۱ · ۶۴ بیتی · WebView2 Runtime</span>
+          <a class="btn btn-primary" id="dl-exe"
+             href="https://github.com/Taymaz1391/ai/releases/latest/download/rayan-windows.exe"
+             rel="noopener">دریافت EXE</a>
+          <p class="dl-meta">اگر ویندوز ۱۱ داری، WebView2 از پیش نصب است؛ در غیر این صورت نصبش کن.</p>
+        </article>
+
+        <article class="dl-card">
+          <div class="dl-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></svg>
+          </div>
+          <h2>وب و نصب PWA</h2>
+          <p>همین حالا در مرورگر باز کن. در کروم اندروید یا دسکتاپ می‌توانی از منوی مرورگر «نصب» را بزنی.</p>
+          <span class="dl-meta">کروم، اج، فایرفاکس، سافاری</span>
+          <a class="btn" href="/chat">باز کردن وب‌اپ</a>
+          <p class="dl-meta">بدون نصب، بدون به‌روزرسانی دستی؛ همیشه آخرین نسخهٔ سرور.</p>
+        </article>
+      </div>
+
+      <div class="dl-note">
+        <b>چرا نمی‌شود «آنلاین» جا زد؟</b>
+        <p style="margin:8px 0 0">این کلاینت‌ها فقط صفحهٔ سرور را نمایش می‌دهند. خودآزمون سرور، سهمیهٔ روزانه،
+          نشست کاربر و نقش مدیر همه با کوکی امن سمت سرور بررسی می‌شوند؛ کلاینت هیچ کلید یا شمارنده‌ای
+          برای سهمیه ندارد. اگر اینترنت قطع باشد، برنامه همان پیام «اتصال به سرور برقرار نشد» را
+          نشان می‌دهد و هیچ پاسخ آفلاینی از خودش نمی‌سازد. حساب تو روی وب، اندروید و ویندوز یکی است.</p>
+      </div>
+
+      <div style="display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-top:20px">
+        <div class="dl-note">
+          <b>نصب اندروید در سه قدم</b>
+          <ol class="dl-steps">
+            <li>APK را دانلود کن.</li>
+            <li>در پیام «نصب برنامه‌ها از این منبع» اجازه بده.</li>
+            <li>باز کن، وارد شو؛ همان حساب وبی‌ات کار می‌کند.</li>
+          </ol>
+        </div>
+        <div class="dl-note">
+          <b>نسخهٔ ویندوز در سه قدم</b>
+          <ol class="dl-steps">
+            <li>EXE را دانلود کن (ویندوز ممکن است هشدار اسمار‌ت‌اسکرین بدهد؛ «More info → Run anyway»).</li>
+            <li>WebView2 Runtime را اگر نصب نیست نصب کن.</li>
+            <li>باز کن و وارد شو.</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="dl-note" style="margin-top:20px">
+        <b>شفافیت:</b> این دو فایل در GitHub Actions از همین مخزن ساخته می‌شوند
+        (<code>.github/workflows/clients.yml</code>) و به انتشار «clients» پیوند می‌خورند.
+        نشانی سرور هنگام ساخت داخل برنامه قرار می‌گیرد؛ برای تغییرش
+        <code>RAYAN_SERVER_URL</code> را ست کن و دوباره بساز.
+        <a href="/docs">مستندات کامل</a>
+      </div>
+
+      <section class="press-kit" style="margin-top:36px">
+        <h2>کیت رسانه</h2>
+        <p class="dl-lede" style="margin-top:6px">نشان متحرک، کرهٔ زنده و نشانهٔ برند — همه از همین مخزن، سبک، شفاف و بدون سرویس بیرونی.</p>
+        <div class="press-grid">
+          <a class="press-card" href="/static/assets/brand/logo-motion-dark.webp" download>
+            <img class="press-preview" src="/static/assets/brand/logo-motion-dark.webp" alt="نشان متحرک رایان روی زمینهٔ تیره" width="640" height="320" loading="lazy" decoding="async">
+            <span class="press-meta"><b>نشان متحرک</b><small>WebP متحرک · شفاف · ۳٫۲ ثانیه</small></span>
+          </a>
+          <a class="press-card" href="/static/assets/brand/logo-loading.webp" download>
+            <img class="press-preview" src="/static/assets/brand/logo-loading.webp" alt="نشان در حالت بارگذاری" width="390" height="200" loading="lazy" decoding="async">
+            <span class="press-meta"><b>نشان بارگذاری</b><small>WebP متحرک · شفاف · ۲٫۴ ثانیه</small></span>
+          </a>
+          <a class="press-card" href="/static/assets/brand/orb-live.webp" download>
+            <img class="press-preview" src="/static/assets/brand/orb-256.png" alt="کرهٔ زندهٔ رایان" width="256" height="256" loading="lazy" decoding="async">
+            <span class="press-meta"><b>کرهٔ زنده</b><small>WebP متحرک · ۶ ثانیه · آواتار</small></span>
+          </a>
+        </div>
+        <div class="press-links">
+          <a class="btn btn-sm" href="/static/assets/brand/logotype-stack-ink.png" download>لوگوتایپ (PNG)</a>
+          <a class="btn btn-sm" href="/static/assets/brand/mark-ink.png" download>نشانه (PNG)</a>
+          <a class="btn btn-sm" href="/static/assets/brand/orb-512.png" download>کره (PNG)</a>
+          <a class="btn btn-sm" href="/static/assets/brand/logo-motion.webp" download>نشان متحرک · زمینهٔ روشن</a>
+        </div>
+      </section>
+
+      <section class="dl-en" style="margin-top:36px">
+        <h2>کلاینت‌ها چطور کار می‌کنند؟</h2>
+        <p>برنامهٔ اندروید و ویندوز فقط «پنجره»ی همین سرور هستند: هیچ مدلی داخلشان نیست و هیچ
+          دسترسی‌ای هم نگه نمی‌دارند. ورود، نقش مدیر، و سهمیهٔ روزانه همه روی سرور بررسی می‌شود؛
+          پس دست‌کاری فایل نصب نمی‌تواند وضعیت «آنلاین» یا «حرفه‌ای» جعلی بسازد. اگر اینترنت نباشد،
+          برنامه خطای اتصال نشان می‌دهد و پاسخ ساختگی تولید نمی‌کند.</p>
+        <p>می‌توانی خودت از پوشهٔ <code>clients/</code> بسازی‌شان، یا از خروجی گردش‌کار
+          <code>clients</code> استفاده کنی:
+          <a href="https://github.com/Taymaz1391/ai/releases/latest">آخرین انتشار</a>.</p>
+      </section>
+    </div>
+  </main>
+
+  <script src="/static/config.js"></script>
+  <script src="/static/ui.js"></script>
+  <script src="/static/scroll.js"></script>
+  <script src="/static/perf.js"></script>
+</body>
+</html>

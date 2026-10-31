@@ -23,8 +23,15 @@ class ExportSiteTest(unittest.TestCase):
 
     def test_pages_exist(self):
         for name in ("index.html", "chat.html", "login.html", "signup.html",
-                     "pricing.html", "models.html", "about.html", "docs.html", "404.html"):
+                     "pricing.html", "models.html", "about.html", "docs.html", "download.html",
+                     "offline.html", "summary.html", "course.html", "404.html"):
             self.assertTrue((self.out / name).exists(), name)
+
+    def test_download_page_links(self):
+        html = (self.out / "download.html").read_text(encoding="utf-8")
+        self.assertIn("releases/latest/download/rayan-android.apk", html)
+        self.assertIn("releases/latest/download/rayan-windows.exe", html)
+        self.assertIn("کلاینت نازک", html)
 
     def test_assets_copied(self):
         self.assertTrue((self.out / "static" / "styles.css").exists())
@@ -39,6 +46,12 @@ class ExportSiteTest(unittest.TestCase):
             refs = re.findall(r'(?:href|src)="(/[^"]*)"', page.read_text(encoding="utf-8"))
             internal = [r for r in refs if not r.startswith("/api/")]
             self.assertEqual(internal, [], page.name)
+
+    def test_new_pages_wired(self):
+        index = (self.out / "index.html").read_text(encoding="utf-8")
+        self.assertNotIn("/academy", index)
+        self.assertNotIn('src="/static/', index)
+        self.assertFalse((self.out / "academy.html").exists())
 
     def test_static_config(self):
         config = (self.out / "static" / "config.js").read_text(encoding="utf-8")
@@ -58,7 +71,7 @@ class ExportSiteTest(unittest.TestCase):
             self.assertFalse(icon["src"].startswith("/"), icon["src"])
 
     def test_deterministic_counts(self):
-        self.assertEqual(self.info["pages"], 8)
+        self.assertEqual(self.info["pages"], 14)
         self.assertGreater(self.info["files"], 30)
 
     @classmethod

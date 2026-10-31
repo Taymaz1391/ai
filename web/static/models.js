@@ -9,7 +9,6 @@
         request("/api/health"),
         request("/api/model").catch(() => null),
       ]);
-      const meta = model?.meta || {};
       const ev = model?.metrics?.best_eval || health.latest_eval;
       if (ev) {
         const cells = document.querySelectorAll("#eval-table tbody tr");
@@ -19,14 +18,31 @@
         const ppl = $("#m-ppl");
         if (ppl) ppl.textContent = nf(ev.ppl, 1);
       }
-      const tokens = health.latest_train?.tokens || meta.tokens_seen;
+      const tokens = health.latest_train?.tokens;
       if (tokens) {
-        const rows = document.querySelectorAll("#eval-table tbody tr");
-        const last = rows[rows.length - 1];
-        if (last) last.children[1].textContent = nf(tokens);
+        const cell = document.querySelector("[data-eval='tokens']");
+        if (cell) cell.textContent = `${nf(tokens / 1e6, 1)} میلیون`;
       }
     } catch { /* نسخهٔ استاتیک: اعداد ثابت می‌مانند */ }
   }
 
-  document.addEventListener("DOMContentLoaded", loadLive);
+  async function loadBench() {
+    try {
+      const data = await request("/api/benchmark");
+      const acc = data.accuracy || {};
+      const fa = (value) => String(value).replace(/[0-9]/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
+      const set = (key, text) => {
+        const cell = document.querySelector(`[data-bench="${key}"]`);
+        if (cell) cell.textContent = text;
+      };
+      if (typeof acc.tools_percent === "number") set("tools_percent", `${fa(acc.tools_percent.toFixed(1))}٪`);
+      if (typeof acc.clock_percent === "number") set("clock_percent", `${fa(acc.clock_percent.toFixed(1))}٪`);
+      if (typeof acc.normalize_percent === "number") set("normalize_percent", `${fa(acc.normalize_percent.toFixed(1))}٪`);
+      if (typeof acc.generation_percent === "number") set("generation_percent", `${fa(acc.generation_percent.toFixed(1))}٪`);
+      const lat = data.latency?.generation_p50_s;
+      if (typeof lat === "number") set("latency", `${fa(lat.toFixed(2))} ثانیه`);
+    } catch { /* نسخهٔ استاتیک */ }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => { loadLive(); loadBench(); });
 })();

@@ -27,7 +27,25 @@ _site/
 
 # پایگاه‌دادهٔ محلی و وابستگی‌های آزمون رابط
 data/*.sqlite3
+data/admin.json
+data/backups/
 data/*.sqlite3-shm
 data/*.sqlite3-wal
 tests/ui/node_modules
 node_modules/
+
+# اعتبارنامهٔ مالک (هش scrypt؛ هرگز در Git نمی‌رود)
+data/owner.json
+data/owner.json.tmp
+
+# رازِ امضای سرور (خودکار ساخته می‌شود)
+data/secret.key
+
+# وضعیت ابزار مقیاس‌پذیری (محلی)
+data/.scale_state.json
+data/.scale_seen.txt
+data/scale_stats.json
+
+# رویدادهای سد تهاجم (زمان اجرا)
+data/security_events.jsonl
+data/security_events.jsonl.1

@@ -1,0 +1,233 @@
+{
+  "model": "rayan-1-small",
+  "params": 6574848,
+  "checkpoint": "rayan-1-small.npz",
+  "run_at": "2026-10-31T15:11:21Z",
+  "wall_seconds": 0.5,
+  "tasks": 20,
+  "accuracy": {
+    "tools_percent": 100.0,
+    "clock_percent": 100.0,
+    "normalize_percent": 100.0,
+    "generation_percent": 62.5
+  },
+  "latency": {
+    "generation_p50_s": 0.04,
+    "generation_max_s": 0.09,
+    "tokens_per_second_p50": 375.4
+  },
+  "engine_mix": {
+    "skill": 1,
+    "knowledge": 1,
+    "model": 6
+  },
+  "cost_usd_per_million_tokens": 0.0,
+  "context_tokens": 256,
+  "opus_reference": {
+    "model": "Claude Opus 5.5",
+    "released": "2026-09-22",
+    "context_tokens": 1000000,
+    "price_in_per_mtok_usd": 4.0,
+    "price_out_per_mtok_usd": 20.0,
+    "published": {
+      "SWE-bench Pro": 89.9,
+      "SWE-bench Multilingual": 93.9,
+      "Terminal-Bench 4.0": 66.4,
+      "Humanity's Last Exam (no tools)": 64.4,
+      "Humanity's Last Exam (with tools)": 67.7,
+      "Global-MMLU": 94.3,
+      "GDPval-AA v2.1 (Elo)": 1846
+    },
+    "sources": [
+      "https://codersera.com/blog/claude-opus-5-5-complete-guide-2026/",
+      "https://llm-stats.com/blog/research/claude-opus-5-5-launch",
+      "https://hokai.io/hub/models/claude-opus-5.5"
+    ]
+  },
+  "results": [
+    {
+      "id": "tool-calc-1",
+      "kind": "tool",
+      "ok": true,
+      "got": 372
+    },
+    {
+      "id": "tool-calc-2",
+      "kind": "tool",
+      "ok": true,
+      "got": 1245
+    },
+    {
+      "id": "tool-calc-3",
+      "kind": "tool",
+      "ok": true,
+      "got": 90
+    },
+    {
+      "id": "tool-calc-4",
+      "kind": "tool",
+      "ok": true,
+      "got": 8.0
+    },
+    {
+      "id": "tool-calc-5",
+      "kind": "tool",
+      "ok": true,
+      "got": 1
+    },
+    {
+      "id": "tool-now-1",
+      "kind": "tool_now",
+      "ok": true,
+      "got": null
+    },
+    {
+      "id": "tool-now-2",
+      "kind": "tool_now",
+      "ok": true,
+      "got": null
+    },
+    {
+      "id": "norm-1",
+      "kind": "normalize",
+      "ok": true,
+      "got": "کتاب"
+    },
+    {
+      "id": "norm-2",
+      "kind": "normalize",
+      "ok": true,
+      "got": "ایران"
+    },
+    {
+      "id": "norm-3",
+      "kind": "normalize",
+      "ok": true,
+      "got": "می‌روم"
+    },
+    {
+      "id": "norm-4",
+      "kind": "normalize",
+      "ok": true,
+      "got": "سلام دنیا"
+    },
+    {
+      "id": "norm-5",
+      "kind": "normalize",
+      "ok": true,
+      "got": "تهران"
+    },
+    {
+      "id": "gen-1",
+      "kind": "generation",
+      "ok": true,
+      "checks": {
+        "chars": true,
+        "keyword": true
+      },
+      "answer": "سلام! من رایان هستم — دستیار فارسیِ خودت، که روی همین سرور اجرا می‌شود.\nمی‌توانم گفتگو کنم، متن را ادامه بدهم، شعر بگویم، حساب کنم، تاریخ شمسی بدهم، و اگر دکمهٔ «وب» را روشن کنی، با منبع و لینک جواب بدهم. چه کاری شروع کنیم؟",
+      "seconds": 0.0,
+      "tokens": 0,
+      "tok_per_s": 0.0,
+      "via": "skill"
+    },
+    {
+      "id": "gen-2",
+      "kind": "generation",
+      "ok": true,
+      "checks": {
+        "chars": true,
+        "keyword": true
+      },
+      "answer": "پایتخت ایران **تهران** است. تهران بزرگ‌ترین شهر ایران هم هست و مرکز استان تهران به شمار می‌رود.",
+      "seconds": 0.0,
+      "tokens": 0,
+      "tok_per_s": 0.0,
+      "via": "knowledge"
+    },
+    {
+      "id": "gen-3",
+      "kind": "generation",
+      "ok": true,
+      "checks": {
+        "chars": true,
+        "persian": true
+      },
+      "answer": "من رایان که از صفر آغاز شد، ادامه داد: هر کاری کوتاه مدت چند روز جمعه در کشور انجام می‌شود و در خانه کار و با این کار به روی کار می‌آید.",
+      "seconds": 0.09,
+      "tokens": 34,
+      "tok_per_s": 398.45636034948603,
+      "via": "model"
+    },
+    {
+      "id": "gen-4",
+      "kind": "generation",
+      "ok": true,
+      "checks": {
+        "chars": true,
+        "persian": true
+      },
+      "answer": "ریاضی چیست؟ یک سال گذشته به انگلیسی و سبک انگلیسی است که به فارسی و «سلامت، زندگی خود را ترک کرده است.",
+      "seconds": 0.06,
+      "tokens": 24,
+      "tok_per_s": 412.6153694807431,
+      "via": "model"
+    },
+    {
+      "id": "gen-5",
+      "kind": "generation",
+      "ok": false,
+      "checks": {
+        "chars": true,
+        "keyword": false
+      },
+      "answer": "من هم تو را به دنبال می‌خواهد. از دو طرف یک زن چه می‌گرداند.",
+      "seconds": 0.05,
+      "tokens": 18,
+      "tok_per_s": 377.92197026580567,
+      "via": "model"
+    },
+    {
+      "id": "gen-6",
+      "kind": "generation",
+      "ok": true,
+      "checks": {
+        "chars": true,
+        "persian": true
+      },
+      "answer": "از تو بیدار می‌شوی تا به زمین و شب رمضان را کنار نمی‌بینیم.",
+      "seconds": 0.03,
+      "tokens": 15,
+      "tok_per_s": 443.0977265684424,
+      "via": "model"
+    },
+    {
+      "id": "gen-7",
+      "kind": "generation",
+      "ok": false,
+      "checks": {
+        "chars": true,
+        "keyword": false
+      },
+      "answer": "مدل زبانی فارسی که برای من از صفر ساخته شده‌اند؟ چه بسا یک مدل کوچک از صفر آموزش دیده نمی‌دانم.",
+      "seconds": 0.06,
+      "tokens": 24,
+      "tok_per_s": 372.79250439774097,
+      "via": "model"
+    },
+    {
+      "id": "gen-8",
+      "kind": "generation",
+      "ok": false,
+      "checks": {
+        "chars": true,
+        "keyword": false
+      },
+      "answer": "یادگیری ماشین روشی است که از صفر ساخته شده است.",
+      "seconds": 0.03,
+      "tokens": 10,
+      "tok_per_s": 323.06123392128166,
+      "via": "model"
+    }
+  ]
+}

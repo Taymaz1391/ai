@@ -5,24 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>مستندات · رایان</title>
   <meta name="description" content="مستندات رایان: اجرای محلی، API، معماری مدل، آموزش و استقرار رایگان.">
-  <meta name="theme-color" content="#050b1a">
+  <meta name="theme-color" content="#ffffff">
   <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/static/styles.css">
+  <link rel="preload" href="/static/assets/fonts/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/pages.css">
+  <script src="/static/theme-boot.js"></script>
 </head>
 <body>
   <div class="backdrop" aria-hidden="true"><div class="glow glow-a"></div><div class="glow glow-b"></div></div>
 
   <header class="nav">
     <div class="nav-inner">
-      <a class="brand" href="/"><img class="brand-orb" src="/static/assets/brand/orb-128.png" alt="" width="34" height="34"><span class="brand-name"><b>رایان</b><span>RAYAN</span></span></a>
-      <nav class="nav-links" aria-label="پیمایش">
+      <a class="brand" href="/">
+        <img class="brand-wordmark wordmark-for-light" src="/static/assets/brand/mark-ink.png"
+             alt="رایان" width="116" height="59">
+        <img class="brand-wordmark wordmark-for-dark" src="/static/assets/brand/mark-white.png"
+             alt="رایان" width="116" height="59">
+      </a>
+      <nav class="nav-links" aria-label="پیمایش اصلی">
         <a class="nav-link" href="/#features">قابلیت‌ها</a>
         <a class="nav-link" href="/models">مدل‌ها</a>
         <a class="nav-link" href="/pricing">تعرفه</a>
-        <a class="nav-link is-active" href="/docs">مستندات</a>
-        <a class="nav-link" href="/about">درباره</a>
+        <a class="nav-link" href="/download">دانلود</a>
+        <a class="nav-link" href="/support">پشتیبانی</a>
       </nav>
       <div class="nav-actions">
         <a class="btn btn-ghost btn-sm" href="/login" data-auth="guest">ورود</a>
@@ -43,8 +50,9 @@
       </nav>
 
       <div class="prose">
-        <h1 style="font-size:clamp(24px,3.6vw,34px);color:var(--text)">مستندات رایان</h1>
-        <p style="color:var(--text-3);font-size:13.5px">هر چیزی که برای اجرا، استفاده و استقرار لازم داری.</p>
+        <h1 style="font-size:clamp(24px,3.6vw,34px);color:var(--text)">مستندات <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> </h1>
+        <p style="color:var(--text-3);font-size:13.5px">هر چیزی که برای اجرا، استفاده و استقرار لازم داری.
+          اگر می‌خواهی از صفر یاد بگیری، <a href="/course">دورهٔ ۵ ساعتهٔ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> </a> مسیر کامل است.</p>
 
         <h2 id="quickstart">شروع سریع</h2>
         <pre><code>git clone https://github.com/Taymaz1391/ai.git
@@ -63,11 +71,15 @@ python web/server.py --host 0.0.0.0 --port 8000</code></pre>
             <tbody>
               <tr><td><code>POST /api/chat</code></td><td>پاسخ کامل؛ با <code>deep: true</code> جست‌وجوی چندمسیره</td></tr>
               <tr><td><code>POST /api/chat/stream</code></td><td>جریان NDJSON: <code>start</code>، <code>token</code>، <code>done</code></td></tr>
-              <tr><td><code>GET /api/health</code></td><td>وضعیت مدل و آموزش</td></tr>
+              <tr><td><code>GET /api/health</code></td><td>آیا سرویس آماده است؟</td></tr>
               <tr><td><code>GET /api/model</code></td><td>مشخصات، سخت‌افزار، پیکره و محدودیت‌ها</td></tr>
               <tr><td><code>GET /api/models</code></td><td>فهرست مدل‌ها و وضعیت آن‌ها</td></tr>
-              <tr><td><code>GET /api/metrics</code></td><td>گزارش زندهٔ آموزش</td></tr>
+              <tr><td><code>GET /api/metrics</code></td><td>خلاصهٔ آخرین ارزیابی</td></tr>
               <tr><td><code>GET /api/showcase</code></td><td>نمونه‌های واقعی تولید مدل</td></tr>
+              <tr><td><code>GET /api/locale</code></td><td>زبان، جهت و دارایی‌های متحرک برند</td></tr>
+              <tr><td><code>GET /api/status</code></td><td>وضعیت کوتاه برای بنر و پایش</td></tr>
+              <tr><td><code>GET /api/search?q=…</code></td><td>جست‌وجوی وب بدون کلید (SearXNG → DuckDuckGo → ویکی‌پدیا)، با کش ۱۰ دقیقه‌ای</td></tr>
+              <tr><td><code>GET /api/plans</code></td><td>پلن‌ها و سقف مصرف (قابل تغییر از پنل)</td></tr>
               <tr><td><code>POST /api/auth/register</code></td><td>ساخت حساب</td></tr>
               <tr><td><code>POST /api/auth/login</code></td><td>ورود و صدور کوکی نشست</td></tr>
               <tr><td><code>GET /api/auth/me</code></td><td>کاربر، پلن و مصرف امروز</td></tr>
@@ -77,7 +89,7 @@ python web/server.py --host 0.0.0.0 --port 8000</code></pre>
               <tr><td><code>POST /api/conversations/{id}/share</code></td><td>ساخت لینک عمومی</td></tr>
               <tr><td><code>GET /api/share/{token}</code></td><td>خواندن گفتگوی اشتراکی</td></tr>
               <tr><td><code>POST /api/feedback</code></td><td>ثبت بازخورد پاسخ</td></tr>
-              <tr><td><code>GET /api/download/checkpoint</code></td><td>دانلود وزن‌های NPZ</td></tr>
+              <tr><td><code>GET /api/download/checkpoint</code></td><td>دانلود وزن‌های NPZ — فقط نشست مدیر (۴۰۱ برای بقیه)</td></tr>
             </tbody>
           </table>
         </div>
@@ -102,6 +114,29 @@ python web/server.py --host 0.0.0.0 --port 8000</code></pre>
           <li>پاسخ در SQLite ذخیره و به مرورگر جریان داده می‌شود.</li>
         </ol>
 
+        <h2 id="locale">زبان و حرکت برند</h2>
+        <p>
+          سایت تک‌زبانه است: همهٔ صفحه‌ها <code>lang="fa"</code> و <code>dir="rtl"</code> هستند و هیچ کلید زبان،
+          هدایت خودکار یا تشخیص GeoIP وجود ندارد. به‌جای ویدیو، دو فایل متحرک سبک سرو می‌شوند:
+          کرهٔ زندهٔ دستیار و نشان متحرک برند. هر دو WebP شفاف‌اند و در تم روشن و تیره رنگ درست را
+          برمی‌دارند؛ <code>/api/locale</code> نشانی همین فایل‌ها را می‌دهد و با «کم‌کردن حرکت» در سیستم
+          خودکار متوقف می‌شوند.
+        </p>
+
+        <h2 id="clients">کلاینت‌های نصب</h2>
+        <p><code>/download</code> نسخهٔ اندروید (APK) و ویندوز (EXE) را با نشانی ثابت به انتشار
+          <code>clients</code> در GitHub پیوند می‌دهد. هر دو پوستهٔ نازک‌اند: مدل و سهمیه سمت سرور است
+          و نشانی سرور را در نخستین اجرا می‌پرسی. ساختشان با
+          <code>.github/workflows/clients.yml</code> انجام می‌شود.</p>
+
+        <h2 id="benchmark">بنچمارک شفاف</h2>
+        <p>هیچ ادعای «جلو زدن از مدل‌های مرزی» در این پروژه نیست. نتیجهٔ سنجه‌های واقعی
+          (ابزار محلی، خط فارسی، تولید متن، تأخیر و هزینه) در
+          <code><a href="/api/benchmark">/api/benchmark</a></code> و در فایل
+          <code>docs/BENCHMARKS.md</code> منتشر می‌شود و با
+          <code>python scripts/benchmark.py</code> بازتولید می‌شود. جدول مرجع Opus 5.5 هم
+          آن‌جاست، ولی مقایسهٔ هم‌سنگ نیست: آن بنچمارک‌ها عامل‌محور و چندمرحله‌ای‌اند.</p>
+
         <h2 id="deploy">استقرار</h2>
         <p>سه مسیر رایگان:</p>
         <ul>
@@ -117,13 +152,55 @@ python web/server.py --host 0.0.0.0 --port 8000</code></pre>
   </main>
 
   <footer class="footer">
-    <div class="wrap"><div class="footer-bottom" style="border-top:0;margin-top:0">
-      <span>© ۱۴۰۵ رایان · MIT</span>
-      <a href="https://github.com/Taymaz1391/ai" rel="noopener">مخزن GitHub</a>
-    </div></div>
+    <div class="wrap">
+      <div class="footer-grid">
+        <div class="footer-about">
+          <a href="/" aria-label="رایان، خانه">
+            <img class="lockup lockup-for-light" src="/static/assets/brand/logotype-stack-ink.png" alt="رایان — هوش مصنوعی، به زبان فارسی" width="178" height="187" loading="lazy">
+            <img class="lockup lockup-for-dark" src="/static/assets/brand/logotype-stack-white.png" alt="رایان — هوش مصنوعی، به زبان فارسی" width="178" height="187" loading="lazy">
+          </a>
+          <p>دستیار فارسی که از صفر ساخته شده؛ کد، داده و وزن‌ها عمومی‌اند.</p>
+        </div>
+        <div>
+          <h4>محصول</h4>
+          <ul>
+            <li><a href="/chat">گفتگو</a></li>
+            <li><a href="/models">مدل‌ها</a></li>
+            <li><a href="/pricing">تعرفه و سهمیه</a></li>
+            <li><a href="/support">پشتیبانی تجاری</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>توسعه</h4>
+          <ul>
+            <li><a href="/docs">مستندات</a></li>
+            <li><a href="/developer">توسعه‌دهنده</a></li>
+            <li><a href="/download">دانلود اپلیکیشن</a></li>
+            <li><a href="/course">دورهٔ ۵ ساعته</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>پروژه</h4>
+          <ul>
+            <li><a href="/about">درباره</a></li>
+            <li><a href="/summary">خلاصهٔ پروژه</a></li>
+            <li><a href="/api/health">وضعیت سرویس</a></li>
+            <li><a href="https://github.com/Taymaz1391/ai" rel="noopener">GitHub</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© ۱۴۰۵ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> · ساخته‌شده با NumPy، بدون مدل آماده</span>
+        <span><a href="/about#license">مجوز MIT</a> · <a href="/about#privacy">حریم خصوصی</a> · <a href="/about#terms">شرایط استفاده</a></span>
+      </div>
+    </div>
   </footer>
 
   <script src="/static/config.js"></script>
   <script src="/static/ui.js"></script>
+  <script src="/static/studio.js"></script>
+  <script src="/static/ads.js"></script>
+  <script src="/static/scroll.js"></script>
+  <script src="/static/perf.js"></script>
 </body>
 </html>

@@ -8,21 +8,17 @@
       const health = await request("/api/health");
       const status = $("#hero-status");
       if (status) {
-        const step = health.latest_train?.step || health.model?.step;
         status.textContent = health.ok
-          ? `مدل آماده است · گام ${nf(step)} آموزش · ${health.training_active ? "در حال آموزش" : "پایدار"}`
+          ? `مدل آماده است · ${health.training_active ? "در حال آموزش" : "پایدار"}`
           : "مدل در حال بارگذاری است…";
       }
       if (health.model?.params) {
         const params = $("#stat-params");
         if (params) params.textContent = `${nf(health.model.params / 1e6, 2)} میلیون`;
-        const loss = $("#stat-loss");
-        if (loss && health.model.val_loss) loss.textContent = nf(health.model.val_loss, 2);
-      }
-      const tokens = health.latest_train?.tokens;
-      if (tokens) {
-        const el = $("#stat-tokens");
-        if (el) el.textContent = `${nf(tokens / 1e6, 1)} میلیون`;
+        const speed = $("#stat-speed");
+        if (speed && health.latest_train?.tokens_per_second) {
+          speed.textContent = nf(health.latest_train.tokens_per_second, 0);
+        }
       }
     } catch {
       const banner = $("#demo-banner");

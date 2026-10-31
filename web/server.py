@@ -16,6 +16,7 @@ import secrets
 import sys
 import threading
 import time
+from contextlib import asynccontextmanager
 from collections import deque
 from typing import Literal
 
@@ -23,17 +24,34 @@ import numpy as np
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse, RedirectResponse,
+                               StreamingResponse)
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr, Field
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# وقتی این فایل مستقیم اجرا می‌شود، پوشهٔ web اول sys.path است و ماژول‌های خودی
+# (مثل web/locale.py) جای ماژول‌های استاندارد پایتون را می‌گیرند. ریشه را اول می‌آوریم
+# و پوشهٔ خودِ اسکریپت را برمی‌داریم تا `locale` استاندارد درست پیدا شود.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+while _HERE in sys.path:
+    sys.path.remove(_HERE)
 sys.path.insert(0, ROOT)
 
 from rayan.generate import MODES, Engine, polish  # noqa: E402
 from rayan.text import normalize, prepare_user_input  # noqa: E402
 from rayan.thinking import deep_reply  # noqa: E402
 from web.store import store  # noqa: E402
+from web import admin as admin_module  # noqa: E402
+from web import lang as locale_module  # noqa: E402
+from web import owner as owner_module  # noqa: E402
+from web import search as search_module  # noqa: E402
+from web import skills as skills_module  # noqa: E402
+from web import knowledge as knowledge_module  # noqa: E402
+from web import tools as tools_module  # noqa: E402
+from web import security as security_module  # noqa: E402
+from web import answer as answer_module  # noqa: E402
+from web import guard as guard_module  # noqa: E402
 
 STATIC_DIR = os.path.join(ROOT, "web", "static")
 CHECKPOINTS = [
@@ -48,7 +66,7 @@ CORPUS_STATS_PATH = os.path.join(ROOT, "data", "corpus_stats.json")
 SESSION_COOKIE = "rayan_session"
 GUEST_COOKIE = "rayan_guest"
 SESSION_DAYS = 30
-IS_PROD = os.environ.get("RAYAN_ENV", "dev") == "prod"
+IS_PROD = os.environ.get("RAYAN_ENV", "dev").strip().lower() in ("prod", "production")
 
 STARTED = time.time()
 engine: Engine | None = None
@@ -113,13 +131,61 @@ SAMPLES = [
     {"mode": "poetry", "title": "بیت‌سازی", "text": ""},
 ]
 
-app = FastAPI(title="رایان", version="2.0.0", docs_url=None, redoc_url=None)
+_SHUTDOWN = threading.Event()
+_BOOT_LOCK = threading.Lock()
+_BOOTED = {"done": False}
+
+
+def boot() -> None:
+    """آماده‌سازی سرور بدون توجه به این‌که با uvicorn یا `python -m web.server` بالا بیاید."""
+    with _BOOT_LOCK:
+        if _BOOTED["done"]:
+            return
+        _BOOTED["done"] = True
+    global engine, engine_error
+    try:
+        store()
+    except Exception as exc:  # pragma: no cover
+        print(f"[rayan] store init failed: {exc}", flush=True)
+    try:
+        admin_module.admin_credentials()
+        admin_module.start_scheduler()
+    except Exception as exc:  # pragma: no cover
+        print(f"[rayan] admin bootstrap skipped: {exc}", flush=True)
+    if engine is None:
+        def _load() -> None:
+            global engine, engine_error
+            try:
+                engine = load_engine()
+                engine_error = None
+                print(f"[rayan] loaded {engine.checkpoint} | step={engine.meta.get('step')}", flush=True)
+            except Exception as exc:
+                engine_error = str(exc)
+                print(f"[rayan] model not loaded: {exc}", flush=True)
+
+        threading.Thread(target=_load, name="rayan-loader", daemon=True).start()
+    if os.environ.get("RAYAN_WATCH", "1") != "0":
+        threading.Thread(target=watcher, args=(_SHUTDOWN,), name="rayan-watch", daemon=True).start()
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    boot()
+    try:
+        yield
+    finally:
+        _SHUTDOWN.set()
+
+
+app = FastAPI(title="رایان", version="3.0.0", docs_url=None, redoc_url=None, lifespan=lifespan)
 app.add_middleware(GZipMiddleware, minimum_size=1024)
+_PUBLIC_ORIGINS = {o.strip() for o in os.environ.get("RAYAN_ORIGINS", "").split(",") if o.strip()}
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=sorted(_PUBLIC_ORIGINS),
+    allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    allow_headers=["Content-Type", "X-RayAn-CSRF", "x-rayan-csrf", "X-API-Key", "Authorization", "X-Admin-Key"],
 )
 
 if os.path.isdir(STATIC_DIR):
@@ -146,17 +212,38 @@ class ChatRequest(BaseModel):
     top_k: int | None = Field(default=None, ge=1, le=200)
     max_new_tokens: int | None = Field(default=None, ge=16, le=220)
     seed: int | None = Field(default=None, ge=0, le=2**31 - 1)
+    web: bool = False
+
+
+class HumanEvidence(BaseModel):
+    """شواهد رفتاری مرورگر برای «من ربات نیستم»؛ همه اختیاری‌اند."""
+    moves: int = Field(default=0, ge=0, le=100000)
+    keys: int = Field(default=0, ge=0, le=100000)
+    elapsed_ms: int = Field(default=0, ge=0, le=3600000)
+    honeypot: str = Field(default="", max_length=120)
+    webdriver: bool = False
+
+
+class HumanProof(BaseModel):
+    token: str = Field(min_length=20, max_length=300)
+    nonce: str = Field(min_length=1, max_length=24)
+    evidence: HumanEvidence | None = None
 
 
 class RegisterRequest(BaseModel):
     name: str = Field(default="", max_length=60)
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
+    captcha: HumanProof | None = None
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    """ورود با ایمیل یا نام کاربری. فیلد ``identifier`` تازه است و ``email``
+    برای سازگاری با کلاینت‌های قدیمی پذیرفته می‌شود."""
+    email: str | None = Field(default=None, max_length=160)
+    identifier: str | None = Field(default=None, max_length=160)
     password: str = Field(min_length=1, max_length=128)
+    captcha: HumanProof | None = None
 
 
 class ProfileRequest(BaseModel):
@@ -171,6 +258,14 @@ class ConversationCreate(BaseModel):
 class ConversationPatch(BaseModel):
     title: str | None = Field(default=None, max_length=120)
     pinned: bool | None = None
+
+
+class SupportRequest(BaseModel):
+    name: str = Field(default="", max_length=80)
+    email: EmailStr
+    plan: Literal["pro", "team", "enterprise"] = "pro"
+    topic: str = Field(default="", max_length=80)
+    message: str = Field(min_length=10, max_length=2000)
 
 
 class FeedbackRequest(BaseModel):
@@ -351,6 +446,30 @@ class RateLimiter:
 
 limiter = RateLimiter()
 
+# حداکثر تولید هم‌زمان؛ درخواست‌های بیشتر به‌جای صف بی‌پایان ۵۰۳ می‌گیرند.
+MAX_CONCURRENCY = max(1, int(os.environ.get("RAYAN_MAX_CONCURRENCY", "4")))
+_generation_slots = threading.BoundedSemaphore(MAX_CONCURRENCY)
+_queue_depth = {"value": 0}
+_queue_lock = threading.Lock()
+
+
+def _acquire_slot(wait: float = 6.0) -> bool:
+    """جای تولید می‌گیرد؛ اگر صف پر باشد False."""
+    with _queue_lock:
+        _queue_depth["value"] += 1
+    try:
+        return _generation_slots.acquire(timeout=wait)
+    finally:
+        with _queue_lock:
+            _queue_depth["value"] = max(0, _queue_depth["value"] - 1)
+
+
+def _release_slot() -> None:
+    try:
+        _generation_slots.release()
+    except ValueError:  # pragma: no cover - آزادسازی تکراری
+        pass
+
 
 def client_ip(request: Request) -> str:
     forwarded = request.headers.get("x-forwarded-for", "")
@@ -360,14 +479,19 @@ def client_ip(request: Request) -> str:
 
 
 def _owner(request: Request) -> dict:
-    """هویت مالک گفتگو: کاربر واردشده یا مهمان با شناسهٔ کوکی."""
+    """هویت مالک گفتگو: کاربر وارد‌شده یا مهمان با شناسهٔ کوکی.
+
+    کلید API و توکن Bearer وجود ندارند: هوش فقط از داخل همین سایت در دسترس است.
+    """
     user = store().session_user(request.cookies.get(SESSION_COOKIE, ""))
     if user:
         return {"user_id": user["id"], "guest_id": None, "plan": user.get("plan", "free"), "user": user}
     guest = request.cookies.get(GUEST_COOKIE, "")
-    if not guest or not re.fullmatch(r"[A-Za-z0-9_-]{16,64}", guest):
+    valid_guest = bool(guest and re.fullmatch(r"[A-Za-z0-9_-]{16,64}", guest))
+    if not valid_guest:
         guest = secrets.token_urlsafe(18)
-    return {"user_id": None, "guest_id": guest, "plan": "guest", "user": None}
+    return {"user_id": None, "guest_id": guest, "plan": "guest", "user": None,
+            "guest_cookie": valid_guest}
 
 
 def _set_guest_cookie(response: Response, owner: dict) -> None:
@@ -394,6 +518,54 @@ def _quota(owner: dict, ip: str, kind: str) -> tuple[int, int]:
     return used, limit
 
 
+def _flag(name: str, default: str = "1") -> bool:
+    return store().setting(name, default) == "1"
+
+
+def _guard_flags(kind: str | None = None, signup: bool = False, deep: bool = False) -> None:
+    if _flag("maintenance", "0"):
+        raise HTTPException(503, "سرویس در حال به‌روزرسانی است؛ چند دقیقهٔ دیگر برگردید.")
+    if signup and not _flag("signup_open"):
+        raise HTTPException(403, "ثبت‌نام موقتاً بسته است.")
+    if deep and not _flag("deep_enabled"):
+        raise HTTPException(403, "اندیشهٔ ژرف موقتاً خاموش است.")
+
+
+WEAK_PASSWORDS = {"password", "12345678", "123456789", "qwertyui", "iloveyou",
+                  "admin123", "welcome1", "passw0rd", "1234567890", "abc12345"}
+
+
+HUMAN_ERRORS = {
+    "honeypot": "درخواست خودکار تشخیص داده شد؛ صفحه را تازه کنید.",
+    "automation": "مرورگر خودکار اجازهٔ ساخت حساب ندارد.",
+    "too_fast": "فرم بسیار سریع پر شد؛ یک لحظه صبر کنید و دوباره بزنید.",
+    "no_interaction": "تعامل انسانی دیده نشد؛ کادر «من ربات نیستم» را دوباره تأیید کنید.",
+    "invalid_proof": "تأیید «من ربات نیستم» منقضی شده است؛ دوباره تأیید کنید.",
+}
+
+
+def _require_human(proof: HumanProof | None, request: Request, ip: str) -> None:
+    """«من ربات نیستم» اجباری و سرور-محور: امضا، اثر انگشت، شواهد رفتاری، مصرف یک‌باره."""
+    if not security_module.captcha_limiter.allow(f"human:{ip}", cost=1):
+        retry = security_module.captcha_limiter.retry_after(f"human:{ip}")
+        raise HTTPException(429, f"تلاش‌های زیاد؛ {retry} ثانیهٔ دیگر دوباره امتحان کنید.")
+    if proof is None:
+        raise HTTPException(400, "تأیید «من ربات نیستم» لازم است؛ صفحه را تازه کنید و دوباره تلاش کنید.")
+    fp = security_module.fingerprint(ip, request.headers.get("user-agent", ""))
+    evidence = proof.evidence.model_dump() if proof.evidence else None
+    ok, reason = security_module.human.assess(proof.token, proof.nonce, evidence, fp)
+    if not ok:
+        security_module.human.note_failure(fp)
+        security_module.captcha_limiter.allow(f"fail:{ip}", cost=1)
+        raise HTTPException(400, HUMAN_ERRORS.get(reason, HUMAN_ERRORS["invalid_proof"]))
+
+
+def _check_password(password: str) -> None:
+    weak = password.lower() in WEAK_PASSWORDS
+    if weak or len(set(password)) < 4:
+        raise HTTPException(400, "گذرواژهٔ ساده است؛ ترکیبی از حرف و رقم با تنوع بیشتر بگذارید.")
+
+
 def _check_quota(owner: dict, ip: str, kind: str) -> None:
     used, limit = _quota(owner, ip, kind)
     if used >= limit:
@@ -405,19 +577,112 @@ def _check_quota(owner: dict, ip: str, kind: str) -> None:
         )
 
 
+MUTATING = {"POST", "PATCH", "DELETE", "PUT"}
+
+
+@app.middleware("http")
+async def origin_guard(request: Request, call_next):
+    """درخواست‌های تغییردهنده فقط از همین دامنه پذیرفته می‌شوند."""
+    if request.method in MUTATING and not request.url.path.startswith("/api/admin"):
+        origin = request.headers.get("origin")
+        if origin:
+            host = request.headers.get("host", "")
+            host_name = host.split(":")[0]
+            allowed = {f"https://{host}", f"http://{host}", f"https://{host_name}", f"http://{host_name}"}
+            allowed.update(_PUBLIC_ORIGINS)
+            if origin.rstrip("/") not in {a.rstrip("/") for a in allowed}:
+                return JSONResponse({"detail": "مبدأ درخواست مجاز نیست."}, status_code=403)
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def body_limit(request: Request, call_next):
+    """سقف حجم بدنه؛ درخواست بزرگ پیش از خواندن رد می‌شود."""
+    raw = request.headers.get("content-length")
+    limit = 512 * 1024 if request.url.path.startswith("/api/") else 2 * 1024 * 1024
+    if raw and raw.isdigit() and int(raw) > limit:
+        return JSONResponse({"detail": "حجم درخواست بیش از حد مجاز است."}, status_code=413)
+    return await call_next(request)
+
+
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
     response = await call_next(request)
+    path = request.url.path
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
-        "img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'"
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+    response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
+    response.headers["Permissions-Policy"] = (
+        "camera=(), microphone=(self), geolocation=(), payment=(), usb=(), browsing-topics=()"
     )
-    if request.url.path.startswith("/static/assets/"):
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; "
+        "connect-src 'self'; worker-src 'self'; manifest-src 'self'; "
+        "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+    )
+    if IS_PROD:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    if path.startswith("/static/assets/"):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif path.startswith("/api/"):
+        if "cache-control" not in response.headers:
+            response.headers["Cache-Control"] = "no-store"
+    elif path in ("/sw.js", "/manifest.webmanifest") or path.endswith(".html") or path == "/":
+        response.headers["Cache-Control"] = "no-cache"
+
+    # هر بازدیدکنندهٔ صفحه، شناسهٔ مهمان امضاشده می‌گیرد تا گفتگو از خودِ سایت
+    # ممکن باشد و فراخوانی مستقیم API بدون هویت رد شود.
+    ctype = response.headers.get("content-type", "")
+    if (ctype.startswith("text/html") and "rayan_guest" not in request.cookies
+            and SESSION_COOKIE not in request.cookies):
+        response.set_cookie(GUEST_COOKIE, secrets.token_urlsafe(18), max_age=180 * 86400,
+                            httponly=True, samesite="lax", secure=IS_PROD, path="/")
     return response
+
+
+# --------------------------------------------------------------- سد تهاجم
+_CHAT_PATHS = ("/api/chat", "/api/chat/stream", "/api/search")
+
+
+@app.middleware("http")
+async def attack_filter(request: Request, call_next):
+    """فیلتر حمله‌های رایج: تراورسال، تزریق، اسکن‌گر و بستن موقت IP پرخطر."""
+    ip = client_ip(request)
+    wait = guard_module.strikes.banned(ip)
+    if wait:
+        return JSONResponse(
+            {"detail": f"دسترسی این نشانی موقتاً بسته است؛ {wait} ثانیهٔ دیگر تلاش کنید."},
+            status_code=403, headers={"Retry-After": str(wait), "x-rayan-guard": "banned"},
+        )
+
+    path = request.url.path
+    verdict = guard_module.screen(path=path, query=request.url.query,
+                                  user_agent=request.headers.get("user-agent", ""),
+                                  method=request.method)
+    if not verdict.blocked and request.method in MUTATING and path not in _CHAT_PATHS:
+        raw = await request.body()
+        if raw:
+            try:
+                text = raw.decode("utf-8", "replace")
+            except Exception:  # pragma: no cover
+                text = ""
+            verdict = guard_module.screen(path=path, query=request.url.query, body=text,
+                                          user_agent=request.headers.get("user-agent", ""),
+                                          method=request.method)
+    if verdict.blocked:
+        banned, wait = guard_module.strikes.hit(ip, verdict.score or 1)
+        guard_module.log_event(ip, path, request.method, verdict,
+                               request.headers.get("user-agent", ""), 403)
+        detail = verdict.detail or "درخواست به‌دلیل الگوی ناامن مسدود شد."
+        if banned:
+            detail = f"تلاش‌های ناامن تکرار شد؛ دسترسی این نشانی {wait // 60 or 1} دقیقه بسته شد."
+        return JSONResponse({"detail": detail, "code": "blocked_by_guard", "rule": verdict.rule},
+                            status_code=403, headers={"x-rayan-guard": verdict.rule})
+    return await call_next(request)
 
 
 def _page(name: str, status_code: int = 200) -> FileResponse:
@@ -426,9 +691,25 @@ def _page(name: str, status_code: int = 200) -> FileResponse:
 
 
 # ------------------------------------------------------------------ صفحه‌ها
-@app.get("/", response_class=HTMLResponse)
-def landing() -> FileResponse:
-    return _page("index.html")
+def _with_lang_cookie(response: Response, request: Request) -> Response:
+    """انتخاب دستی زبان را در کوکی نگه می‌دارد تا دفعهٔ بعد هم بماند."""
+    lang = (request.query_params.get("lang") or "").lower()
+    if lang in locale_module.LANGS:
+        response.set_cookie("rayan_lang", lang, max_age=365 * 24 * 3600,
+                            samesite="lax", path="/")
+    return response
+
+
+@app.get("/")
+def landing(request: Request):
+    # سایت تک‌زبانه است: همیشه فارسی و راست‌چین
+    return _with_lang_cookie(_page("index.html"), request)
+
+
+@app.get("/api/locale")
+def api_locale(request: Request) -> dict:
+    """زبان، جهت و نسخهٔ ویدیوی پیشنهادی برای این بازدیدکننده."""
+    return locale_module.detect(request)
 
 
 @app.get("/chat", response_class=HTMLResponse)
@@ -461,9 +742,67 @@ def about_page() -> FileResponse:
     return _page("about.html")
 
 
+@app.get("/course", response_class=HTMLResponse)
+def course_page() -> FileResponse:
+    return _page("course.html")
+
+
 @app.get("/docs", response_class=HTMLResponse)
 def docs_page() -> FileResponse:
     return _page("docs.html")
+
+
+@app.get("/download", response_class=HTMLResponse)
+def download_page() -> FileResponse:
+    return _page("download.html")
+
+
+@app.get("/summary", response_class=HTMLResponse)
+def summary_page() -> FileResponse:
+    return _page("summary.html")
+
+
+@app.get("/en")
+@app.get("/en/course")
+@app.get("/en/docs")
+def english_removed() -> RedirectResponse:
+    """نسخهٔ انگلیسی حذف شده است؛ همه‌چیز فارسی و راست‌چین است."""
+    return RedirectResponse("/", status_code=302)
+
+
+@app.get("/academy")
+def academy_removed() -> RedirectResponse:
+    """آکادمی حذف شده است؛ بازدیدکنندهٔ قدیمی به خانه برمی‌گردد."""
+    return RedirectResponse("/", status_code=302)
+
+
+@app.get("/developer", response_class=HTMLResponse)
+def developer_page() -> FileResponse:
+    return _page("developer.html")
+
+
+@app.get("/support", response_class=HTMLResponse)
+def support_page() -> FileResponse:
+    return _page("support.html")
+
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin_page() -> FileResponse:
+    """پوستهٔ ورود مدیر؛ هیچ داده‌ای پیش از ورود در آن نیست."""
+    res = _page("admin.html")
+    res.headers["X-Robots-Tag"] = "noindex, nofollow"
+    res.headers["Cache-Control"] = "no-store"
+    return res
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+def privacy_page() -> FileResponse:
+    return _page("about.html")
+
+
+@app.get("/offline", response_class=HTMLResponse)
+def offline_page() -> FileResponse:
+    return _page("offline.html")
 
 
 @app.get("/s/{token}", response_class=HTMLResponse)
@@ -494,20 +833,47 @@ def manifest() -> FileResponse:
 
 @app.get("/robots.txt")
 def robots() -> Response:
-    body = "User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: /sitemap.xml\n"
+    body = ("User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /admin\n"
+            "Sitemap: /sitemap.xml\n")
     return Response(body, media_type="text/plain")
 
 
 @app.get("/sitemap.xml")
 def sitemap(request: Request) -> Response:
     base = os.environ.get("RAYAN_PUBLIC_URL", str(request.base_url).rstrip("/"))
-    pages = ["", "chat", "pricing", "models", "about", "docs"]
+    pages = ["", "chat", "pricing", "models", "about", "docs", "course", "download",
+             "summary", "developer", "support"]
     urls = "".join(f"<url><loc>{base}/{p}</loc></url>" for p in pages)
     xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
     return Response(xml, media_type="application/xml")
 
 
 # ------------------------------------------------------------------- سلامت
+@app.get("/api/captcha")
+def api_captcha(request: Request) -> dict:
+    """چالش «من ربات نیستم»؛ بدون هیچ سرویس بیرونی."""
+    ip = client_ip(request)
+    if not security_module.captcha_limiter.allow(f"issue:{ip}"):
+        raise HTTPException(429, "درخواست چالش زیاد است؛ یک دقیقه بعد دوباره تلاش کنید.")
+    fp = security_module.fingerprint(ip, request.headers.get("user-agent", ""))
+    challenge = security_module.human.issue(fp, bonus=security_module.human.difficulty_bonus(fp))
+    challenge["required"] = ["sha256-proof", "browser-evidence", "same-origin"]
+    return challenge
+
+
+@app.post("/api/support")
+def api_support(req: SupportRequest, request: Request) -> dict:
+    ip = client_ip(request)
+    if not limiter.allow(f"support:{ip}"):
+        raise HTTPException(429, "درخواست‌های زیاد؛ یک دقیقه بعد دوباره تلاش کنید.")
+    owner = _owner(request)
+    rid = store().add_support_request(req.name, req.email, req.plan, req.topic, req.message,
+                                     owner.get("user_id"), ip)
+    store().record_event("support", user_id=owner.get("user_id"), ip=ip)
+    return {"ok": True, "id": rid,
+            "note": "درخواست ثبت شد؛ پاسخ در ۱ روز کاری روی همان ایمیل می‌آید."}
+
+
 @app.get("/api/health")
 def health() -> dict:
     info = engine.info() if engine is not None else {}
@@ -516,16 +882,10 @@ def health() -> dict:
         "ok": engine is not None,
         "error": engine_error,
         "uptime_s": round(time.time() - STARTED, 1),
-        "model": {
-            "params": info.get("params"),
-            "step": info.get("meta", {}).get("step"),
-            "val_loss": info.get("meta", {}).get("val_loss"),
-            "ppl": info.get("meta", {}).get("ppl"),
-        },
+        "model": {"params": info.get("params")},
         "training_active": metrics["active"],
-        "latest_eval": metrics["latest_eval"],
-        "latest_train": metrics["latest_train"],
-        "requests": request_count,
+        "latest_eval": _public_eval(metrics["latest_eval"]),
+        "latest_train": _public_train(metrics["latest_train"]),
     }
 
 
@@ -536,13 +896,16 @@ def model_info() -> dict:
     info = engine.info()
     metrics = _read_metrics(limit=200)
     return {
-        **info,
+        "name": info.get("name"),
+        "params": info.get("params"),
+        "config": info.get("config"),
+        "architecture": info.get("architecture"),
+        "loaded_at": info.get("loaded_at"),
         "hardware": _hardware(),
         "corpus": _corpus_stats(),
         "metrics": {
-            "latest_eval": metrics["latest_eval"],
-            "best_eval": metrics["best_eval"],
-            "train_tail": metrics["train"][-12:],
+            "latest_eval": _public_eval(metrics["latest_eval"]),
+            "best_eval": _public_eval(metrics["best_eval"]),
         },
         "sources": [
             {"title": "Persian News Dataset", "detail": "بیش از ۱۷۵ هزار خبر از خبرگزاری‌های ایرانی (milad-4274)"},
@@ -565,9 +928,33 @@ def models_catalog() -> dict:
     return {"models": MODELS, "default": "rayan-1-small"}
 
 
+_EVAL_FIELDS = ("step", "val_loss", "ppl", "bits_per_char", "top1", "top5", "at")
+_TRAIN_FIELDS = ("tokens", "tokens_per_second")
+
+
+def _public_eval(record: dict | None) -> dict | None:
+    """از گزارش آموزش فقط همان چند عددی را بیرون می‌دهیم که سایت به آن‌ها ارجاع می‌دهد."""
+    if not record:
+        return None
+    return {k: record.get(k) for k in _EVAL_FIELDS if record.get(k) is not None}
+
+
+def _public_train(record: dict | None) -> dict | None:
+    if not record:
+        return None
+    return {k: record.get(k) for k in _TRAIN_FIELDS if record.get(k) is not None}
+
+
 @app.get("/api/metrics")
 def metrics() -> dict:
-    return _read_metrics()
+    """خلاصهٔ ارزیابی برای صفحهٔ عمومی؛ گزارش گام‌به‌گام فقط در پنل مدیریت است."""
+    data = _read_metrics(limit=50)
+    return {
+        "latest_eval": _public_eval(data["latest_eval"]),
+        "best_eval": _public_eval(data["best_eval"]),
+        "evals": len(data["eval"]),
+        "training_active": data["active"],
+    }
 
 
 @app.get("/api/showcase")
@@ -584,7 +971,9 @@ def showcase() -> dict:
 
 
 @app.get("/api/download/checkpoint")
-def download_checkpoint() -> FileResponse:
+def download_checkpoint(request: Request) -> FileResponse:
+    """وزن‌های مدل فقط با نشست مدیر قابل دانلود است."""
+    admin_module.require_admin(request)
     if engine is None:
         raise HTTPException(503, "مدل بارگذاری نشده است.")
     if not os.path.exists(engine.checkpoint):
@@ -606,9 +995,12 @@ def public_stats() -> dict:
 # ------------------------------------------------------------------- حساب
 @app.post("/api/auth/register")
 def register(req: RegisterRequest, request: Request, response: Response) -> dict:
+    _guard_flags(signup=True)
     ip = client_ip(request)
     if not limiter.allow(f"auth:{ip}"):
         raise HTTPException(429, "تلاش‌های زیاد؛ یک دقیقه بعد دوباره امتحان کنید.")
+    _check_password(req.password)
+    _require_human(req.captcha, request, ip)
     user = store().create_user(req.email, req.password, req.name)
     if user is None:
         raise HTTPException(409, "این ایمیل قبلاً ثبت شده است.")
@@ -618,14 +1010,72 @@ def register(req: RegisterRequest, request: Request, response: Response) -> dict
     return {"user": user}
 
 
+def _owner_login(req: LoginRequest, request: Request, response: Response, ident: str, ip: str) -> dict:
+    """ورود مالک با نام کاربری: هم نشست مدیر و هم نشست کاربر معمولی صادر می‌شود."""
+    key = f"owner:{ip}"
+    if store().note_attempt(key) > admin_module.MAX_ATTEMPTS:
+        admin_module.audit("owner_locked", request, detail="too many attempts")
+        raise HTTPException(429, "تلاش‌های ناموفق زیاد؛ ۱۵ دقیقه بعد دوباره امتحان کنید.")
+    if not owner_module.matches_username(ident) or not owner_module.verify(req.password):
+        admin_module.audit("owner_login_failed", request, detail=ident[:40])
+        raise HTTPException(401, "نام کاربری یا رمز عبور نادرست است.")
+    store().clear_attempts(key)
+
+    info = owner_module.status()
+    admin_id = admin_module._ensure_admin_user("owner@rayan.local")  # noqa: SLF001
+    if info.get("name"):
+        store().update_user(admin_id, name=info["name"])  # نام نمایشی مالک
+
+    user = store().get_user(admin_id)
+    token = store().create_session(user_id=admin_id, user_agent=request.headers.get("user-agent", ""), ip=ip)
+    _set_session_cookie(response, token)
+
+    csrf = secrets.token_urlsafe(24)
+    admin_token = store().create_admin_session(admin_id, csrf, ip=ip,
+                                               user_agent=request.headers.get("user-agent", ""))
+    response.set_cookie(admin_module.ADMIN_COOKIE, admin_token, max_age=2 * 3600, httponly=True,
+                        samesite="strict", secure=os.environ.get("RAYAN_ENV") == "prod", path="/")
+    store().record_event("owner_login", user_id=admin_id, ip=ip)
+    admin_module.audit("owner_login", request, target=str(admin_id))
+    return {
+        "user": user,
+        "admin": True,
+        "csrf": csrf,
+        "redirect": "/admin",
+        "owner": {"name": info.get("name"), "default_password": info.get("default_password")},
+    }
+
+
 @app.post("/api/auth/login")
 def login(req: LoginRequest, request: Request, response: Response) -> dict:
+    _guard_flags()
     ip = client_ip(request)
     if not limiter.allow(f"auth:{ip}"):
         raise HTTPException(429, "تلاش‌های زیاد؛ یک دقیقه بعد دوباره امتحان کنید.")
-    user = store().verify_user(req.email, req.password)
+    _require_human(req.captcha, request, ip)
+    ident = (req.identifier or req.email or "").strip()
+    if not ident:
+        raise HTTPException(422, "ایمیل یا نام کاربری لازم است.")
+
+    # مسیر مالک: نام کاربری فارسی؛ گذرواژه فقط با هش محلی مقایسه می‌شود.
+    if "@" not in ident and owner_module.matches_username(ident):
+        return _owner_login(req, request, response, ident, ip)
+
+    key = f"login:{ident.lower()}:{ip}"
+    if store().note_attempt(key) > 8:
+        raise HTTPException(429, "تلاش‌های ناموفق زیاد است؛ ۱۵ دقیقه بعد دوباره امتحان کنید.")
+    if "@" in ident and not store().email_exists(ident):
+        # ایمیل ساخته نشده است؛ کاربر باید به پنل ثبت‌نام برود.
+        raise HTTPException(404, detail={
+            "code": "account_not_found",
+            "message": "با این ایمیل حسابی ساخته نشده است؛ می‌توانی همین حالا ثبت‌نام کنی.",
+            "email": ident,
+            "next": "/signup",
+        })
+    user = store().verify_user(ident, req.password)
     if user is None:
         raise HTTPException(401, "ایمیل یا رمز عبور نادرست است.")
+    store().clear_attempts(key)
     token = store().create_session(user_id=user["id"], user_agent=request.headers.get("user-agent", ""), ip=ip)
     _set_session_cookie(response, token)
     store().record_event("login", user_id=user["id"], ip=ip)
@@ -798,6 +1248,12 @@ def _generation_kwargs(req: ChatRequest) -> dict:
 
 
 def _prepare(req: ChatRequest, owner: dict, ip: str) -> tuple[Engine, str, list[tuple[str, str]], str | None]:
+    _guard_flags(deep=req.deep)
+    # دسترسی به مدل فقط از خودِ سایت (کوکی نشست/مهمان)؛ هیچ کلید یا توکنی نیست.
+    if not (owner.get("user_id") or owner.get("guest_cookie")):
+        raise HTTPException(401, "دسترسی به مدل فقط از داخل سایت ممکن است.")
+    if owner.get("user_id") is None and not _flag("guest_chat"):
+        raise HTTPException(403, "گفتگوی مهمان موقتاً بسته است؛ برای ادامه وارد شوید.")
     if not limiter.allow(f"chat:{ip}"):
         raise HTTPException(429, "درخواست‌های پیاپی زیاد است؛ چند لحظه صبر کنید.")
     model = _engine()
@@ -823,13 +1279,17 @@ def _prepare(req: ChatRequest, owner: dict, ip: str) -> tuple[Engine, str, list[
 
 
 def _persist_turn(owner: dict, conv_id: str | None, message: str, answer: str,
-                  stats: dict, trace: dict | None, deep: bool) -> tuple[str | None, int | None]:
+                  stats: dict, trace: dict | None, deep: bool,
+                  tool: dict | None = None,
+                  sources: list[dict] | None = None) -> tuple[str | None, int | None]:
     """پیام کاربر و پاسخ را ذخیره می‌کند؛ شناسهٔ گفتگو و پیام پاسخ را برمی‌گرداند."""
     title = message.strip().replace("\n", " ")[:60] or "گفتگوی تازه"
     if conv_id is None:
         conv_id = store().create_conversation(owner, title)["id"]
     store().add_message(conv_id, "user", message)
-    meta = {"stats": stats, "deep": deep, "trace": trace}
+    meta = {"stats": stats, "deep": deep, "trace": trace, "tool": tool}
+    if sources:
+        meta["sources"] = sources
     msg_id = store().add_message(conv_id, "assistant", answer, meta)
     existing = store().get_conversation_meta(conv_id)
     if existing and existing["title"] in ("گفتگوی تازه", ""):
@@ -841,31 +1301,169 @@ def _record_usage(owner: dict, ip: str, kind: str) -> None:
     store().record_event(kind, user_id=owner.get("user_id"), guest_id=owner.get("guest_id"), ip=ip)
 
 
+def _instant_turn(owner: dict, ip: str, req: ChatRequest, response: Response,
+                  conv_id: str | None, message: str, answer: str,
+                  tool_result: dict | None, started: float,
+                  engine: str, extra: dict | None = None) -> dict:
+    """پاسخ آماده (مهارت/دانشنامه) را بدون دخالت مدل ثبت و برمی‌گرداند."""
+    global request_count
+    stats = {
+        "prompt_tokens": 0, "tokens": 0, "seconds": round(time.time() - started, 3),
+        "tokens_per_second": 0.0, "confidence": 1.0, "entropy": 0.0,
+        "finish_reason": engine, "seed": 0,
+    }
+    conv_id, msg_id = _persist_turn(owner, conv_id, message, answer, stats, None, False,
+                                    tool_result, None)
+    _remember(req.session_id, message, answer)
+    _record_usage(owner, ip, "chat")
+    _set_guest_cookie(response, owner)
+    with stats_lock:
+        request_count += 1
+    used, limit = _quota(owner, ip, "chat")
+    return {
+        "answer": answer, "mode": req.mode, "deep": False, "trace": None,
+        "stats": stats, "latency_s": round(time.time() - started, 3),
+        "session_id": req.session_id, "conversation_id": conv_id,
+        "message_id": msg_id, "usage": {"used": used, "limit": limit},
+        "tool": tool_result, "sources": [], "engine": engine, "extra": extra or {},
+    }
+
+
+@app.get("/api/benchmark")
+def api_benchmark() -> dict:
+    """نتیجهٔ آخرین اجرای بنچمارک شفاف (scripts/benchmark.py)."""
+    path = os.path.join(ROOT, "reports", "benchmark.json")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, ValueError):
+        raise HTTPException(404, "هنوز بنچمارکی اجرا نشده است.") from None
+    return {
+        "model": data.get("model"),
+        "params": data.get("params"),
+        "run_at": data.get("run_at"),
+        "tasks": data.get("tasks"),
+        "accuracy": data.get("accuracy"),
+        "latency": data.get("latency"),
+        "engine_mix": data.get("engine_mix"),
+        "cost_usd_per_million_tokens": data.get("cost_usd_per_million_tokens"),
+        "opus_reference": data.get("opus_reference"),
+    }
+
+
+@app.get("/api/search")
+def api_search(request: Request, q: str = "", limit: int = 5) -> dict:
+    """جست‌وجوی وب سمت سرور؛ کلید API لازم نیست و هیچ داده‌ای به سرویس بیرونی نمی‌رود."""
+    if not admin_module.flags().get("web_search", True):
+        raise HTTPException(503, "جست‌وجوی وب توسط مدیر خاموش شده است.")
+    ip = client_ip(request)
+    if not limiter.allow(f"search:{ip}"):
+        raise HTTPException(429, "جست‌وجوهای زیاد؛ چند لحظه بعد دوباره تلاش کنید.")
+    query = (q or "").strip()
+    if len(query) < 2:
+        raise HTTPException(422, "عبارت جست‌وجو خیلی کوتاه است.")
+    return search_module.search(query, limit=max(1, min(int(limit), 8)))
+
+
+def _ground_if_weak(message: str, answer: str, history, owner: dict, req) -> tuple[str, list[dict]]:
+    """اگر پاسخ مدل بی‌ربط بود: جست‌وجوی وب، و اگر نشد پاسخ صادقانهٔ مخصوص سؤال.
+
+    این‌کار پاسخ‌های درهم مدل کوچک را با منبع واقعی جایگزین می‌کند؛ چیزی از پیش
+    نوشته نشده و متنِ منبع‌دار عیناً از نتایج جست‌وجو ساخته می‌شود.
+    """
+    if not answer_module.weak(message, answer, history):
+        return answer_module.enhance(message, answer, history, owner), []
+
+    found: list[dict] = []
+
+    def resolver(query: str) -> str | None:
+        if req.web or not admin_module.flags().get("web_search", True):
+            return None
+        results = search_module.search(query, limit=4).get("results") or []
+        if not results:
+            return None
+        found.extend(results)
+        return search_module.compose(query, results)
+
+    text = answer_module.enhance(message, answer, history, owner, resolver=resolver)
+    return text, found
+
+
 @app.post("/api/chat")
 def chat(req: ChatRequest, request: Request, response: Response) -> dict:
     global request_count
     owner = _owner(request)
     ip = client_ip(request)
     model, message, history, conv_id = _prepare(req, owner, ip)
+    tool_result = None if req.mode != "chat" else tools_module.detect(message)
     started = time.time()
     kwargs = _generation_kwargs(req)
-    with model.lock:
-        if req.deep:
-            answer, generation, trace = deep_reply(
-                model, message, mode=req.mode, history=history,
-                n_candidates=req.candidates, **kwargs,
-            )
-            prompt_ids, _prompt = model.build_prompt(message, req.mode, history)
-        else:
-            answer, generation, _prompt = model.reply(
-                message, mode=req.mode, history=history, seed=req.seed, **kwargs,
-            )
-            prompt_ids = model.tokenizer.encode(_prompt)
-            trace = None
-    stats = _stats(generation, prompt_ids)
+
     if req.mode == "chat":
+        skill = skills_module.match(message)
+        if skill:
+            skill = answer_module.personalize(skill, owner)
+            return _instant_turn(owner, ip, req, response, conv_id, message, skill["answer"],
+                                 tool_result, started, "skill", {"skill": skill["skill"]})
+
+        if not req.web:
+            kb = knowledge_module.answer(message)
+            if kb:
+                return _instant_turn(owner, ip, req, response, conv_id, message, kb["answer"],
+                                     tool_result, started, "knowledge",
+                                     {"knowledge": kb["knowledge"], "score": kb["score"]})
+
+    web_results: list[dict] = []
+    if req.web and req.mode == "chat" and admin_module.flags().get("web_search", True):
+        web_results = search_module.search(message, limit=5).get("results") or []
+        if web_results:
+            answer = search_module.compose(message, web_results)
+            stats = {
+                "prompt_tokens": 0, "tokens": 0, "seconds": round(time.time() - started, 2),
+                "tokens_per_second": 0.0, "confidence": 0.0, "entropy": 0.0,
+                "finish_reason": "web", "seed": 0,
+            }
+            conv_id, msg_id = _persist_turn(owner, conv_id, message, answer, stats, None, False,
+                                            tool_result, web_results)
+            _remember(req.session_id, message, answer)
+            _record_usage(owner, ip, "chat")
+            _set_guest_cookie(response, owner)
+            with stats_lock:
+                request_count += 1
+            used, limit = _quota(owner, ip, "chat")
+            return {
+                "answer": answer, "mode": req.mode, "deep": False, "trace": None,
+                "stats": stats, "latency_s": round(time.time() - started, 2),
+                "session_id": req.session_id, "conversation_id": conv_id,
+                "message_id": msg_id, "usage": {"used": used, "limit": limit},
+                "tool": tool_result, "sources": web_results, "engine": "web",
+            }
+
+    if not _acquire_slot():
+        raise HTTPException(503, "سرور شلوغ است؛ چند لحظه بعد دوباره تلاش کنید.")
+    try:
+        with model.lock:
+            if req.deep:
+                answer, generation, trace = deep_reply(
+                    model, message, mode=req.mode, history=history,
+                    n_candidates=req.candidates, **kwargs,
+                )
+                prompt_ids, _prompt = model.build_prompt(message, req.mode, history)
+            else:
+                answer, generation, _prompt = model.reply(
+                    message, mode=req.mode, history=history, seed=req.seed, **kwargs,
+                )
+                prompt_ids = model.tokenizer.encode(_prompt)
+                trace = None
+    finally:
+        _release_slot()
+    stats = _stats(generation, prompt_ids)
+    auto_sources: list[dict] = []
+    if req.mode == "chat":
+        answer, auto_sources = _ground_if_weak(message, answer, history, owner, req)
         _remember(req.session_id, message, answer)
-    conv_id, msg_id = _persist_turn(owner, conv_id, message, answer, stats, trace, req.deep)
+    conv_id, msg_id = _persist_turn(owner, conv_id, message, answer, stats, trace, req.deep,
+                                    tool_result, auto_sources or None)
     _record_usage(owner, ip, "deep" if req.deep else "chat")
     _set_guest_cookie(response, owner)
     with stats_lock:
@@ -882,6 +1480,9 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
         "conversation_id": conv_id,
         "message_id": msg_id,
         "usage": {"used": used, "limit": limit},
+        "tool": tool_result,
+        "sources": auto_sources or web_results,
+        "engine": "chat",
     }
 
 
@@ -893,45 +1494,255 @@ def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     if req.deep:
         raise HTTPException(400, "برای اندیشهٔ ژرف از /api/chat استفاده کنید.")
     model, message, history, conv_id = _prepare(req, owner, ip)
+    tool_result = None if req.mode != "chat" else tools_module.detect(message)
+    skill = skills_module.match(message) if req.mode == "chat" else None
+    kb = None
+    if req.mode == "chat" and not skill and not req.web:
+        kb = knowledge_module.answer(message)
+    instant_answer = (skill or {}).get("answer") or (kb or {}).get("answer") or ""
+    instant_engine = "skill" if skill else ("knowledge" if kb else "")
     kwargs = _generation_kwargs(req)
     kwargs["seed"] = req.seed
     kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
     def generate_events():
         global request_count
-        with model.lock:
-            ids, _prompt = model.build_prompt(message, req.mode, history)
-            session = model.stream(ids, mode=req.mode, **kwargs)
-            yield json.dumps({"type": "start", "prompt_tokens": len(ids)}, ensure_ascii=False) + "\n"
-            try:
-                for piece in session:
-                    yield json.dumps({"type": "token", "text": piece}, ensure_ascii=False) + "\n"
-            except Exception as exc:
-                yield json.dumps({"type": "error", "error": str(exc)}, ensure_ascii=False) + "\n"
-                return
-            generation = session.result
-            answer = polish(model.tokenizer.decode(generation.tokens), req.mode)
-            if req.mode == "chat":
-                _remember(req.session_id, message, answer)
-            stats = _stats(generation, ids)
-            new_conv, msg_id = _persist_turn(owner, conv_id, message, answer, stats, None, False)
+        if instant_answer:
+            stats = {"prompt_tokens": 0, "tokens": 0, "seconds": 0.0,
+                     "tokens_per_second": 0.0, "confidence": 1.0, "entropy": 0.0,
+                     "finish_reason": instant_engine, "seed": 0}
+            new_conv, msg_id = _persist_turn(owner, conv_id, message, instant_answer,
+                                             stats, None, False, tool_result, None)
+            _remember(req.session_id, message, instant_answer)
             _record_usage(owner, ip, "chat")
             with stats_lock:
                 request_count += 1
             used, limit = _quota(owner, ip, "chat")
+            yield json.dumps({"type": "start", "prompt_tokens": 0}, ensure_ascii=False) + "\n"
+            yield json.dumps({"type": "token", "text": instant_answer}, ensure_ascii=False) + "\n"
             yield json.dumps({
-                "type": "done",
-                "answer": answer,
-                "stats": stats,
-                "conversation_id": new_conv,
-                "message_id": msg_id,
-                "usage": {"used": used, "limit": limit},
+                "type": "done", "answer": instant_answer, "stats": stats,
+                "conversation_id": new_conv, "message_id": msg_id,
+                "usage": {"used": used, "limit": limit}, "tool": tool_result,
+                "engine": instant_engine,
+                "skill": (skill or {}).get("skill"),
+                "knowledge": (kb or {}).get("knowledge"),
             }, ensure_ascii=False) + "\n"
+            return
+
+        if not _acquire_slot(wait=12.0):
+            yield json.dumps({"type": "error", "error": "سرور شلوغ است؛ چند لحظه بعد دوباره تلاش کنید."},
+                             ensure_ascii=False) + "\n"
+            return
+        try:
+            with model.lock:
+                ids, _prompt = model.build_prompt(message, req.mode, history)
+                session = model.stream(ids, mode=req.mode, **kwargs)
+                yield json.dumps({"type": "start", "prompt_tokens": len(ids)}, ensure_ascii=False) + "\n"
+                try:
+                    for piece in session:
+                        yield json.dumps({"type": "token", "text": piece}, ensure_ascii=False) + "\n"
+                except Exception as exc:
+                    yield json.dumps({"type": "error", "error": str(exc)}, ensure_ascii=False) + "\n"
+                    return
+                generation = session.result
+                answer = polish(model.tokenizer.decode(generation.tokens), req.mode)
+                auto_sources: list[dict] = []
+                if req.mode == "chat":
+                    answer, auto_sources = _ground_if_weak(message, answer, history, owner, req)
+                    _remember(req.session_id, message, answer)
+                stats = _stats(generation, ids)
+                new_conv, msg_id = _persist_turn(owner, conv_id, message, answer, stats, None, False,
+                                                 tool_result, auto_sources or None)
+                _record_usage(owner, ip, "chat")
+                with stats_lock:
+                    request_count += 1
+                used, limit = _quota(owner, ip, "chat")
+                yield json.dumps({
+                    "type": "done",
+                    "answer": answer,
+                    "stats": stats,
+                    "conversation_id": new_conv,
+                    "message_id": msg_id,
+                    "usage": {"used": used, "limit": limit},
+                    "tool": tool_result,
+                    "sources": auto_sources,
+                }, ensure_ascii=False) + "\n"
+        finally:
+            _release_slot()
 
     headers = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
     response = StreamingResponse(generate_events(), media_type="application/x-ndjson", headers=headers)
     _set_guest_cookie(response, owner)
     return response
+
+
+# =============================================================== تبلیغات
+class AdClick(BaseModel):
+    id: int
+
+
+@app.get("/api/ads")
+def ads_public(slot: str = "") -> dict:
+    if not admin_module.flags()["ads_enabled"]:
+        return {"ads": []}
+    if slot:
+        ad = store().pick_ad(slot)
+        return {"ads": [ad] if ad else []}
+    return {"ads": store().list_ads(only_active=True)}
+
+
+@app.post("/api/ads/{ad_id}/click")
+def ads_click(ad_id: int, request: Request) -> dict:
+    if not limiter.allow(f"adclick:{client_ip(request)}"):
+        raise HTTPException(429, "درخواست زیاد است.")
+    url = store().click_ad(ad_id)
+    if url is None:
+        raise HTTPException(404, "این تبلیغ فعال نیست.")
+    return {"ok": True, "url": url}
+
+
+# ============================================================== مدیریت
+app.include_router(admin_module.router)
+
+
+@app.get("/api/flags")
+def public_flags() -> dict:
+    return {"flags": admin_module.flags()}
+
+
+PLAN_TEXTS = {
+    "free": {
+        "name": "رایگان",
+        "tag": "پیشنهادی",
+        "desc": "حساب کامل: تاریخچهٔ همیشگی و سهمیهٔ بیشتر.",
+        "features": ["تاریخچهٔ دائمی و جست‌وجو", "اشتراک‌گذاری عمومی گفتگو",
+                     "خروجی Markdown", "استودیو تصویر و ابزارها"],
+    },
+    "pro": {
+        "name": "حرفه‌ای",
+        "tag": "پولی",
+        "desc": "همان رایان، با سهمیهٔ بیشتر برای کار روزمره.",
+        "features": ["سهمیهٔ چندبرابری گفتگو", "اندیشهٔ ژرف بیشتر",
+                     "پشتیبانی از توسعهٔ مدل", "دسترسی زودهنگام به مدل‌های بعدی"],
+    },
+}
+
+
+def _num_setting(raw: dict, key: str, default: int) -> int:
+    try:
+        return max(0, int(float(raw.get(key, default))))
+    except (TypeError, ValueError):
+        return default
+
+
+@app.get("/api/plans")
+def public_plans() -> dict:
+    """تعرفهٔ عمومی: از تنظیمات مدیر خوانده می‌شود تا بدون کد بتوان قیمت گذاشت."""
+    raw = store().all_settings()
+    pro_price = _num_setting(raw, "plan_pro_price", 0)
+    pro_days = _num_setting(raw, "plan_pro_days", 30) or 30
+    payments_enabled = raw.get("payments_enabled", "0") == "1"
+    provider = (raw.get("payment_provider", "") or "").strip()
+    link = (raw.get("payment_link", "") or "").strip()
+    note = (raw.get("payment_note", "") or "").strip()
+    plans = []
+    for pid in ("guest", "free", "pro"):
+        limits = LIMITS.get(pid.replace("guest", "guest"), {})
+        base = PLAN_TEXTS.get(pid, PLAN_TEXTS["free"])
+        price = pro_price if pid == "pro" else 0
+        plans.append({
+            "id": pid,
+            "name": "مهمان" if pid == "guest" else base["name"],
+            "tag": "بدون ثبت‌نام" if pid == "guest" else base["tag"],
+            "price": price,
+            "period": f"{pro_days} روز" if pid == "pro" and price else "همیشه",
+            "desc": "برای امتحان کردن؛ تاریخچه در همین مرورگر می‌ماند." if pid == "guest" else base["desc"],
+            "features": (["۲۵ پیام در روز", "هر سه حالت گفتگو، ادامهٔ متن و شعر"] if pid == "guest"
+                         else base["features"]),
+            "limits": limits,
+            "for_sale": bool(pid == "pro" and price > 0 and payments_enabled),
+        })
+    return {
+        "ok": True,
+        "currency": (raw.get("currency_label", "تومان") or "تومان")[:16],
+        "plans": plans,
+        "payments": {
+            "enabled": payments_enabled,
+            "provider": provider[:40],
+            "link": link[:300] if re.match(r"^(https?://|/)", link) else "",
+            "note": note[:200],
+        },
+    }
+
+
+# ================================================================ ابزارها
+class ToolRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=40)
+    args: dict = Field(default_factory=dict)
+
+
+@app.get("/api/tools")
+def tools_catalog() -> dict:
+    return {"tools": tools_module.catalog()}
+
+
+@app.post("/api/tools/run")
+def tools_run(req: ToolRequest, request: Request) -> dict:
+    if not limiter.allow(f"tool:{client_ip(request)}"):
+        raise HTTPException(429, "درخواست زیاد است.")
+    return tools_module.run(req.name, req.args)
+
+
+# ======================================================= خودآزمون و پایش
+@app.get("/api/selftest")
+def selftest(request: Request) -> dict:
+    admin_module.require_admin(request)
+    checks = []
+
+    def add(name: str, ok: bool, detail: str = "") -> None:
+        checks.append({"name": name, "ok": bool(ok), "detail": detail})
+
+    try:
+        row = store()._one("SELECT 1 AS one")  # noqa: SLF001
+        add("database", bool(row), "sqlite ok")
+    except Exception as exc:
+        add("database", False, str(exc))
+    add("model", engine is not None, engine_error or "loaded")
+    add("checkpoint", os.path.exists(CHECKPOINTS[-1]), CHECKPOINTS[-1])
+    add("tokenizer", os.path.exists(TOKENIZER_PATH), TOKENIZER_PATH)
+    add("static_dir", os.path.isdir(STATIC_DIR), STATIC_DIR)
+    add("admin", bool(admin_module.admin_credentials().get("pw_hash")), "credentials ready")
+    free = -1
+    try:
+        import shutil
+        free = int(shutil.disk_usage(ROOT).free / (1024 ** 2))
+    except Exception:
+        pass
+    add("disk", free > 50, f"{free} MB free")
+    ok = all(item["ok"] for item in checks)
+    return {"ok": ok, "checks": checks, "uptime_s": round(time.time() - STARTED, 1),
+            "version": app.version}
+
+
+@app.get("/api/status")
+def status() -> dict:
+    """نمای عمومی سلامت برای بنر سایت و مانیتورینگ."""
+    flags = admin_module.flags()
+    return {
+        "ok": engine is not None,
+        "version": app.version,
+        "model_loaded": engine is not None,
+        "maintenance": flags["maintenance"],
+        "announcement": flags["announcement"],
+        "uptime_s": round(time.time() - STARTED, 1),
+        "requests": request_count,
+        "max_concurrency": MAX_CONCURRENCY,
+        "queue": _queue_depth["value"],
+        "db_bytes": os.path.getsize(os.environ.get("RAYAN_DB", "data/rayan.sqlite3"))
+        if os.path.exists(os.environ.get("RAYAN_DB", "data/rayan.sqlite3")) else 0,
+    }
+
 
 
 def main() -> None:
@@ -942,17 +1753,15 @@ def main() -> None:
     parser.add_argument("--checkpoint", default="")
     parser.add_argument("--no-reload", action="store_true")
     args = parser.parse_args()
-    try:
-        engine = load_engine(args.checkpoint or None)
-        print(f"[rayan] loaded {engine.checkpoint} | step={engine.meta.get('step')} "
-              f"| params={sum(p.size for p in engine.params.values()):,}", flush=True)
-    except Exception as exc:
-        engine_error = str(exc)
-        print(f"[rayan] model not loaded: {exc}", flush=True)
-    store()
-    stop = threading.Event()
-    if not args.no_reload:
-        threading.Thread(target=watcher, args=(stop,), daemon=True).start()
+    if args.checkpoint:
+        try:
+            engine = load_engine(args.checkpoint)
+            print(f"[rayan] loaded {engine.checkpoint} | step={engine.meta.get('step')} "
+                  f"| params={sum(p.size for p in engine.params.values()):,}", flush=True)
+        except Exception as exc:
+            engine_error = str(exc)
+            print(f"[rayan] model not loaded: {exc}", flush=True)
+    boot()
     import uvicorn
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
 

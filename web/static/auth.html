@@ -5,13 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ورود · رایان</title>
   <meta name="description" content="ورود به حساب رایان یا ساخت حساب رایگان برای تاریخچهٔ گفتگو و سهمیهٔ بیشتر.">
-  <meta name="theme-color" content="#050b1a">
+  <meta name="theme-color" content="#ffffff">
   <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/static/assets/icons/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="preload" href="/static/assets/fonts/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="stylesheet" href="/static/pages.css">
+  <script src="/static/theme-boot.js"></script>
 </head>
 <body class="page-body" data-mode="login">
   <div class="backdrop" aria-hidden="true">
@@ -22,11 +23,13 @@
   <div class="auth-shell">
     <aside class="auth-aside">
       <a class="brand" href="/">
-        <img class="brand-orb" src="/static/assets/brand/orb-128.png" alt="" width="34" height="34">
-        <span class="brand-name"><b>رایان</b><span>RAYAN</span></span>
+        <img class="brand-wordmark brand-motion wordmark-for-light" src="/static/assets/brand/logo-motion.webp"
+             alt="رایان" width="640" height="320" decoding="async">
+        <img class="brand-wordmark brand-motion wordmark-for-dark" src="/static/assets/brand/logo-motion-dark.webp"
+             alt="رایان" width="640" height="320" decoding="async">
       </a>
       <div class="auth-pitch">
-        <img src="/static/assets/brand/orb-256.png" alt="" width="104" height="104" class="auth-orb">
+        <img src="/static/assets/brand/orb-live.webp" alt="" width="104" height="104" class="auth-orb">
         <h1>دستیار فارسی‌ات<br>همیشه همین‌جاست</h1>
         <p>با ساخت یک حساب رایگان، گفتگوهایت می‌مانند، سهمیهٔ روزانه‌ات بیشتر می‌شود و می‌توانی پاسخ‌ها را با دیگران به اشتراک بگذاری.</p>
         <ul class="auth-points">
@@ -42,9 +45,11 @@
     <main class="auth-main">
       <div class="auth-card card card-pad">
         <div class="auth-head">
-          <h2 id="auth-title">ورود به رایان</h2>
+          <h2 id="auth-title">ورود به <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> </h2>
           <p id="auth-sub">خوش برگشتی! ادامه بده از همان‌جایی که بودی.</p>
         </div>
+
+        <p class="auth-notice" id="auth-notice" role="status" hidden></p>
 
         <form id="auth-form" class="auth-form" novalidate>
           <div class="field" id="name-field" hidden>
@@ -52,8 +57,10 @@
             <input class="input" id="name" name="name" type="text" autocomplete="name" placeholder="مثلاً سارا">
           </div>
           <div class="field">
-            <label for="email">ایمیل</label>
-            <input class="input" id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" dir="ltr" required>
+            <label for="email" id="identifier-label">ایمیل</label>
+            <input class="input" id="email" name="identifier" type="text" autocomplete="username"
+                   placeholder="you@example.com" dir="auto" required>
+            <span class="field-hint" id="identifier-hint">با ایمیل یا نام کاربری وارد شو.</span>
           </div>
           <div class="field">
             <label for="password">رمز عبور</label>
@@ -63,6 +70,8 @@
             </div>
             <span class="field-error" id="auth-error"></span>
           </div>
+
+          <div class="human-slot" id="human-slot"></div>
 
           <button class="btn btn-primary btn-lg" type="submit" id="auth-submit">
             <span id="submit-label">ورود</span>
@@ -88,8 +97,34 @@
     </main>
   </div>
 
+  <!-- نمایش نشان، بعد از ساخت حساب: تمام‌صفحه، سبک، بی‌ویدیو -->
+  <div id="welcome-reel" class="welcome-reel brand-reel" hidden role="dialog" aria-modal="true"
+       aria-label="معرفی کوتاه رایان">
+    <div class="reel-aurora" aria-hidden="true"></div>
+    <div class="reel-stage">
+      <img class="reel-logo reel-for-light" src="/static/assets/brand/logo-motion.webp"
+           alt="رایان" width="640" height="320" decoding="async">
+      <img class="reel-logo reel-for-dark" src="/static/assets/brand/logo-motion-dark.webp"
+           alt="" aria-hidden="true" width="640" height="320" decoding="async">
+      <span class="reel-orb"><img src="/static/assets/brand/orb-live.webp" alt="" width="168" height="168"></span>
+    </div>
+    <div class="welcome-progress" aria-hidden="true"><i id="welcome-progress"></i></div>
+    <button class="welcome-skip-x" type="button" id="welcome-close" aria-label="بستن معرفی">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+    <div class="welcome-bar">
+      <div class="welcome-actions">
+        <button class="btn btn-sm" type="button" id="welcome-full" aria-pressed="false" title="تمام‌صفحهٔ واقعی">تمام‌صفحه</button>
+        <a class="btn btn-primary btn-sm" id="welcome-skip" href="/chat">شروع گفتگو</a>
+      </div>
+    </div>
+  </div>
+
   <script src="/static/config.js"></script>
   <script src="/static/ui.js"></script>
+  <script src="/static/human.js"></script>
   <script src="/static/auth.js"></script>
+  <script src="/static/scroll.js"></script>
+  <script src="/static/perf.js"></script>
 </body>
 </html>

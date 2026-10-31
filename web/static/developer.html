@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>توسعه‌دهندگان و دسترسی · رایان</title>
+  <meta name="description" content="دسترسی به مدل رایان فقط از داخل سایت؛ بدون کلید API، بدون دانلود وزن، با سهمیه و سد تهاجم.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/static/assets/icons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="preload" href="/static/assets/fonts/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/pages.css">
+  <script src="/static/theme-boot.js"></script>
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true"><div class="glow glow-a"></div><div class="glow glow-b"></div></div>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/" aria-label="رایان، خانه">
+        <img class="brand-wordmark wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="116" height="59">
+        <img class="brand-wordmark wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="116" height="59">
+      </a>
+      <nav class="nav-links" aria-label="پیمایش اصلی">
+        <a class="nav-link" href="/models">مدل‌ها</a>
+        <a class="nav-link" href="/pricing">تعرفه</a>
+        <a class="nav-link" href="/docs">مستندات</a>
+        <a class="nav-link" href="/support">پشتیبانی</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-ghost btn-sm" href="/login" data-auth="guest">ورود</a>
+        <a class="btn btn-primary btn-sm" href="/chat">شروع گفتگو</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-hero">
+      <div class="wrap">
+        <span class="eyebrow">توسعه‌دهندگان</span>
+        <h1>هوش، فقط از همین سایت</h1>
+        <p>مدل روی همین سرور اجرا می‌شود و راه دیگری برای رسیدن به آن نیست: نه کلید API، نه توکن،
+          نه دانلود وزن‌ها. هر پاسخ از داخل همین سایت و با نشست خودِ تو ساخته می‌شود.</p>
+      </div>
+    </section>
+
+    <section class="section-sm">
+      <div class="wrap">
+        <div class="dev-grid">
+          <article class="card card-pad dev-card">
+            <h2 class="dev-title">دسترسی چطور کار می‌کند؟</h2>
+            <p class="dev-sub">یک حساب بساز یا به‌صورت مهمان وارد شو؛ همه‌چیز با کوکی امنِ همان نشست
+              انجام می‌شود و در مرورگر می‌ماند.</p>
+            <ul class="dev-points">
+              <li>ورود با ایمیل و رمز، بدون کلید و بدون توکن دستی</li>
+              <li>هر درخواست به مدل، هویت نشست و سهمیهٔ همان حساب را می‌بیند</li>
+              <li>خروج از حساب، دسترسی را همان لحظه می‌بندد</li>
+            </ul>
+            <a class="btn btn-primary" href="/chat">شروع گفتگو</a>
+          </article>
+
+          <article class="card card-pad dev-card">
+            <h2 class="dev-title">چرا کلید API حذف شد؟</h2>
+            <p class="dev-sub">چون خواستهٔ صریح مالک این است که هیچ‌کس بیرون از سایت به مدل دسترسی
+              نداشته باشد و کسی نتواند آن را جدا اجرا کند.</p>
+            <ul class="dev-points">
+              <li>بدون کلید: هیچ برنامهٔ بیرونی نمی‌تواند پاسخ بگیرد</li>
+              <li>بدون دانلود وزن: مدل فقط روی همین سرور زندگی می‌کند</li>
+              <li>محدودیت نرخ و سهمیه، جلوی سوءاستفاده را می‌گیرد</li>
+            </ul>
+            <a class="btn btn-ghost" href="/docs">مستندات فنی</a>
+          </article>
+
+          <article class="card card-pad dev-card">
+            <h2 class="dev-title">سقف‌ها و امنیت</h2>
+            <p class="dev-sub">همه‌چیز شفاف است و روی همین سرور سنجیده می‌شود.</p>
+            <ul class="dev-points">
+              <li>سقف بدنه: ۵۱۲ کیلوبایت · سقف پیام: ۲۰۰۰ نویسه</li>
+              <li>نرخ: ۴۵ درخواست در دقیقه برای هر نشانی</li>
+              <li>سد تهاجم: تراورسال، تزریق SQL، XSS، اسکن‌گر و بستن موقت IP</li>
+              <li>«من ربات نیستم»: اثبات‌کار امضاشده با شواهد رفتاری</li>
+            </ul>
+            <a class="btn btn-ghost" href="/about#privacy">حریم خصوصی</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-sm">
+      <div class="wrap-narrow">
+        <div class="faq">
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">آیا API عمومی دارید؟ <span class="chev">+</span></button>
+            <div class="faq-a"><p>نه. دسترسی به مدل فقط از داخل سایت و با نشست خودِ کاربر ممکن است؛ درخواست بدون کوکی نشست با خطای ۴۰۱ رد می‌شود.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">در محصول خودم چطور استفاده کنم؟ <span class="chev">+</span></button>
+            <div class="faq-a"><p>برای استفادهٔ سازمانی و قرارداد تجاری با <a href="/support">پشتیبانی</a> تماس بگیر؛ دسترسی تیمی و سهمیهٔ اختصاصی از همان مسیر هماهنگ می‌شود.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">وزن‌های مدل را می‌توانم دانلود کنم؟ <span class="chev">+</span></button>
+            <div class="faq-a"><p>از سایت نه. مسیر دانلود وزن‌ها فقط برای نشست مدیر است و برای بقیه ۴۰۱ برمی‌گرداند تا مدل جای دیگری اجرا نشود.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap">
+      <div class="footer-grid">
+        <div class="footer-about">
+          <a href="/" aria-label="رایان، خانه">
+            <img class="lockup lockup-for-light" src="/static/assets/brand/logotype-stack-ink.png" alt="رایان — هوش مصنوعی، به زبان فارسی" width="178" height="187" loading="lazy">
+            <img class="lockup lockup-for-dark" src="/static/assets/brand/logotype-stack-white.png" alt="رایان — هوش مصنوعی، به زبان فارسی" width="178" height="187" loading="lazy">
+          </a>
+          <p>دستیار فارسی که از صفر ساخته شده؛ کد، داده و وزن‌ها عمومی‌اند.</p>
+        </div>
+        <div>
+          <h4>محصول</h4>
+          <ul>
+            <li><a href="/chat">گفتگو</a></li>
+            <li><a href="/models">مدل‌ها</a></li>
+            <li><a href="/pricing">تعرفه و سهمیه</a></li>
+            <li><a href="/support">پشتیبانی تجاری</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>توسعه</h4>
+          <ul>
+            <li><a href="/docs">مستندات</a></li>
+            <li><a href="/developer">توسعه‌دهنده</a></li>
+            <li><a href="/download">دانلود اپلیکیشن</a></li>
+            <li><a href="/course">دورهٔ ۵ ساعته</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>پروژه</h4>
+          <ul>
+            <li><a href="/about">درباره</a></li>
+            <li><a href="/summary">خلاصهٔ پروژه</a></li>
+            <li><a href="/api/health">وضعیت سرویس</a></li>
+            <li><a href="https://github.com/Taymaz1391/ai" rel="noopener">GitHub</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© ۱۴۰۵ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> · ساخته‌شده با NumPy، بدون مدل آماده</span>
+        <span><a href="/about#license">مجوز MIT</a> · <a href="/about#privacy">حریم خصوصی</a> · <a href="/about#terms">شرایط استفاده</a></span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/config.js"></script>
+  <script src="/static/ui.js"></script>
+  <script src="/static/scroll.js"></script>
+  <script src="/static/perf.js"></script>
+</body>
+</html>

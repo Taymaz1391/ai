@@ -10,3 +10,10 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
+      # در تولید، گذرواژهٔ مالک باید صریح باشد؛ Render هنگام ساخت از تو می‌پرسد
+      - key: RAYAN_ENV
+        value: production
+      - key: RAYAN_OWNER_PASSWORD
+        sync: false
+      - key: RAYAN_PUBLIC_URL
+        sync: false
