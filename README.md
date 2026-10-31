@@ -232,6 +232,8 @@ cd tests/ui && npm install && node uitest.js       # ۳۷ آزمون رابط ک
 | **Render** | همان، با Blueprint آماده | `render.yaml` |
 | **GitHub Pages** | نسخهٔ استاتیک صفحهٔ اصلی، تعرفه، مدل‌ها، مستندات و درباره | `.github/workflows/pages.yml` |
 
+برای فعال‌کردن Pages یک‌بار در **Settings → Pages → Source** گزینهٔ **GitHub Actions** را انتخاب کن؛ پس از آن گردش‌کار `pages.yml` در هر push به `main` سایت را به‌روز می‌کند.
+
 GitHub Pages فقط فایل‌های ایستا را سرو می‌کند و نمی‌تواند مدل را اجرا کند؛ نسخهٔ Pages به‌صورت خودکار با `python scripts/export_site.py` ساخته می‌شود، مسیرها را نسبی می‌کند و یک نوار «نسخهٔ نمایشی» نشان می‌دهد. برای گفتگوی واقعی، نسخهٔ سرور را روی Render یا HF Spaces بالا بیاور و `apiBase` را در `web/static/config.js` به آن آدرس بده.
 
 راهنمای گام‌به‌گام: [`docs/DEPLOY_FREE.md`](docs/DEPLOY_FREE.md).
