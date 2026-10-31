@@ -1,14 +1,23 @@
 {
-  "name": "پارسیا — هوش زبانی فارسی",
-  "short_name": "پارسیا",
-  "description": "مدل زبانی فارسی ساخته‌شده از صفر، بدون API بیرونی.",
+  "name": "رایان | هوش مصنوعی فارسی",
+  "short_name": "رایان",
+  "description": "دستیار هوش مصنوعی فارسی، ساخته‌شده از صفر روی NumPy.",
   "lang": "fa",
   "dir": "rtl",
-  "start_url": "/",
+  "start_url": "/chat",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#05080f",
-  "theme_color": "#05080f",
+  "background_color": "#050b1a",
+  "theme_color": "#050b1a",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "education", "utilities"],
   "icons": [
-    { "src": "/static/assets/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    { "src": "/static/assets/icons/favicon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/static/assets/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/static/assets/brand/orb-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "shortcuts": [
+    { "name": "گفتگوی تازه", "url": "/chat", "description": "شروع یک گفتگوی تازه با رایان" },
+    { "name": "مدل‌ها", "url": "/models", "description": "کارت مدل و نتایج ارزیابی" }
   ]
 }

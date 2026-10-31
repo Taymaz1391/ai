@@ -1,4 +1,4 @@
-"""ساخت پیکرهٔ آموزش پارسیا از منابع فارسی (خبر، کتاب، شعر و گفتگوی آغازین).
+"""ساخت پیکرهٔ آموزش رایان از منابع فارسی (خبر، کتاب، شعر و گفتگوی آغازین).
 
 منابع خام در پوشهٔ بیرونی نگه داشته می‌شوند و خروجی پاک‌شده در data/ نوشته می‌شود.
 
@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from parsia.text import (  # noqa: E402
+from rayan.text import (  # noqa: E402
     is_clean_persian,
     normalize,
     persian_ratio,

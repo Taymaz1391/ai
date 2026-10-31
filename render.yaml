@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: parsia
+    name: rayan
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt

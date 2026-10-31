@@ -1,6 +1,6 @@
-# نمونه‌های تولید پارسیا
+# نمونه‌های تولید رایان
 
-checkpoint: `checkpoints/parsia-1-small.npz` · step 2400
+checkpoint: `checkpoints/rayan-1-small.npz` · step 2400
 
 | سنجه | مقدار |
 |---|---|

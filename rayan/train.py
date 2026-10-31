@@ -1,6 +1,6 @@
-"""آموزش مدل پارسیا از صفر روی پیکرهٔ فارسی.
+"""آموزش مدل رایان از صفر روی پیکرهٔ فارسی.
 
-    python -m parsia.train --tokenizer tokenizer/parsia_bpe.json \
+    python -m rayan.train --tokenizer tokenizer/rayan_bpe.json \
         --train data/train.txt --val data/val.txt --steps 2000
 
 هیچ GPU یا frameworkای لازم نیست؛ همین فایل با NumPy روی CPU آموزش می‌دهد.
@@ -51,11 +51,11 @@ def lr_at(step: int, total: int, base_lr: float, min_lr: float, warmup: int) -> 
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Train Parsia from scratch")
-    parser.add_argument("--tokenizer", default="tokenizer/parsia_bpe.json")
+    parser = argparse.ArgumentParser(description="Train Rayan from scratch")
+    parser.add_argument("--tokenizer", default="tokenizer/rayan_bpe.json")
     parser.add_argument("--train", default="data/train.txt")
     parser.add_argument("--val", default="data/val.txt")
-    parser.add_argument("--out", default="checkpoints/parsia-1-small.npz")
+    parser.add_argument("--out", default="checkpoints/rayan-1-small.npz")
     parser.add_argument("--latest", default="checkpoints/last.npz")
     parser.add_argument("--steps", type=int, default=2000)
     parser.add_argument("--batch-size", type=int, default=24)

@@ -14,7 +14,7 @@ tokenizer:
 	$(PY) data/train_tokenizer.py --vocab-size 10000
 
 train:
-	$(PY) -m parsia.train --steps 1800 --batch-size 24 --block-size 256 \
+	$(PY) -m rayan.train --steps 1800 --batch-size 24 --block-size 256 \
 		--layers 5 --heads 4 --embed 256 --lr 1.2e-3
 
 serve:
@@ -25,7 +25,7 @@ test:
 	$(PY) -m unittest discover -s tests -p "test_*.py" -v
 
 eval:
-	$(PY) scripts/evaluate.py --checkpoint checkpoints/parsia-1-small.npz
+	$(PY) scripts/evaluate.py --checkpoint checkpoints/rayan-1-small.npz
 
 clean:
-	rm -rf __pycache__ parsia/__pycache__ tests/__pycache__
+	rm -rf __pycache__ rayan/__pycache__ tests/__pycache__

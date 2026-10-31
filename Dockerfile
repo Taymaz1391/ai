@@ -1,4 +1,4 @@
-# پارسیا — تصویر سبک برای میزبانی رایگان
+# رایان — تصویر سبک برای میزبانی رایگان
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -10,16 +10,16 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY parsia ./parsia
+COPY rayan ./rayan
 COPY web ./web
 COPY tokenizer ./tokenizer
 COPY data/corpus_stats.json ./data/corpus_stats.json
 COPY configs ./configs
 COPY logs ./logs
-COPY checkpoints/parsia-1-small.npz ./checkpoints/parsia-1-small.npz
+COPY checkpoints/rayan-1-small.npz ./checkpoints/rayan-1-small.npz
 
-RUN useradd -m -u 1000 parsia && chown -R parsia:parsia /app
-USER parsia
+RUN useradd -m -u 1000 rayan && chown -R rayan:rayan /app
+USER rayan
 
 EXPOSE 8000
 

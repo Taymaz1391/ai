@@ -1,4 +1,4 @@
-"""آموزش توکنایزر BPE پارسیا روی پیکرهٔ فارسی و ارزیابی آن."""
+"""آموزش توکنایزر BPE رایان روی پیکرهٔ فارسی و ارزیابی آن."""
 from __future__ import annotations
 
 import argparse
@@ -9,7 +9,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from parsia.tokenizer import BPETokenizer  # noqa: E402
+from rayan.tokenizer import BPETokenizer  # noqa: E402
 
 
 def sample_text(path: str, chars: int, seed: int = 11) -> str:
@@ -28,7 +28,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--train", default="data/train.txt")
     parser.add_argument("--val", default="data/val.txt")
-    parser.add_argument("--out", default="tokenizer/parsia_bpe.json")
+    parser.add_argument("--out", default="tokenizer/rayan_bpe.json")
     parser.add_argument("--vocab-size", type=int, default=10_000)
     parser.add_argument("--sample-chars", type=int, default=9_000_000)
     args = parser.parse_args()

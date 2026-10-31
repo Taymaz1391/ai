@@ -1,1099 +1,1069 @@
-/* ============================================================
-   پارسیا — منطق رابط کاربری
-   بدون هیچ کتابخانه؛ گفتگوی جریانی، اندیشه‌نامه و نمودارهای واقعی
-   ============================================================ */
-(() => {
+/* رایان — کلاینت گفتگو */
+(function () {
   "use strict";
+  const R = window.RAYAN;
+  const { $, $$, request, toast, nf, timeAgo, copyText, initials } = R;
 
-  const $ = (sel, root = document) => root.querySelector(sel);
-  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
-  const faFormatter = new Intl.NumberFormat("fa-IR");
-  const fa = (n, digits = 0) => {
-    if (n === null || n === undefined || Number.isNaN(Number(n))) return "—";
-    return new Intl.NumberFormat("fa-IR", { maximumFractionDigits: digits, minimumFractionDigits: 0 }).format(Number(n));
-  };
-  const pct = (x) => `${fa(Math.round((x || 0) * 100))}٪`;
-  const compact = (n) => {
-    if (!n && n !== 0) return "—";
-    if (n >= 1e9) return `${fa(n / 1e9, 2)} میلیارد`;
-    if (n >= 1e6) return `${fa(n / 1e6, 2)} میلیون`;
-    if (n >= 1e3) return `${fa(n / 1e3, 1)} هزار`;
-    return fa(n);
-  };
-  const duration = (sec) => {
-    if (!Number.isFinite(sec) || sec < 0) return "—";
-    if (sec < 60) return `${fa(Math.round(sec))} ثانیه`;
-    if (sec < 3600) return `${fa(Math.round(sec / 60))} دقیقه`;
-    const h = Math.floor(sec / 3600);
-    const m = Math.round((sec % 3600) / 60);
-    return `${fa(h)} ساعت${m ? ` و ${fa(m)} دقیقه` : ""}`;
-  };
-  const timeAgo = (ts) => {
-    if (!ts) return "—";
-    const diff = Math.max(0, Date.now() / 1000 - ts);
-    if (diff < 60) return `${fa(Math.round(diff))} ثانیه پیش`;
-    if (diff < 3600) return `${fa(Math.round(diff / 60))} دقیقه پیش`;
-    return `${fa(Math.round(diff / 3600))} ساعت پیش`;
-  };
-  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
-  const debounce = (fn, ms) => {
-    let t;
-    return (...args) => {
-      clearTimeout(t);
-      t = setTimeout(() => fn(...args), ms);
-    };
-  };
-  const lrFmt = (lr) => (lr === undefined || lr === null ? "—" : fa(lr, 5));
-
-  const store = {
-    get(key, fallback) {
-      try {
-        const raw = localStorage.getItem(key);
-        return raw === null ? fallback : JSON.parse(raw);
-      } catch { return fallback; }
-    },
-    set(key, value) {
-      try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* حافظهٔ خصوصی */ }
-    },
-  };
+  const STORE_KEY = "rayan.settings.v2";
+  const DEFAULTS = { temperature: 0.82, top_p: 0.9, max_new_tokens: 110, candidates: 4 };
+  const MODE_LABELS = { chat: "گفتگو", continue: "ادامهٔ متن", poetry: "شعر" };
 
   const state = {
-    view: "chat",
+    user: null,
+    plan: "guest",
+    usage: null,
+    conversations: [],
+    currentId: null,
+    messages: [],
+    models: [],
+    model: "rayan-1-small",
+    deep: false,
     mode: "chat",
-    sessionId: store.get("parsia.session", null) || makeId(),
-    messages: store.get("parsia.history", []),
-    deep: store.get("parsia.deep", false),
-    temperature: store.get("parsia.temperature", 0.82),
-    samples: [],
-    health: null,
-    metrics: null,
-    model: null,
-    streaming: false,
-    abort: null,
-    chartPoints: null,
+    settings: loadSettings(),
+    sending: false,
+    controller: null,
+    query: "",
+    dragging: false,
   };
-  store.set("parsia.session", state.sessionId);
 
-  function makeId() {
-    try { return crypto.randomUUID(); }
-    catch { return `s-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`; }
-  }
-
-  /* ---------------------------------------------------------- کوچک‌ها */
-  let toastTimer;
-  function toast(message) {
-    const el = $("#toast");
-    el.textContent = message;
-    el.classList.add("is-visible");
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove("is-visible"), 2600);
-  }
-
-  async function getJSON(url) {
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
-    if (!res.ok) throw new Error((await safeDetail(res)) || `HTTP ${res.status}`);
-    return res.json();
-  }
-
-  async function safeDetail(res) {
+  function loadSettings() {
     try {
-      const data = await res.json();
-      if (typeof data.detail === "string") return data.detail;
-      if (Array.isArray(data.detail)) return data.detail.map((d) => d.msg).join("، ");
-      return null;
-    } catch { return null; }
-  }
-
-  async function copyText(text) {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast("در حافظه کپی شد");
+      return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(STORE_KEY) || "{}"));
     } catch {
-      const area = document.createElement("textarea");
-      area.value = text;
-      document.body.append(area);
-      area.select();
-      try { document.execCommand("copy"); toast("کپی شد"); } catch { toast("کپی ممکن نشد"); }
-      area.remove();
+      return Object.assign({}, DEFAULTS);
     }
   }
-
-  const STAR = `<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="15" y="15" width="34" height="34" rx="8" fill="none" stroke="currentColor" stroke-width="2" transform="rotate(45 32 32)"/><circle cx="32" cy="32" r="3" fill="currentColor"/></svg>`;
-
-  /* ---------------------------------------------------------- ناوبری */
-  function setView(view, push = true) {
-    if (!["chat", "model", "training", "about"].includes(view)) view = "chat";
-    state.view = view;
-    $$(".view").forEach((section) => section.classList.toggle("is-active", section.id === `view-${view}`));
-    $$(".nav-link").forEach((btn) => btn.classList.toggle("is-active", btn.dataset.view === view));
-    if (push) history.replaceState(null, "", `#${view}`);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    if (view === "training") { refreshMetrics(); drawMainChart(); }
-    if (view === "model") refreshModel();
+  function saveSettings() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state.settings)); } catch { /* حالت خصوصی */ }
   }
 
-  $$(".nav-link").forEach((btn) => btn.addEventListener("click", () => setView(btn.dataset.view)));
-  document.addEventListener("click", (event) => {
-    const link = event.target.closest("[data-view-link]");
-    if (link) setView(link.dataset.viewLink);
-  });
-  window.addEventListener("hashchange", () => setView(location.hash.replace("#", "") || "chat", false));
-
-  /* ---------------------------------------------------------- وضعیت */
-  function setStatus(kind, text) {
-    const pill = $("#status-pill");
-    pill.classList.remove("is-ready", "is-training", "is-offline");
-    if (kind) pill.classList.add(kind);
-    $("#status-text").textContent = text;
+  // ------------------------------------------------------------- مارک‌داون
+  function escapeHtml(text) {
+    return String(text).replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    }[c]));
   }
 
-  function applyHealth(h) {
-    state.health = h;
-    if (!h.ok) {
-      setStatus("is-offline", "مدل بارگذاری نشده");
-    } else if (h.training_active) {
-      const step = h.latest_train?.step ?? h.latest_eval?.step ?? h.model?.step;
-      setStatus("is-training", `در حال آموزش${step ? ` · گام ${fa(step)}` : ""}`);
-    } else {
-      setStatus("is-ready", "آماده · محلی");
-    }
-    if (h.model?.params) {
-      $$("[data-model-params]").forEach((el) => (el.textContent = compact(h.model.params)));
-      $$("[data-about-params]").forEach((el) => (el.textContent = compact(h.model.params)));
-    }
+  function inline(text) {
+    let out = escapeHtml(text);
+    out = out.replace(/`([^`\n]+)`/g, "<code>$1</code>");
+    out = out.replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>");
+    out = out.replace(/(^|[\s(])\*([^*\n]+)\*/g, "$1<em>$2</em>");
+    out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    return out;
   }
 
-  async function refreshHealth() {
-    try {
-      const h = await getJSON("/api/health");
-      applyHealth(h);
-    } catch {
-      setStatus("is-offline", "ارتباط قطع است");
-    }
-  }
+  function renderMarkdown(raw) {
+    const lines = String(raw || "").replace(/\r/g, "").split("\n");
+    const html = [];
+    let inCode = false;
+    let list = null;
+    let paragraph = [];
 
-  /* ---------------------------------------------------------- داده‌های مدل */
-  async function refreshModel() {
-    if (!state.model) {
-      try { state.model = await getJSON("/api/model"); } catch { return; }
-    }
-    const m = state.model;
-    const params = m.params;
-    $$("[data-spec='params']").forEach((el) => (el.textContent = fa(params)));
-    $$("[data-model-params]").forEach((el) => (el.textContent = compact(params)));
-    $$("[data-about-params]").forEach((el) => (el.textContent = compact(params)));
-    const vocab = m.config?.vocab_size ?? m.tokenizer?.vocab_size;
-    $$("[data-model-vocab]").forEach((el) => (el.textContent = fa(vocab)));
-    const best = m.metrics?.best_eval;
-    if (best?.bits_per_char) {
-      const el = $("#spec-data");
-      if (el) el.textContent = `${compact(m.meta?.tokens_seen)} توکن · bpc ${fa(best.bits_per_char, 3)}`;
-    }
-  }
-
-  function renderSpecs() {
-    if (!state.model) return;
-    const tokenizer = state.model.tokenizer || {};
-    const cfg = state.model.config || {};
-    const table = {
-      params: state.model.params,
-      vocab: cfg.vocab_size || tokenizer.vocab_size,
+    const flushParagraph = () => {
+      if (paragraph.length) {
+        html.push(`<p>${inline(paragraph.join(" "))}</p>`);
+        paragraph = [];
+      }
     };
-    $$("[data-spec]").forEach((el) => {
-      const key = el.dataset.spec;
-      if (table[key] !== undefined) el.textContent = fa(table[key]);
+    const closeList = () => {
+      if (list) {
+        html.push(`</${list}>`);
+        list = null;
+      }
+    };
+
+    for (const line of lines) {
+      if (/^```/.test(line)) {
+        flushParagraph();
+        closeList();
+        if (inCode) { html.push("</code></pre>"); inCode = false; }
+        else { html.push("<pre><code>"); inCode = true; }
+        continue;
+      }
+      if (inCode) { html.push(escapeHtml(line)); continue; }
+      const trimmed = line.trim();
+      if (!trimmed) { flushParagraph(); closeList(); continue; }
+      const heading = trimmed.match(/^(#{1,4})\s+(.*)$/);
+      if (heading) {
+        flushParagraph(); closeList();
+        const level = Math.min(4, heading[1].length + 2);
+        html.push(`<h${level}>${inline(heading[2])}</h${level}>`);
+        continue;
+      }
+      if (/^([-*•]|\d+\.)\s+/.test(trimmed)) {
+        flushParagraph();
+        const ordered = /^\d+\./.test(trimmed);
+        const kind = ordered ? "ol" : "ul";
+        if (list !== kind) { closeList(); html.push(`<${kind}>`); list = kind; }
+        html.push(`<li>${inline(trimmed.replace(/^([-*•]|\d+\.)\s+/, ""))}</li>`);
+        continue;
+      }
+      if (/^>\s?/.test(trimmed)) {
+        flushParagraph(); closeList();
+        html.push(`<blockquote>${inline(trimmed.replace(/^>\s?/, ""))}</blockquote>`);
+        continue;
+      }
+      if (/^(-{3,}|\*{3,})$/.test(trimmed)) {
+        flushParagraph(); closeList(); html.push("<hr>"); continue;
+      }
+      closeList();
+      paragraph.push(trimmed);
+    }
+    flushParagraph();
+    closeList();
+    if (inCode) html.push("</code></pre>");
+    return html.join("");
+  }
+
+  // ---------------------------------------------------------------- عناصر
+  const el = {
+    scroll: $("#chat-scroll"),
+    messages: $("#messages"),
+    empty: $("#empty-state"),
+    suggestions: $("#suggestions"),
+    composer: $("#composer"),
+    prompt: $("#prompt"),
+    send: $("#send-btn"),
+    stop: $("#stop-btn"),
+    deep: $("#deep-toggle"),
+    mode: $("#mode-select"),
+    hint: $("#composer-hint"),
+    convList: $("#conv-list"),
+    convEmpty: $("#conv-empty"),
+    search: $("#conv-search"),
+    usagePlan: $("#usage-plan"),
+    usageCount: $("#usage-count"),
+    usageFill: $("#usage-fill"),
+    usageCta: $("#usage-cta"),
+    modelBtn: $("#model-btn"),
+    modelMenu: $("#model-menu"),
+    modelLabel: $("#model-label"),
+    modelTag: $("#model-tag"),
+    sidebar: $("#sidebar"),
+    scrim: $("#sidebar-scrim"),
+    accountMenu: $("#account-menu"),
+  };
+
+  // --------------------------------------------------------------- مودال‌ها
+  function openModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) modal.hidden = false;
+  }
+  function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) modal.hidden = true;
+  }
+  $$(".modal-backdrop").forEach((backdrop) => {
+    backdrop.addEventListener("click", (event) => {
+      if (event.target === backdrop) backdrop.hidden = true;
+    });
+  });
+  $$("[data-close]").forEach((btn) => {
+    btn.addEventListener("click", () => closeModal(btn.getAttribute("data-close")));
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      $$(".modal-backdrop").forEach((m) => { m.hidden = true; });
+      el.accountMenu.hidden = true;
+      el.modelMenu.hidden = true;
+      closeSidebar();
+    }
+  });
+
+  function closeSidebar() {
+    el.sidebar.classList.remove("is-open");
+    el.scrim.hidden = true;
+  }
+  function openSidebar() {
+    el.sidebar.classList.add("is-open");
+    el.scrim.hidden = false;
+  }
+  $("#sidebar-open").addEventListener("click", openSidebar);
+  $("#sidebar-close").addEventListener("click", closeSidebar);
+  el.scrim.addEventListener("click", closeSidebar);
+
+  // ---------------------------------------------------------- وضعیت کاربر
+  function planLabel(plan) {
+    return { guest: "مهمان", free: "رایگان", pro: "حرفه‌ای" }[plan] || "مهمان";
+  }
+
+  function applyUser(stateAuth) {
+    state.user = stateAuth.user;
+    state.plan = stateAuth.plan || "guest";
+    state.usage = stateAuth.usage;
+    const name = state.user ? (state.user.name || state.user.email.split("@")[0]) : "مهمان";
+    $$("[data-user-name]").forEach((n) => { n.textContent = name; });
+    $$("[data-user-plan]").forEach((n) => { n.textContent = planLabel(state.plan); });
+    $$("[data-user-initials]").forEach((n) => { n.textContent = initials(name); });
+    $$("[data-auth='guest']").forEach((n) => { n.hidden = !!state.user; });
+    $$("[data-auth='user']").forEach((n) => { n.hidden = !state.user; });
+    if (el.usageCta) el.usageCta.hidden = !!state.user;
+    renderUsage();
+  }
+
+  function renderUsage() {
+    const usage = state.usage || {};
+    const chat = usage.chat || { used: 0, limit: 25 };
+    el.usagePlan.textContent = state.user ? planLabel(state.plan) : "مهمان";
+    el.usageCount.textContent = `${nf(chat.used || 0)} / ${nf(chat.limit || 0)}`;
+    const pct = Math.min(100, ((chat.used || 0) / Math.max(1, chat.limit || 1)) * 100);
+    el.usageFill.style.width = `${pct}%`;
+    el.usageFill.style.background = pct > 86 ? "linear-gradient(135deg,#ff7a8a,#f5b74a)" : "";
+  }
+
+  async function refreshAuth() {
+    try {
+      const auth = await request("/api/auth/me");
+      applyUser(auth);
+    } catch { /* آفلاین */ }
+  }
+
+  // ------------------------------------------------------------ مدل‌ها
+  async function loadModels() {
+    try {
+      const data = await request("/api/models");
+      state.models = data.models || [];
+      renderModelMenu();
+      const active = state.models.find((m) => m.id === state.model) || state.models[0];
+      if (active) {
+        el.modelLabel.textContent = active.name;
+        el.modelTag.textContent = active.badge;
+      }
+    } catch { /* از پیش‌فرض استفاده می‌کنیم */ }
+  }
+
+  function renderModelMenu() {
+    el.modelMenu.innerHTML = "";
+    const list = state.models.length ? state.models : [{
+      id: "rayan-1-small", name: "رایان ۱ — کوچک", tagline: "مدل فعال", status: "ready",
+      desc: "مدل ۶٫۵۷ میلیون پارامتری روی CPU", context: 256,
+    }];
+    list.forEach((model) => {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = `model-item${model.id === state.model ? " is-active" : ""}`;
+      item.setAttribute("role", "option");
+      item.setAttribute("aria-disabled", model.status === "ready" ? "false" : "true");
+      item.innerHTML = `
+        <span class="mi-body">
+          <b>${escapeHtml(model.name)}</b>
+          <small>${escapeHtml(model.tagline || "")} · ${model.context ? nf(model.context) + " توکن زمینه" : "—"}</small>
+        </span>
+        <span class="mi-side"><span class="tag ${model.status === "ready" ? "tag-blue" : ""}">${escapeHtml(model.badge || "")}</span></span>`;
+      item.addEventListener("click", () => {
+        if (model.status !== "ready") {
+          toast("این مدل هنوز آموزش ندیده است. در نقشهٔ راه ماست.", "");
+          return;
+        }
+        state.model = model.id;
+        el.modelLabel.textContent = model.name;
+        el.modelTag.textContent = model.badge;
+        el.modelMenu.hidden = true;
+        renderModelMenu();
+        toast(`مدل از این به بعد: ${model.name}`, "ok");
+      });
+      el.modelMenu.append(item);
     });
   }
 
-  $("#copy-config")?.addEventListener("click", () => {
-    if (!state.model) return;
-    copyText(JSON.stringify({
-      name: state.model.name,
-      params: state.model.params,
-      config: state.model.config,
-      tokenizer: state.model.tokenizer,
-      training: state.model.meta,
-    }, null, 2));
+  el.modelBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const open = el.modelMenu.hidden;
+    el.modelMenu.hidden = !open;
+    el.modelBtn.setAttribute("aria-expanded", String(open));
   });
 
-  /* ---------------------------------------------------------- گفتگو */
-  const chatLog = $("#chat-log");
-  const input = $("#input");
-  const sendBtn = $("#send");
-  const stopBtn = $("#stop");
-  let welcomeTemplate = $("#welcome")?.outerHTML || "";
-
-  function scrollToBottom(force = false) {
-    const gap = chatLog.scrollHeight - chatLog.scrollTop - chatLog.clientHeight;
-    if (force || gap < 140) chatLog.scrollTop = chatLog.scrollHeight;
+  // --------------------------------------------------------------- گفتگوها
+  function groupConversations(list) {
+    const now = Date.now() / 1000;
+    const groups = [["سنجاق‌شده", []], ["امروز", []], ["۷ روز گذشته", []], ["قدیمی‌تر", []]];
+    list.forEach((conv) => {
+      if (conv.pinned) groups[0][1].push(conv);
+      else if (now - conv.updated_at < 86400) groups[1][1].push(conv);
+      else if (now - conv.updated_at < 86400 * 7) groups[2][1].push(conv);
+      else groups[3][1].push(conv);
+    });
+    return groups.filter(([, items]) => items.length);
   }
 
-  function clearWelcome() {
-    const welcome = $("#welcome");
-    if (welcome) welcome.remove();
+  function renderConversations() {
+    const query = state.query.trim().toLowerCase();
+    const list = state.conversations.filter((c) => !query || (c.title || "").toLowerCase().includes(query));
+    el.convList.querySelectorAll(".conv-item, .conv-group-label").forEach((n) => n.remove());
+    el.convEmpty.hidden = list.length > 0;
+    if (!list.length) {
+      el.convEmpty.querySelector("span").textContent = query ? "چیزی پیدا نشد." : "هنوز گفتگویی نیست.";
+      el.convEmpty.querySelector("small").textContent = query ? "عبارت دیگری را امتحان کن." : "اولین پیام را بفرست تا اینجا ذخیره شود.";
+      return;
+    }
+    groupConversations(list).forEach(([label, items]) => {
+      const groupLabel = document.createElement("div");
+      groupLabel.className = "conv-group-label";
+      groupLabel.textContent = label;
+      el.convList.append(groupLabel);
+      items.forEach((conv) => {
+        const row = document.createElement("div");
+        row.className = `conv-item${conv.id === state.currentId ? " is-active" : ""}`;
+        row.dataset.id = conv.id;
+        row.tabIndex = 0;
+        row.innerHTML = `
+          <span class="title">${escapeHtml(conv.title || "گفتگوی تازه")}</span>
+          ${conv.pinned ? '<span class="pin">★</span>' : ""}
+          <button class="more" aria-label="گزینه‌ها" title="گزینه‌ها">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18" cy="12" r="1.8"/></svg>
+          </button>`;
+        const open = () => openConversation(conv.id);
+        row.addEventListener("click", (event) => {
+          if (event.target.closest(".more")) return;
+          open();
+        });
+        row.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); }
+        });
+        row.querySelector(".more").addEventListener("click", (event) => {
+          event.stopPropagation();
+          showConvMenu(row, conv);
+        });
+        el.convList.append(row);
+      });
+    });
   }
 
-  function renderSuggestions() {
-    const holder = $("#suggestions");
-    if (!holder) return;
-    const list = state.samples.length ? state.samples : [
-      { mode: "chat", title: "خودت را معرفی کن", text: "تو کی هستی؟" },
-      { mode: "chat", title: "یک شعر", text: "یک شعر بگو" },
-      { mode: "continue", title: "ادامهٔ متن", text: "در دل کویر، شب‌ها آسمان پر از ستاره است و" },
-      { mode: "poetry", title: "بیت‌سازی", text: "" },
+  function showConvMenu(row, conv) {
+    $$(".conv-menu").forEach((n) => n.remove());
+    const menu = document.createElement("div");
+    menu.className = "account-menu conv-menu";
+    menu.style.cssText = "position:absolute;inset-block-start:auto;inset-block-end:auto;min-width:170px;z-index:70;padding:6px;border-radius:12px;border:1px solid var(--line-strong);background:#0b1730;box-shadow:var(--shadow-lg)";
+    const rect = row.getBoundingClientRect();
+    menu.style.position = "fixed";
+    menu.style.top = `${Math.min(rect.bottom + 6, window.innerHeight - 220)}px`;
+    menu.style.insetInlineStart = "auto";
+    menu.style.left = `${Math.max(10, rect.right - 180)}px`;
+    const items = [
+      ["تغییر نام", () => renameConversation(conv)],
+      [conv.pinned ? "برداشتن سنجاق" : "سنجاق کردن", () => togglePin(conv)],
+      ["اشتراک‌گذاری", () => shareConversation(conv)],
+      ["حذف", () => confirmDelete(conv), "danger"],
     ];
-    const ordered = [...list].sort((a, b) => (b.mode === state.mode) - (a.mode === state.mode)).slice(0, 4);
-    holder.innerHTML = "";
-    ordered.forEach((sample) => {
+    items.forEach(([label, action, kind]) => {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "suggestion";
-      const title = document.createElement("b");
-      title.textContent = sample.title;
-      const preview = document.createElement("span");
-      preview.textContent = sample.text ? sample.text.slice(0, 62) : "یک شعر تازه بساز";
-      btn.append(title, preview);
+      btn.textContent = label;
+      if (kind === "danger") btn.style.color = "#ffb3bd";
       btn.addEventListener("click", () => {
-        state.mode = sample.mode;
-        syncModeTabs();
-        if (!sample.text) {
-          sendMessage(null, { mode: sample.mode });
-        } else {
-          input.value = sample.text;
-          autosize();
-          input.focus();
+        menu.remove();
+        action();
+      });
+      menu.append(btn);
+    });
+    document.body.append(menu);
+    setTimeout(() => {
+      document.addEventListener("click", function onDoc(event) {
+        if (!menu.contains(event.target)) {
+          menu.remove();
+          document.removeEventListener("click", onDoc);
         }
       });
-      holder.append(btn);
+    }, 0);
+  }
+
+  async function loadConversations() {
+    try {
+      const data = await request("/api/conversations");
+      state.conversations = data.conversations || [];
+      renderConversations();
+    } catch { /* آفلاین */ }
+  }
+
+  async function openConversation(id, pushState = true) {
+    try {
+      const data = await request(`/api/conversations/${id}`);
+      const conv = data.conversation;
+      state.currentId = conv.id;
+      state.messages = (conv.messages || []).map((m) => ({
+        id: m.id, role: m.role, content: m.content, meta: m.meta || {},
+      }));
+      renderAllMessages();
+      closeSidebar();
+      updateEmptyState();
+      renderConversations();
+      if (pushState) history.replaceState({}, "", `/chat?c=${id}`);
+    } catch (err) {
+      toast(err.message, "error");
+      state.currentId = null;
+      state.messages = [];
+      renderAllMessages();
+    }
+  }
+
+  function newChat() {
+    state.currentId = null;
+    state.messages = [];
+    renderAllMessages();
+    updateEmptyState();
+    renderConversations();
+    history.replaceState({}, "", "/chat");
+    el.prompt.focus();
+    closeSidebar();
+  }
+
+  async function renameConversation(conv) {
+    const next = window.prompt("نام تازهٔ گفتگو:", conv.title || "گفتگوی تازه");
+    if (!next || next.trim() === conv.title) return;
+    try {
+      await request(`/api/conversations/${conv.id}`, { method: "PATCH", body: { title: next.trim() } });
+      conv.title = next.trim();
+      renderConversations();
+      toast("نام گفتگو تغییر کرد.", "ok");
+    } catch (err) { toast(err.message, "error"); }
+  }
+
+  async function togglePin(conv) {
+    try {
+      const next = !conv.pinned;
+      await request(`/api/conversations/${conv.id}`, { method: "PATCH", body: { pinned: next } });
+      conv.pinned = next;
+      await loadConversations();
+      toast(next ? "سنجاق شد." : "سنجاق برداشته شد.", "ok");
+    } catch (err) { toast(err.message, "error"); }
+  }
+
+  let pendingDelete = null;
+  function confirmDelete(conv) {
+    pendingDelete = conv;
+    $("#confirm-text").textContent = `«${conv.title || "گفتگوی تازه"}» برای همیشه حذف می‌شود. این کار برگشت‌پذیر نیست.`;
+    openModal("confirm-modal");
+  }
+  $("#confirm-yes").addEventListener("click", async () => {
+    if (!pendingDelete) return;
+    try {
+      await request(`/api/conversations/${pendingDelete.id}`, { method: "DELETE" });
+      if (state.currentId === pendingDelete.id) newChat();
+      await loadConversations();
+      closeModal("confirm-modal");
+      toast("گفتگو حذف شد.", "ok");
+    } catch (err) { toast(err.message, "error"); }
+    pendingDelete = null;
+  });
+
+  // --------------------------------------------------------------- اشتراک
+  async function shareConversation(conv) {
+    const id = conv ? conv.id : state.currentId;
+    if (!id) { toast("اول یک گفتگو بساز.", ""); return; }
+    try {
+      const data = await request(`/api/conversations/${id}/share`, { method: "POST" });
+      const url = `${location.origin}/s/${data.token}`;
+      $("#share-link").value = url;
+      $("#share-open").onclick = () => window.open(url, "_blank", "noopener");
+      $("#share-revoke").onclick = async () => {
+        await request(`/api/conversations/${id}/share`, { method: "DELETE" }).catch(() => {});
+        closeModal("share-modal");
+        toast("اشتراک لغو شد.", "ok");
+      };
+      openModal("share-modal");
+    } catch (err) { toast(err.message, "error"); }
+  }
+  $("#share-copy").addEventListener("click", async () => {
+    await copyText($("#share-link").value);
+    toast("لینک کپی شد.", "ok");
+  });
+  $("#share-btn").addEventListener("click", () => shareConversation(null));
+
+  // --------------------------------------------------------------- پیام‌ها
+  function updateEmptyState() {
+    const empty = !state.messages.length;
+    el.empty.hidden = !empty;
+    el.messages.hidden = empty;
+  }
+
+  function renderAllMessages() {
+    el.messages.innerHTML = "";
+    state.messages.forEach((msg) => el.messages.append(buildMessage(msg)));
+    scrollToBottom(false);
+  }
+
+  function scrollToBottom(smooth = true) {
+    requestAnimationFrame(() => {
+      el.scroll.scrollTo({ top: el.scroll.scrollHeight, behavior: smooth ? "smooth" : "auto" });
     });
   }
 
-  function addMessage(role, text, opts = {}) {
-    clearWelcome();
-    const wrapper = document.createElement("div");
-    wrapper.className = `msg ${role}`;
-    const avatar = document.createElement("div");
-    avatar.className = "avatar";
-    if (role === "user") avatar.textContent = "ش";
-    else avatar.innerHTML = STAR;
+  function buildMessage(msg) {
+    const wrap = document.createElement("div");
+    wrap.className = `msg ${msg.role === "user" ? "user" : "bot"}`;
+    wrap.dataset.id = msg.id || "";
 
-    const bubbleWrap = document.createElement("div");
-    bubbleWrap.className = "bubble-wrap";
-    const bubble = document.createElement("div");
-    bubble.className = "bubble";
-    if (opts.streaming) bubble.classList.add("streaming");
-    if (opts.error) bubble.classList.add("is-error");
-    bubble.textContent = text || "";
-    bubbleWrap.append(bubble);
-
-    const meta = document.createElement("div");
-    meta.className = "msg-meta";
-    meta.hidden = !opts.metaText;
-    if (opts.metaText) meta.textContent = opts.metaText;
-    bubbleWrap.append(meta);
-
-    let traceEl = null;
-    if (opts.trace) {
-      traceEl = buildTrace(opts.trace);
-      bubbleWrap.append(traceEl);
+    const who = document.createElement("div");
+    who.className = "who";
+    if (msg.role === "user") {
+      who.textContent = initials(state.user ? (state.user.name || state.user.email) : "م");
+    } else {
+      const img = document.createElement("img");
+      img.src = "/static/assets/brand/orb-128.png";
+      img.alt = "رایان";
+      img.width = 32;
+      img.height = 32;
+      who.append(img);
     }
 
-    wrapper.append(avatar, bubbleWrap);
-    chatLog.append(wrapper);
-    scrollToBottom(true);
-    return { wrapper, bubble, meta, traceEl };
-  }
+    const body = document.createElement("div");
+    body.className = "msg-body";
 
-  function setMeta(entry, text, extra = null) {
-    entry.meta.hidden = false;
-    entry.meta.textContent = text;
-    if (extra) {
-      const copy = document.createElement("button");
-      copy.type = "button";
-      copy.textContent = "کپی";
-      copy.addEventListener("click", () => copyText(entry.bubble.textContent));
-      const sep = document.createElement("span");
-      sep.className = "dot-sep";
-      entry.meta.append(sep, copy);
+    if (msg.role === "user") {
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.textContent = msg.content;
+      body.append(bubble, toolsFor(msg));
+    } else {
+      if (msg.meta && msg.meta.trace) body.append(traceEl(msg.meta.trace));
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.innerHTML = renderMarkdown(msg.content);
+      body.append(bubble);
+      if (msg.meta && msg.meta.stats) body.append(statsEl(msg.meta.stats, msg.meta.deep));
+      if (!msg.streaming) body.append(toolsFor(msg));
     }
+    wrap.append(who, body);
+    return wrap;
   }
 
-  function buildTrace(trace) {
+  function statsEl(stats, deep) {
+    const elx = document.createElement("div");
+    elx.className = "msg-stats";
+    const bits = [
+      `${nf(stats.tokens || 0)} توکن`,
+      `${nf(stats.tokens_per_second || 0)} توکن/ث`,
+      `اطمینان ${nf((stats.confidence || 0) * 100, 0)}٪`,
+    ];
+    if (deep) bits.push("اندیشهٔ ژرف · ۴ مسیر");
+    elx.textContent = bits.join(" · ");
+    return elx;
+  }
+
+  function traceEl(trace) {
     const details = document.createElement("details");
     details.className = "trace";
     const summary = document.createElement("summary");
-    const label = document.createElement("span");
-    label.textContent = `اندیشه‌نامه · ${fa(trace.candidates?.length || 0)} مسیر`;
-    const show = document.createElement("b");
-    show.textContent = "نمایش";
-    summary.append(label, show);
-
+    summary.textContent = `اندیشهٔ ژرف — ${trace.rationale || "بهترین مسیر انتخاب شد"}`;
     const body = document.createElement("div");
     body.className = "trace-body";
-    const note = document.createElement("p");
-    note.className = "trace-note";
-    note.textContent = trace.rationale || "";
-    body.append(note);
-
-    const candidates = trace.candidates || [];
-    if (candidates.length) {
-      const scores = candidates.map((c) => c.score);
-      const lo = Math.min(...scores);
-      const hi = Math.max(...scores);
-      candidates.forEach((cand) => {
-        const row = document.createElement("div");
-        row.className = "candidate" + (cand.index === trace.chosen ? " is-chosen" : "");
-        const idx = document.createElement("span");
-        idx.className = "idx";
-        idx.textContent = fa(cand.index);
-        const info = document.createElement("div");
-        const title = document.createElement("div");
-        title.textContent = cand.preview || cand.text?.slice(0, 80) || "";
-        title.className = "preview";
-        const bar = document.createElement("div");
-        bar.className = "bar";
-        const fill = document.createElement("i");
-        fill.style.width = `${hi === lo ? 100 : 12 + ((cand.score - lo) / (hi - lo)) * 88}%`;
-        bar.append(fill);
-        info.append(title, bar);
-        const score = document.createElement("span");
-        score.className = "score";
-        score.textContent = cand.index === trace.chosen ? "برگزیده" : fa(cand.score, 2);
-        score.title = `اطمینان ${pct(cand.confidence)} · تکرار ${pct(cand.repetition)}`;
-        row.append(idx, info, score);
-        body.append(row);
+    if (Array.isArray(trace.candidates)) {
+      const ul = document.createElement("ul");
+      trace.candidates.forEach((c) => {
+        const li = document.createElement("li");
+        li.innerHTML = `<b>مسیر ${nf(c.index)}</b><span>${escapeHtml((c.preview || "").slice(0, 70))}</span>
+          <span class="score">${nf(c.score, 2)}</span>`;
+        ul.append(li);
       });
-      const foot = document.createElement("p");
-      foot.className = "trace-note";
-      foot.textContent = "امتیاز = اطمینان مدل − جریمهٔ تکرار + پاداش فارسی‌بودن و پایان جمله.";
-      body.append(foot);
+      body.append(ul);
     }
     details.append(summary, body);
     return details;
   }
 
-  function autosize() {
-    input.style.height = "auto";
-    input.style.height = `${Math.min(150, Math.max(40, input.scrollHeight))}px`;
+  function toolsFor(msg) {
+    const bar = document.createElement("div");
+    bar.className = "msg-tools";
+    const mk = (label, icon, handler, title) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "tool-mini";
+      btn.title = title || label;
+      btn.setAttribute("aria-label", label);
+      btn.innerHTML = icon;
+      btn.addEventListener("click", handler);
+      return btn;
+    };
+    const copyIcon = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="9" y="9" width="12" height="12" rx="2.4"/><path d="M15 5.5A2.5 2.5 0 0 0 12.5 3h-7A2.5 2.5 0 0 0 3 5.5v7A2.5 2.5 0 0 0 5.5 15"/></svg>';
+    const redoIcon = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>';
+    const upIcon = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M7 14l5-5 5 5"/></svg>';
+    const downIcon = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M7 10l5 5 5-5"/></svg>';
+
+    bar.append(mk("کپی پاسخ", copyIcon, async () => {
+      await copyText(msg.content);
+      toast("متن کپی شد.", "ok");
+    }));
+    if (msg.role === "assistant") {
+      bar.append(mk("تولید دوباره", redoIcon, () => regenerate(msg)));
+      bar.append(mk("پاسخ خوب بود", upIcon, () => sendFeedback(msg, 1)));
+      bar.append(mk("پاسخ بد بود", downIcon, () => sendFeedback(msg, -1)));
+    }
+    return bar;
+  }
+
+  async function sendFeedback(msg, value) {
+    try {
+      await request("/api/feedback", { method: "POST", body: { message_id: msg.id || null, value } });
+      toast(value > 0 ? "ممنون از بازخوردت." : "ثبت شد؛ روی بهبود کار می‌کنیم.", value > 0 ? "ok" : "");
+    } catch { /* اختیاری */ }
+  }
+
+  // ------------------------------------------------------------ تولید
+  function appendUserMessage(text) {
+    const msg = { role: "user", content: text };
+    state.messages.push(msg);
+    el.messages.append(buildMessage(msg));
+  }
+
+  function appendBotShell() {
+    const msg = { role: "assistant", content: "", streaming: true };
+    state.messages.push(msg);
+    const node = buildMessage(msg);
+    const bubble = node.querySelector(".bubble");
+    bubble.classList.add("streaming");
+    bubble.innerHTML = '<span class="thinking"><i></i><i></i><i></i></span>';
+    el.messages.append(node);
+    scrollToBottom();
+    return { msg, node, bubble };
+  }
+
+  function historyPayload() {
+    const turns = [];
+    let pendingUser = null;
+    state.messages.slice(0, -1).forEach((msg) => {
+      if (msg.role === "user") pendingUser = msg.content;
+      else if (pendingUser) {
+        turns.push({ user: pendingUser, assistant: msg.content });
+        pendingUser = null;
+      }
+    });
+    return turns.slice(-2);
   }
 
   function setBusy(busy) {
-    state.streaming = busy;
-    sendBtn.disabled = busy;
-    stopBtn.hidden = !busy;
-    input.disabled = false;
+    state.sending = busy;
+    el.send.hidden = busy;
+    el.stop.hidden = !busy;
+    el.composer.classList.toggle("is-busy", busy);
+    updateHint();
   }
 
-  function syncModeTabs() {
-    $$(".mode-tab").forEach((tab) => {
-      const active = tab.dataset.mode === state.mode;
-      tab.classList.toggle("is-active", active);
-      tab.setAttribute("aria-selected", String(active));
-    });
-    input.placeholder = state.mode === "chat"
-      ? "به فارسی بنویس…"
-      : state.mode === "continue"
-        ? "متن آغازین را بنویس تا ادامه بدهم…"
-        : "موضوع یا مصرعِ آغازین (اختیاری)…";
+  function updateHint() {
+    if (state.sending) { el.hint.textContent = "رایان در حال نوشتن است…"; return; }
+    const usage = state.usage || {};
+    const chat = usage.chat || {};
+    if (chat.limit) {
+      const remaining = Math.max(0, chat.limit - (chat.used || 0));
+      el.hint.textContent = `${nf(remaining)} پیام باقی‌مانده امروز`;
+    } else {
+      el.hint.textContent = "Enter برای ارسال · Shift+Enter خط تازه";
+    }
   }
 
-  function saveHistory() {
-    store.set("parsia.history", state.messages.slice(-20));
-  }
+  async function send() {
+    if (state.sending) return;
+    const text = el.prompt.value.trim();
+    if (!text) return;
+    if (state.mode === "chat" && !text) return;
 
-  function buildHistory(messages) {
-    const turns = [];
-    messages.forEach((msg) => {
-      if (msg.role === "user") turns.push({ user: msg.text || "", assistant: "" });
-      else if (turns.length) turns[turns.length - 1].assistant = msg.text || "";
-    });
-    return turns.filter((t) => t.user && t.assistant).slice(-2);
-  }
-
-  async function sendMessage(textOverride, opts = {}) {
-    if (state.streaming) return;
-    const mode = opts.mode || state.mode;
-    let raw = textOverride !== null && textOverride !== undefined ? textOverride : input.value;
-    let text = (raw || "").trim();
-    if (!text && mode !== "poetry") return;
-    if (text.length > 2000) text = text.slice(0, 2000);
-    const displayText = text || "یک شعر بگو";
-
-    input.value = "";
-    autosize();
-    addMessage("user", displayText, { metaText: mode === "chat" ? "شما" : mode === "continue" ? "متن آغازین" : "درخواست شعر" });
-    state.messages.push({ role: "user", text: displayText, mode });
-    saveHistory();
-
-    const payload = {
-      message: text,
-      session_id: state.sessionId,
-      mode,
-      deep: state.deep,
-      candidates: 4,
-      temperature: Number(state.temperature),
-      max_new_tokens: state.deep ? 90 : 110,
-      history: buildHistory(state.messages.slice(0, -1)),
-    };
-
-    const controller = new AbortController();
-    state.abort = controller;
+    el.prompt.value = "";
+    resizePrompt();
+    appendUserMessage(text);
+    updateEmptyState();
+    scrollToBottom();
     setBusy(true);
 
+    const wantsDeep = state.deep && state.mode === "chat";
+    if (wantsDeep) {
+      const { msg, bubble } = appendBotShell();
+      try {
+        const data = await request("/api/chat", {
+          method: "POST",
+          body: {
+            message: text,
+            conversation_id: state.currentId,
+            model: state.model,
+            mode: state.mode,
+            deep: true,
+            candidates: state.settings.candidates,
+            temperature: state.settings.temperature,
+            top_p: state.settings.top_p,
+            max_new_tokens: state.settings.max_new_tokens,
+            history: historyPayload(),
+          },
+        });
+        msg.content = data.answer || "…";
+        msg.meta = { stats: data.stats, trace: data.trace, deep: true };
+        msg.streaming = false;
+        msg.id = data.message_id;
+        bubble.classList.remove("streaming");
+        bubble.innerHTML = renderMarkdown(msg.content);
+        const body = bubble.parentElement;
+        body.querySelector(".msg-stats")?.remove();
+        if (msg.meta.stats) body.append(statsEl(msg.meta.stats, true));
+        body.querySelector(".msg-tools")?.remove();
+        body.append(toolsFor(msg));
+        if (data.trace) body.prepend(traceEl(data.trace));
+        if (data.usage) { state.usage = Object.assign({}, state.usage, { chat: data.usage }); renderUsage(); }
+        await afterTurn(data);
+      } catch (err) {
+        failShell(bubble, err);
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
+    const { msg, bubble } = appendBotShell();
+    const controller = new AbortController();
+    state.controller = controller;
+    let answer = "";
     try {
-      if (state.deep) {
-        await runDeep(payload, controller);
-      } else {
-        await runStream(payload, controller);
+      const response = await fetch("/api/chat/stream", {
+        method: "POST",
+        credentials: "include",
+        signal: controller.signal,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          conversation_id: state.currentId,
+          model: state.model,
+          mode: state.mode,
+          temperature: state.settings.temperature,
+          top_p: state.settings.top_p,
+          max_new_tokens: state.settings.max_new_tokens,
+          history: historyPayload(),
+        }),
+      });
+      if (!response.ok) {
+        let detail = `خطای سرور (${response.status})`;
+        try {
+          const data = await response.json();
+          if (typeof data.detail === "string") detail = data.detail;
+        } catch { /* بدنهٔ غیر JSON */ }
+        throw new Error(detail);
+      }
+      bubble.innerHTML = "";
+      const reader = response.body.getReader();
+      const Decoder = window.TextDecoder || TextDecoder;
+      const decoder = new Decoder();
+      let buffer = "";
+      let first = true;
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          let event;
+          try { event = JSON.parse(line); } catch { continue; }
+          if (event.type === "token") {
+            answer += event.text;
+            bubble.innerHTML = renderMarkdown(answer);
+            if (first) { bubble.classList.add("streaming"); first = false; }
+            scrollToBottom();
+          } else if (event.type === "done") {
+            msg.content = event.answer || answer;
+            msg.id = event.message_id;
+            msg.meta = { stats: event.stats };
+            msg.streaming = false;
+            bubble.classList.remove("streaming");
+            bubble.innerHTML = renderMarkdown(msg.content);
+            if (event.stats) bubble.parentElement.append(statsEl(event.stats, false));
+            bubble.parentElement.append(toolsFor(msg));
+            if (event.usage) { state.usage = Object.assign({}, state.usage, { chat: event.usage }); renderUsage(); }
+            await afterTurn(event);
+          } else if (event.type === "error") {
+            throw new Error(event.error || "تولید پاسخ متوقف شد.");
+          }
+        }
+      }
+      if (msg.streaming) {
+        msg.content = answer;
+        msg.streaming = false;
+        bubble.classList.remove("streaming");
+        bubble.innerHTML = renderMarkdown(answer || "…");
       }
     } catch (err) {
       if (err.name === "AbortError") {
-        const streaming = $(".bubble.streaming");
-        if (streaming) {
-          streaming.classList.remove("streaming");
-          const partial = streaming.textContent.trim();
-          if (partial) {
-            const meta = streaming.parentElement.querySelector(".msg-meta");
-            if (meta) { meta.hidden = false; meta.textContent = "متوقف شد"; }
-            state.messages.push({ role: "assistant", text: partial });
-            saveHistory();
-          }
-        } else {
-          const thinking = $(".bubble .thinking");
-          if (thinking) { thinking.closest(".bubble").textContent = "تولید متوقف شد."; }
-        }
-        return;
+        msg.content = answer;
+        msg.streaming = false;
+        bubble.classList.remove("streaming");
+        bubble.innerHTML = renderMarkdown(answer || "تولید متوقف شد.");
+        toast("تولید متوقف شد.", "");
+      } else {
+        failShell(bubble, err, answer);
       }
-      const stale = $(".bubble.streaming");
-      if (stale) stale.closest(".msg")?.remove();
-      const thinking = $(".bubble .thinking");
-      if (thinking) thinking.closest(".msg")?.remove();
-      const entry = addMessage("assistant", err.message || "خطایی رخ داد.", { error: true, metaText: "خطا" });
-      state.messages.push({ role: "assistant", text: entry.bubble.textContent, error: true });
-      saveHistory();
     } finally {
-      state.abort = null;
+      state.controller = null;
       setBusy(false);
     }
   }
 
-  async function runStream(payload, controller) {
-    const entry = addMessage("assistant", "", { streaming: true, metaText: "در حال نوشتن…" });
-    const started = performance.now();
-    let answer = "";
-    const res = await fetch("/api/chat/stream", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
-    if (!res.ok) throw new Error((await safeDetail(res)) || "سرور پاسخ نداد.");
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    let done = false;
-    while (!done) {
-      const chunk = await reader.read();
-      done = chunk.done;
-      buffer += decoder.decode(chunk.value || new Uint8Array(), { stream: !done });
-      let nl;
-      while ((nl = buffer.indexOf("\n")) >= 0) {
-        const line = buffer.slice(0, nl).trim();
-        buffer = buffer.slice(nl + 1);
-        if (!line) continue;
-        let event;
-        try { event = JSON.parse(line); } catch { continue; }
-        if (event.type === "token") {
-          answer += event.text || "";
-          entry.bubble.textContent = answer;
-          scrollToBottom();
-        } else if (event.type === "done") {
-          answer = event.answer || answer;
-          entry.bubble.textContent = answer;
-          entry.bubble.classList.remove("streaming");
-          const s = event.stats || {};
-          const seconds = (performance.now() - started) / 1000;
-          setMeta(entry,
-            `${duration(s.seconds ?? seconds)} · ${fa(s.tokens || 0)} توکن · اطمینان ${pct(s.confidence || 0)}`,
-            { entry: { payload } });
-          state.messages.push({ role: "assistant", text: answer, mode: payload.mode });
-          saveHistory();
-        } else if (event.type === "error") {
-          throw new Error(event.error || "خطا در تولید");
-        }
-      }
-    }
-    entry.bubble.classList.remove("streaming");
-    if (!answer) {
-      entry.bubble.textContent = "پاسخی ساخته نشد؛ دوباره تلاش کن.";
-      entry.bubble.classList.add("is-error");
-    }
-  }
-
-  async function runDeep(payload, controller) {
-    const entry = addMessage("assistant", "", { metaText: "اندیشهٔ ژرف در حال کار است…" });
-    entry.bubble.innerHTML = `<div class="thinking"><span class="thinking-dots"><i></i><i></i><i></i></span><span class="thinking-text">پیام را می‌خوانم…</span></div>`;
-    const thinkingText = $(".thinking-text", entry.bubble);
-    const phases = [
-      "پیام را می‌خوانم…",
-      "چند مسیر موازی می‌سازم…",
-      "مسیرها را امتیاز می‌دهم…",
-      "بهترین مسیر را انتخاب می‌کنم…",
-    ];
-    let phase = 0;
-    const started = performance.now();
-    const timer = setInterval(() => {
-      phase = (phase + 1) % phases.length;
-      if (thinkingText) thinkingText.textContent = `${phases[phase]} (${Math.round((performance.now() - started) / 1000)} ثانیه)`;
-    }, 1600);
-
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-      if (!res.ok) throw new Error((await safeDetail(res)) || "سرور پاسخ نداد.");
-      const data = await res.json();
-      entry.bubble.textContent = data.answer || "…";
-      const s = data.stats || {};
-      const chosen = data.trace?.candidates?.find((c) => c.index === data.trace?.chosen);
-      setMeta(entry,
-        `${fa(data.trace?.candidates?.length || 0)} مسیر · ${duration(data.latency_s)} · امتیاز ${fa(chosen?.score ?? 0, 2)}`,
-        { entry: { payload } });
-      if (data.trace) {
-        const traceEl = buildTrace(data.trace);
-        entry.meta.before(traceEl);
-        store.set("parsia.lastTrace", data.trace);
-      }
-      state.messages.push({ role: "assistant", text: data.answer, trace: data.trace });
-      saveHistory();
-    } finally {
-      clearInterval(timer);
-    }
-  }
-
-  $(".mode-tab")?.parentElement?.addEventListener("click", (event) => {
-    const tab = event.target.closest(".mode-tab");
-    if (!tab) return;
-    state.mode = tab.dataset.mode;
-    syncModeTabs();
-    input.focus();
-  });
-
-  $("#composer").addEventListener("submit", (event) => {
-    event.preventDefault();
-    sendMessage();
-  });
-
-  input.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      sendMessage();
-    }
-  });
-  input.addEventListener("input", autosize);
-
-  stopBtn.addEventListener("click", () => {
-    state.abort?.abort();
-    toast("تولید متوقف شد");
-  });
-
-  $("#export-chat").addEventListener("click", () => {
-    if (!state.messages.length) { toast("گفتگویی برای دانلود نیست"); return; }
-    if (!window.URL?.createObjectURL) { toast("مرورگر از دانلود پشتیبانی نمی‌کند"); return; }
-    try {
-      const lines = state.messages.map((m) => `${m.role === "user" ? "شما" : "پارسیا"}: ${m.text}`);
-      const blob = new Blob([`گفتگوی پارسیا\n\n${lines.join("\n\n")}\n`], { type: "text/plain;charset=utf-8" });
+  function failShell(bubble, err, partial = "") {
+    bubble.classList.remove("streaming");
+    bubble.innerHTML = renderMarkdown(partial) || "";
+    const alert = document.createElement("div");
+    alert.className = "form-alert";
+    alert.style.marginTop = "10px";
+    alert.textContent = err.message;
+    if (err.status === 429) {
       const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "parsia-chat.txt";
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(link.href), 2000);
-      toast("گفتگو دانلود شد");
-    } catch { toast("دانلود ممکن نشد"); }
+      link.href = "/signup";
+      link.style.marginInlineStart = "8px";
+      link.style.color = "var(--blue-2)";
+      link.textContent = "ساخت حساب رایگان";
+      alert.append(link);
+    }
+    bubble.parentElement.append(alert);
+    toast(err.message, "error");
+  }
+
+  async function afterTurn(data) {
+    if (data.conversation_id) {
+      const isNew = !state.currentId;
+      state.currentId = data.conversation_id;
+      history.replaceState({}, "", `/chat?c=${state.currentId}`);
+      await loadConversations();
+      if (isNew) renderConversations();
+    }
+    await refreshAuth();
+  }
+
+  async function regenerate(msg) {
+    const index = state.messages.indexOf(msg);
+    if (index < 1) return;
+    const previousUser = [...state.messages.slice(0, index)].reverse().find((m) => m.role === "user");
+    if (!previousUser) return;
+    state.messages = state.messages.slice(0, index);
+    el.messages.innerHTML = "";
+    state.messages.forEach((m) => el.messages.append(buildMessage(m)));
+    el.prompt.value = previousUser.content;
+    await send();
+  }
+
+  // ------------------------------------------------------------- تنظیمات
+  function syncSettingsUI() {
+    const s = state.settings;
+    $("#set-temp").value = s.temperature;
+    $("#set-topp").value = s.top_p;
+    $("#set-tokens").value = s.max_new_tokens;
+    $("#set-candidates").value = s.candidates;
+    $("#temp-value").textContent = nf(s.temperature, 2);
+    $("#topp-value").textContent = nf(s.top_p, 2);
+  }
+  $("#settings-btn").addEventListener("click", () => {
+    syncSettingsUI();
+    openModal("settings-modal");
+  });
+  $("#set-temp").addEventListener("input", (e) => {
+    state.settings.temperature = Number(e.target.value);
+    $("#temp-value").textContent = nf(state.settings.temperature, 2);
+  });
+  $("#set-topp").addEventListener("input", (e) => {
+    state.settings.top_p = Number(e.target.value);
+    $("#topp-value").textContent = nf(state.settings.top_p, 2);
+  });
+  $("#set-tokens").addEventListener("change", (e) => {
+    state.settings.max_new_tokens = Math.max(16, Math.min(220, Number(e.target.value) || 110));
+  });
+  $("#set-candidates").addEventListener("change", (e) => {
+    state.settings.candidates = Math.max(2, Math.min(6, Number(e.target.value) || 4));
+  });
+  $("#reset-settings").addEventListener("click", () => {
+    state.settings = Object.assign({}, DEFAULTS);
+    syncSettingsUI();
+    saveSettings();
+    toast("تنظیمات بازنشانی شد.", "ok");
+  });
+  document.querySelectorAll("[data-close='settings-modal']").forEach((btn) => {
+    btn.addEventListener("click", saveSettings);
   });
 
-  $("#new-chat").addEventListener("click", async () => {
-    const old = state.sessionId;
-    state.sessionId = makeId();
-    store.set("parsia.session", state.sessionId);
-    state.messages = [];
-    saveHistory();
-    chatLog.innerHTML = welcomeTemplate;
-    renderSuggestions();
-    fetch(`/api/session/${encodeURIComponent(old)}`, { method: "DELETE" }).catch(() => {});
-    scrollToBottom(true);
-    input.focus();
-  });
+  // --------------------------------------------------------------- خروجی
+  function download(filename, content, type) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
 
-  const deepToggle = $("#deep-toggle");
-  deepToggle.checked = !!state.deep;
-  deepToggle.addEventListener("change", () => {
-    state.deep = deepToggle.checked;
-    store.set("parsia.deep", state.deep);
-    toast(state.deep ? "اندیشهٔ ژرف روشن شد؛ پاسخ کمی دیرتر می‌آید." : "اندیشهٔ ژرف خاموش شد.");
-  });
-
-  const tempSlider = $("#temp");
-  tempSlider.value = String(state.temperature);
-  const tempOut = $("#temp-out");
-  const renderTemp = () => { tempOut.textContent = fa(Number(tempSlider.value), 2); };
-  renderTemp();
-  tempSlider.addEventListener("input", () => {
-    state.temperature = Number(tempSlider.value);
-    renderTemp();
-    store.set("parsia.temperature", state.temperature);
-  });
-
-  /* ---------------------------------------------------------- بازسازی تاریخچه */
-  function restoreHistory() {
-    if (!Array.isArray(state.messages) || !state.messages.length) return;
-    state.messages.forEach((msg) => {
-      if (msg.role === "user") {
-        addMessage("user", msg.text, { metaText: "شما" });
-      } else {
-        const entry = addMessage("assistant", msg.text, {
-          metaText: msg.error ? "خطا" : undefined,
-          trace: msg.trace || null,
-        });
-        if (!msg.error) setMeta(entry, "از گفتگوی پیشین", { entry: null });
-        entry.wrapper.dataset.restored = "1";
-      }
+  $("#export-btn").addEventListener("click", () => {
+    if (!state.messages.length) { toast("گفتگویی برای خروجی نیست.", ""); return; }
+    const title = state.conversations.find((c) => c.id === state.currentId)?.title || "گفتگوی رایان";
+    const markdown = [`# ${title}`, "", `_رایان ۱ — کوچک · ${new Date().toLocaleString("fa-IR")}_`, ""];
+    state.messages.forEach((m) => {
+      markdown.push(m.role === "user" ? "## تو" : "## رایان");
+      markdown.push(m.content, "");
     });
-    scrollToBottom(true);
+    download(`rayan-${Date.now()}.md`, markdown.join("\n"), "text/markdown;charset=utf-8");
+    toast("خروجی Markdown ذخیره شد.", "ok");
+  });
+
+  // --------------------------------------------------------- سرورها/فرم
+  el.composer.addEventListener("submit", (event) => {
+    event.preventDefault();
+    send();
+  });
+  el.prompt.addEventListener("input", resizePrompt);
+  function resizePrompt() {
+    el.prompt.style.height = "auto";
+    el.prompt.style.height = `${Math.min(el.prompt.scrollHeight, 210)}px`;
   }
-
-  /* ---------------------------------------------------------- نمودارها */
-  function fitCanvas(canvas) {
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    if (!rect.width || !rect.height) return null;
-    canvas.width = Math.round(rect.width * dpr);
-    canvas.height = Math.round(rect.height * dpr);
-    const ctx = canvas.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    return { ctx, width: rect.width, height: rect.height };
-  }
-
-  function drawMainChart() {
-    const canvas = $("#loss-chart");
-    if (!canvas || state.view !== "training" || !state.metrics) return;
-    const noteEl = $("#chart-note");
-    if (noteEl) {
-      const rows = state.metrics.train || [];
-      const lastRow = rows[rows.length - 1];
-      noteEl.textContent = lastRow
-        ? `آخرین خطای آموزش: ${fa(lastRow.loss, 3)} · گام ${fa(lastRow.step)}`
-        : "در انتظار داده…";
+  el.prompt.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+      event.preventDefault();
+      send();
     }
-    const fit = fitCanvas(canvas);
-    if (!fit) return;
-    const { ctx, width: W, height: H } = fit;
-    ctx.clearRect(0, 0, W, H);
-    const train = state.metrics.train || [];
-    const evals = state.metrics.eval || [];
-    const run = state.metrics.run || {};
-    const total = run.steps || Math.max(...train.map((r) => r.step || 0), ...evals.map((r) => r.step || 0), 100);
-    const pad = { top: 20, right: 46, bottom: 34, left: 16 };
-    const plotW = W - pad.left - pad.right;
-    const plotH = H - pad.top - pad.bottom;
-    if (plotW <= 20 || plotH <= 20) return;
-
-    const values = [...train.map((r) => r.loss), ...evals.map((r) => r.val_loss)].filter((v) => Number.isFinite(v));
-    let lo = Math.min(...values, 2.5);
-    let hi = Math.max(...values, 9.5);
-    if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi - lo < 0.5) { lo = 2; hi = 10; }
-    const padY = (hi - lo) * 0.12;
-    lo -= padY; hi += padY;
-
-    const X = (step) => pad.left + (clamp(step, 0, total) / total) * plotW;
-    const Y = (loss) => pad.top + (1 - (loss - lo) / (hi - lo)) * plotH;
-
-    // شبکه
-    ctx.strokeStyle = "rgba(148,180,220,0.10)";
-    ctx.lineWidth = 1;
-    ctx.font = '10px "Vazirmatn", Tahoma, sans-serif';
-    ctx.fillStyle = "rgba(148,180,220,0.65)";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-    const yTicks = 5;
-    for (let i = 0; i <= yTicks; i++) {
-      const v = lo + ((hi - lo) * i) / yTicks;
-      const y = Y(v);
-      ctx.beginPath();
-      ctx.moveTo(pad.left, y);
-      ctx.lineTo(W - pad.right, y);
-      ctx.stroke();
-      ctx.fillText(fa(v, 1), W - pad.right + 8, y);
+  });
+  el.stop.addEventListener("click", () => {
+    if (state.controller) state.controller.abort();
+  });
+  el.deep.addEventListener("click", () => {
+    state.deep = !state.deep;
+    el.deep.setAttribute("aria-pressed", String(state.deep));
+    toast(state.deep ? "اندیشهٔ ژرف روشن شد؛ هر پاسخ چند مسیر را بررسی می‌کند." : "اندیشهٔ ژرف خاموش شد.", "");
+  });
+  el.mode.addEventListener("change", () => {
+    state.mode = el.mode.value;
+    el.prompt.placeholder = state.mode === "continue" ? "متن را بنویس تا ادامه‌اش را بسازم…"
+      : state.mode === "poetry" ? "موضوع بیت را بنویس (یا خالی بگذار)…"
+      : "پیامت را بنویس…";
+    if (state.mode !== "chat" && state.deep) {
+      state.deep = false;
+      el.deep.setAttribute("aria-pressed", "false");
     }
-    const xTicks = 6;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    for (let i = 0; i <= xTicks; i++) {
-      const step = (total * i) / xTicks;
-      const x = X(step);
-      ctx.beginPath();
-      ctx.strokeStyle = "rgba(148,180,220,0.07)";
-      ctx.moveTo(x, pad.top);
-      ctx.lineTo(x, H - pad.bottom);
-      ctx.stroke();
-      ctx.fillStyle = "rgba(148,180,220,0.6)";
-      ctx.fillText(fa(Math.round(step)), x, H - pad.bottom + 10);
-    }
+  });
+  $("#new-chat").addEventListener("click", newChat);
 
-    // خط آموزش
-    if (train.length > 1) {
-      const gradient = ctx.createLinearGradient(0, pad.top, 0, H - pad.bottom);
-      gradient.addColorStop(0, "rgba(125,211,252,0.22)");
-      gradient.addColorStop(1, "rgba(125,211,252,0)");
-      ctx.beginPath();
-      train.forEach((point, i) => {
-        const x = X(point.step), y = Y(point.loss);
-        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-      });
-      ctx.strokeStyle = "rgba(125,211,252,0.85)";
-      ctx.lineWidth = 1.8;
-      ctx.lineJoin = "round";
-      ctx.stroke();
-      ctx.lineTo(X(train[train.length - 1].step), H - pad.bottom);
-      ctx.lineTo(X(train[0].step), H - pad.bottom);
-      ctx.closePath();
-      ctx.fillStyle = gradient;
-      ctx.fill();
+  document.addEventListener("keydown", (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+      event.preventDefault();
+      newChat();
     }
-
-    // خط اعتبارسنجی
-    if (evals.length) {
-      ctx.beginPath();
-      evals.forEach((point, i) => {
-        const x = X(point.step), y = Y(point.val_loss);
-        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-      });
-      ctx.strokeStyle = "#f5b74a";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      evals.forEach((point) => {
-        const x = X(point.step), y = Y(point.val_loss);
-        ctx.beginPath();
-        ctx.arc(x, y, 3.4, 0, Math.PI * 2);
-        ctx.fillStyle = "#0b1422";
-        ctx.fill();
-        ctx.strokeStyle = "#f5b74a";
-        ctx.lineWidth = 1.6;
-        ctx.stroke();
-      });
-      const last = evals[evals.length - 1];
-      ctx.beginPath();
-      ctx.arc(X(last.step), Y(last.val_loss), 8, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(245,183,74,0.14)";
-      ctx.fill();
-      ctx.fillStyle = "rgba(245,183,74,0.9)";
-      ctx.font = '10px "Vazirmatn", Tahoma, sans-serif';
-      ctx.textAlign = "right";
-      ctx.textBaseline = "bottom";
-      ctx.fillText(fa(last.val_loss, 2), X(last.step) - 10, Y(last.val_loss) - 10);
+    if ((event.ctrlKey || event.metaKey) && event.key === "/") {
+      event.preventDefault();
+      $("#settings-btn").click();
     }
+  });
 
-    canvas._map = { X, Y, pad, total, W, H, train, evals };
-    const note = $("#chart-note");
-    if (note) {
-      const last = train[train.length - 1];
-      note.textContent = last ? `آخرین خطای آموزش: ${fa(last.loss, 3)} · گام ${fa(last.step)}` : "در انتظار داده…";
-    }
-  }
+  el.search.addEventListener("input", () => {
+    state.query = el.search.value;
+    renderConversations();
+  });
 
-  function drawMiniChart() {
-    const canvas = $("#mini-chart");
-    if (!canvas) return;
-    const fit = fitCanvas(canvas);
-    if (!fit) return;
-    const { ctx, width: W, height: H } = fit;
-    ctx.clearRect(0, 0, W, H);
-    const evals = state.metrics?.eval || [];
-    if (evals.length < 2) {
-      ctx.strokeStyle = "rgba(148,180,220,0.18)";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, H * 0.6);
-      ctx.lineTo(W, H * 0.6);
-      ctx.stroke();
-      return;
-    }
-    const losses = evals.map((e) => e.val_loss);
-    const lo = Math.min(...losses), hi = Math.max(...losses);
-    const X = (i) => 2 + (i / (evals.length - 1)) * (W - 4);
-    const Y = (v) => 4 + (1 - (v - lo) / Math.max(1e-6, hi - lo)) * (H - 8);
-    const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, "rgba(94,234,212,0.28)");
-    grad.addColorStop(1, "rgba(94,234,212,0)");
-    ctx.beginPath();
-    evals.forEach((e, i) => { const x = X(i), y = Y(e.val_loss); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
-    ctx.strokeStyle = "#5eead4";
-    ctx.lineWidth = 1.6;
-    ctx.stroke();
-    ctx.lineTo(X(evals.length - 1), H);
-    ctx.lineTo(X(0), H);
-    ctx.closePath();
-    ctx.fillStyle = grad;
-    ctx.fill();
-    const last = evals[evals.length - 1];
-    ctx.beginPath();
-    ctx.arc(X(evals.length - 1), Y(last.val_loss), 2.6, 0, Math.PI * 2);
-    ctx.fillStyle = "#f5b74a";
-    ctx.fill();
-  }
+  $("#account-btn").addEventListener("click", (event) => {
+    event.stopPropagation();
+    const open = el.accountMenu.hidden;
+    el.accountMenu.hidden = !open;
+    $("#account-btn").setAttribute("aria-expanded", String(open));
+  });
+  document.addEventListener("click", () => {
+    el.accountMenu.hidden = true;
+    el.modelMenu.hidden = true;
+  });
 
-  const chartWrap = $(".chart-wrap");
-  if (chartWrap) {
-    chartWrap.addEventListener("mousemove", (event) => {
-      const canvas = $("#loss-chart");
-      const map = canvas?._map;
-      const tip = $("#chart-tip");
-      if (!map || !tip) return;
-      const rect = canvas.getBoundingClientRect();
-      const mx = event.clientX - rect.left;
-      const my = event.clientY - rect.top;
-      let best = null;
-      let bestDist = 22;
-      (map.train || []).forEach((p) => {
-        const d = Math.abs(map.X(p.step) - mx);
-        if (d < bestDist) { bestDist = d; best = { ...p, kind: "train" }; }
-      });
-      (map.evals || []).forEach((p) => {
-        const d = Math.abs(map.X(p.step) - mx);
-        if (d < bestDist) { bestDist = d; best = { ...p, kind: "eval" }; }
-      });
-      if (!best) { tip.hidden = true; return; }
-      tip.hidden = false;
-      tip.style.left = `${clamp(map.X(best.step), 60, map.W - 60)}px`;
-      tip.style.top = `${clamp(map.Y(best.kind === "eval" ? best.val_loss : best.loss), 30, map.H - 20)}px`;
-      tip.innerHTML = best.kind === "eval"
-        ? `گام ${fa(best.step)}<br>اعتبارسنجی: <b>${fa(best.val_loss, 3)}</b> · ppl ${fa(best.ppl, 1)}`
-        : `گام ${fa(best.step)}<br>آموزش: <b>${fa(best.loss, 3)}</b> · lr ${lrFmt(best.lr)}`;
+  $$(".chip[data-scroll]").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const target = chip.getAttribute("data-scroll");
+      const prompts = {
+        models: "مدل زبانی چیست و چطور یاد می‌گیرد؟",
+        pricing: "سهمیهٔ من امروز چقدر است؟",
+        honest: "چه چیزهایی را نمی‌توانی انجام دهی؟",
+      };
+      el.prompt.value = prompts[target] || "";
+      el.prompt.focus();
+      resizePrompt();
     });
-    chartWrap.addEventListener("mouseleave", () => { const tip = $("#chart-tip"); if (tip) tip.hidden = true; });
-  }
+  });
 
-  new ResizeObserver(debounce(() => { drawMainChart(); drawMiniChart(); }, 120)).observe(chatLog.parentElement || document.body);
-  window.addEventListener("resize", debounce(() => { drawMainChart(); drawMiniChart(); }, 160));
-
-  /* ---------------------------------------------------------- متریک‌ها */
-  function latestStats() {
-    const m = state.metrics || {};
-    const run = m.run || {};
-    const lastTrain = m.latest_train || (m.train || [])[m.train.length - 1] || {};
-    const lastEval = m.latest_eval || (m.eval || [])[m.eval.length - 1] || {};
-    const totalSteps = run.steps || 1800;
-    const tokensPerStep = run.tokens_per_step || 6144;
-    const targetTokens = run.target_tokens || totalSteps * tokensPerStep;
-    const tokens = lastTrain.tokens || lastEval.tokens || 0;
-    const step = lastTrain.step || lastEval.step || 0;
-    const tps = lastTrain.tok_s || null;
-    const elapsed = lastTrain.elapsed_s || lastEval.elapsed_s || 0;
-    let eta = null;
-    if (m.active && step < totalSteps) {
-      if (tps) eta = Math.max(0, (targetTokens - tokens) / tps);
-      else if (step && elapsed) eta = ((totalSteps - step) * elapsed) / step;
-    }
-    return { m, run, lastTrain, lastEval, totalSteps, targetTokens, tokens, step, tps, elapsed, eta };
-  }
-
-  function applyMetrics() {
-    const s = latestStats();
-    const { lastEval, lastTrain, run } = s;
-    if (lastEval?.val_loss !== undefined) {
-      $("#stat-loss").textContent = fa(lastEval.val_loss, 3);
-      $$("[data-model-loss]").forEach((el) => (el.textContent = fa(lastEval.val_loss, 3)));
-      const ppl = lastEval.ppl ?? Math.exp(lastEval.val_loss);
-      $("#stat-ppl").textContent = fa(ppl, 1);
-      const frac = clamp((9.2 - lastEval.val_loss) / (9.2 - 2.8), 0.02, 0.99);
-      const ring = $("#ring-value");
-      if (ring) ring.style.strokeDashoffset = String(314.16 * (1 - frac));
-      $("#stat-bpc").textContent = fa(lastEval.bits_per_char, 2);
-    }
-    if (lastTrain) {
-      $("#stat-step").textContent = `گام ${fa(lastTrain.step)}`;
-      $("#stat-tokens").textContent = compact(lastTrain.tokens);
-      $("#stat-tps").textContent = fa(lastTrain.tok_s || 0);
-    }
-    const trainTokens = run.dataset?.train_tokens || 3944980;
-    const epochs = s.tokens ? s.tokens / trainTokens : 0;
-    $("#m-step").textContent = fa(s.step);
-    $("#m-step-sub").textContent = `از ${fa(s.totalSteps)} گام`;
-    $("#m-tokens").textContent = compact(s.tokens);
-    $("#m-epoch").textContent = epochs ? `${fa(epochs, 1)} دوره از پیکره` : "—";
-    $("#m-tps").textContent = s.tps ? fa(s.tps) : "—";
-    $("#m-eta").textContent = s.m.active ? (s.eta ? duration(s.eta) : "—") : "پایان";
-    $("#m-elapsed").textContent = s.elapsed ? `${duration(s.elapsed)} گذشته` : "—";
-    const progress = clamp((s.step / s.totalSteps) * 100, 0, 100);
-    const bar = $("#train-progress-bar");
-    if (bar) bar.style.width = `${progress}%`;
-    $("#train-step-label").textContent = `${fa(s.step)} / ${fa(s.totalSteps)}`;
-    $("#train-eta").textContent = s.m.active ? (s.eta ? `${duration(s.eta)} مانده` : "در حال محاسبه") : "پایان آموزش";
-    const badge = $("#train-badge");
-    const badge2 = $("#train-badge-2");
-    [badge, badge2].forEach((el) => el?.classList.toggle("is-off", !s.m.active));
-    if (badge) badge.innerHTML = `<span></span>${s.m.active ? "زنده" : "پایان"}`;
-    if (badge2) badge2.innerHTML = `<span></span>${s.m.active ? "در حال آموزش" : "آموزش پایان یافته"}`;
-    const miniText = $("#train-mini-text");
-    if (miniText) {
-      miniText.textContent = s.m.active
-        ? `گام ${fa(s.step)} از ${fa(s.totalSteps)}؛ خطای آموزش ${lastTrain?.loss !== undefined ? fa(lastTrain.loss, 3) : "—"}.`
-        : `آخرین وضعیت: گام ${fa(s.step)}؛ خطای اعتبارسنجی ${fa(lastEval?.val_loss, 3)}.`;
-    }
-    const heroLabel = $("#hero-live-label");
-    if (heroLabel) heroLabel.textContent = s.m.active ? "آموزش زنده" : "مدل نهایی";
-    const heroLive = $("#hero-live-text");
-    if (heroLive) {
-      heroLive.textContent = s.m.active
-        ? `گام ${fa(s.step)} از ${fa(s.totalSteps)} · توکن ${compact(s.tokens)} · خطا ${fa(lastEval?.val_loss, 3)}`
-        : `آخرین آموزش در گام ${fa(s.step)} تمام شد · خطای اعتبارسنجی ${fa(lastEval?.val_loss, 3)}`;
-    }
-    const updated = $("#train-updated");
-    if (updated) updated.textContent = state.metrics?.metrics_mtime ? `آخرین به‌روزرسانی: ${timeAgo(state.metrics.metrics_mtime)}` : "—";
-    const logCount = $("#log-count");
-    if (logCount) logCount.textContent = fa((state.metrics?.train || []).length);
-
-    // جدول گزارش‌ها
-    const tbody = $("#log-body");
-    if (tbody) {
-      const rows = (state.metrics?.train || []).slice(-12).reverse();
-      tbody.innerHTML = "";
-      if (!rows.length) {
-        const tr = document.createElement("tr");
-        const td = document.createElement("td");
-        td.colSpan = 5; td.className = "muted"; td.textContent = "در انتظار داده…";
-        tr.append(td); tbody.append(tr);
-      } else {
-        rows.forEach((row) => {
-          const tr = document.createElement("tr");
-          const cells = [fa(row.step), fa(row.loss, 3), lrFmt(row.lr), fa(row.grad_norm, 2), fa(row.tok_s)];
-          cells.forEach((value, idx) => {
-            const td = document.createElement("td");
-            td.textContent = value;
-            if (idx === 1) td.className = "loss-cell";
-            tr.append(td);
-          });
-          tbody.append(tr);
-        });
-      }
-    }
-    const config = $("#train-config");
-    if (config && run.layers) {
-      config.textContent = `مدل: ${fa(run.layers)} لایه · ${fa(run.heads)} سر · ${fa(run.embed)} بُعد · زمینهٔ ${fa(run.block_size)} · batch ${fa(run.batch_size)} · ${run.hardware || "CPU"}`;
-    }
-    drawMainChart();
-    drawMiniChart();
-  }
-
-  async function refreshMetrics() {
+  // ------------------------------------------------------------ پیشنهادها
+  async function loadSuggestions() {
     try {
-      state.metrics = await getJSON("/api/metrics");
-      applyMetrics();
-    } catch { /* سرور در دسترس نیست */ }
+      const data = await request("/api/samples");
+      renderSuggestions(data.samples || []);
+    } catch {
+      renderSuggestions([
+        { mode: "chat", title: "خودت را معرفی کن", text: "خودت را معرفی کن" },
+        { mode: "chat", title: "یک شعر", text: "یک شعر بگو" },
+        { mode: "chat", title: "دربارهٔ ایران", text: "دربارهٔ ایران برایم بگو" },
+        { mode: "continue", title: "ادامهٔ متن", text: "در دل کویر، شب‌ها آسمان پر از ستاره است و" },
+      ]);
+    }
   }
 
-  function applyCorpusStats() {
-    if (!state.model?.corpus) return;
-    const c = state.model.corpus;
-    const news = c.news_chars || 0;
-    const poetry = c.poetry_chars || 0;
-    const chat = c.chat_train_chars || c.chat_chars || 0;
-    const total = news + poetry + chat;
-    if (!total) return;
-    $$(".mix").forEach((el) => {
-      if (el.classList.contains("news")) el.style.width = `${(news / total) * 100}%`;
-      if (el.classList.contains("poetry")) el.style.width = `${(poetry / total) * 100}%`;
-      if (el.classList.contains("chat")) el.style.width = `${Math.max(1, (chat / total) * 100)}%`;
-    });
-    if ($("#mix-news")) $("#mix-news").textContent = `${fa(news / 1e6, 1)} میلیون نویسه`;
-    if ($("#mix-poetry")) $("#mix-poetry").textContent = `${fa(poetry / 1e6, 1)} میلیون نویسه`;
-  }
-
-  async function loadShowcase() {
-    try {
-      const data = await getJSON("/api/showcase");
-      const examples = (data.examples || []).slice(0, 3);
-      if (!examples.length) return;
-      const holder = $("#showcase-list");
-      const section = $("#showcase");
-      if (!holder || !section) return;
-      holder.innerHTML = "";
-      const modeLabel = { chat: "گفتگو", continue: "ادامهٔ متن", poetry: "شعر" };
-      examples.forEach((example) => {
-        const item = document.createElement("div");
-        item.className = "showcase-item";
-        const prompt = document.createElement("span");
-        prompt.className = "prompt";
-        prompt.textContent = `ورودی: ${example.prompt || "—"}`;
-        const text = document.createElement("p");
-        text.textContent = example.text || "—";
-        const foot = document.createElement("div");
-        foot.className = "foot";
-        const deepTag = example.deep ? " · اندیشهٔ ژرف (بهترین از ۴ مسیر)" : "";
-        foot.textContent = `${modeLabel[example.mode] || example.mode} · ${fa(example.tokens || 0)} توکن · ${fa(example.tok_s || 0)} توکن/ث${deepTag}`;
-        item.append(prompt, text, foot);
-        holder.append(item);
+  function renderSuggestions(list) {
+    el.suggestions.innerHTML = "";
+    list.slice(0, 4).forEach((sample) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "suggestion";
+      btn.innerHTML = `<b>${escapeHtml(sample.title || sample.text)}</b>
+        <span>${escapeHtml(sample.text ? sample.text.slice(0, 64) : MODE_LABELS[sample.mode] || "")}</span>`;
+      btn.addEventListener("click", () => {
+        if (sample.mode === "poetry") {
+          state.mode = "poetry";
+          el.mode.value = "poetry";
+          el.prompt.value = sample.text || "";
+        } else if (sample.mode === "continue") {
+          state.mode = "continue";
+          el.mode.value = "continue";
+          el.prompt.value = sample.text;
+        } else {
+          state.mode = "chat";
+          el.mode.value = "chat";
+          el.prompt.value = sample.text || sample.title;
+        }
+        el.prompt.focus();
+        resizePrompt();
       });
-      section.hidden = false;
-    } catch { /* بدون نمونه */ }
-  }
-
-  async function loadStatic() {
-    try {
-      const [model, samples] = await Promise.all([getJSON("/api/model"), getJSON("/api/samples")]);
-      state.model = model;
-      state.samples = samples.samples || [];
-      renderSpecs();
-      renderSuggestions();
-      applyCorpusStats();
-      loadShowcase();
-      const params = model.params;
-      $$("[data-spec='params']").forEach((el) => (el.textContent = fa(params)));
-      $$("[data-model-params]").forEach((el) => (el.textContent = compact(params)));
-      $$("[data-about-params]").forEach((el) => (el.textContent = compact(params)));
-      const vocabSize = model.config?.vocab_size || model.tokenizer?.vocab_size;
-      $$("[data-model-vocab]").forEach((el) => (el.textContent = fa(vocabSize)));
-      const step = model.meta?.step;
-      if (step) $("#stat-step").textContent = `گام ${fa(step)}`;
-      const loss = model.meta?.val_loss;
-      if (loss) {
-        $("#stat-loss").textContent = fa(loss, 3);
-        $$("[data-model-loss]").forEach((el) => (el.textContent = fa(loss, 3)));
-      }
-    } catch { /* بعداً تلاش می‌کنیم */ }
-  }
-
-  /* ---------------------------------------------------------- راه‌اندازی */
-  async function boot() {
-    setView(location.hash.replace("#", "") || "chat", false);
-    syncModeTabs();
-    renderSuggestions();
-    restoreHistory();
-    await Promise.all([refreshHealth(), refreshMetrics(), loadStatic()]);
-    applyMetrics();
-    drawMainChart();
-    drawMiniChart();
-
-    setInterval(async () => {
-      if (document.hidden) return;
-      await refreshHealth();
-      await refreshMetrics();
-    }, 7000);
-
-    if (document.fonts?.ready) {
-      document.fonts.ready.then(() => { drawMainChart(); drawMiniChart(); }).catch(() => {});
-    }
-    document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) { refreshHealth(); refreshMetrics(); }
+      el.suggestions.append(btn);
     });
+  }
 
-    if (!state.messages.length) {
-      setTimeout(() => input.focus(), 500);
+  // ---------------------------------------------------------------- آغاز
+  async function init() {
+    syncSettingsUI();
+    updateHint();
+    updateEmptyState();
+    resizePrompt();
+    if (!state.settings) state.settings = Object.assign({}, DEFAULTS);
+
+    const params = new URLSearchParams(location.search);
+    loadModels();
+    loadSuggestions();
+    loadConversations();
+
+    try {
+      const auth = await request("/api/auth/me");
+      applyUser(auth);
+    } catch {
+      applyUser({ user: null, plan: "guest", usage: null });
+    }
+
+    const target = params.get("c");
+    if (target) {
+      await openConversation(target, false);
+    } else {
+      updateEmptyState();
+    }
+
+    if (params.get("prompt")) {
+      el.prompt.value = params.get("prompt").slice(0, 800);
+      resizePrompt();
+      el.prompt.focus();
+    }
+    if (window.RAYAN.config.static) {
+      el.prompt.disabled = true;
+      el.prompt.placeholder = "نسخهٔ نمایشی روی GitHub Pages — برای گفتگو سرور را اجرا کنید.";
+      const send = $("#send-btn");
+      if (send) send.disabled = true;
+      const hint = $("#composer-hint");
+      if (hint) hint.textContent = "این نسخه فقط برای نمایش رابط است.";
+      el.composer.classList.add("is-static");
+    } else if (window.RAYAN.config.offline) {
+      toast("سرور در دسترس نیست؛ حالت نمایشی.", "error");
     }
   }
 
-  boot();
+  init();
 })();

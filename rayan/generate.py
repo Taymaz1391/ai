@@ -1,4 +1,4 @@
-"""موتور استنتاج پارسیا: بارگذاری مدل، تولید متن، گفتگو و ادامهٔ متن."""
+"""موتور استنتاج رایان: بارگذاری مدل، تولید متن، گفتگو و ادامهٔ متن."""
 from __future__ import annotations
 
 import math
@@ -236,7 +236,7 @@ class Engine:
     def info(self) -> dict:
         meta = dict(self.meta)
         return {
-            "name": "پارسیا ۱ — کوچک",
+            "name": "رایان ۱ — کوچک",
             "params": int(sum(p.size for p in self.params.values())),
             "config": self.cfg.to_dict(),
             "tokenizer": self.tokenizer.stats(),

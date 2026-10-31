@@ -11,7 +11,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from parsia.model import (  # noqa: E402
+from rayan.model import (  # noqa: E402
     GPTConfig, InferenceModel, backward, forward, init_params,
 )
 

@@ -1,6 +1,6 @@
-"""ارزیابی صادقانهٔ پارسیا روی دادهٔ نگه‌داشته‌شده + نمونه‌سازی.
+"""ارزیابی صادقانهٔ رایان روی دادهٔ نگه‌داشته‌شده + نمونه‌سازی.
 
-    python scripts/evaluate.py --checkpoint checkpoints/parsia-1-small.npz
+    python scripts/evaluate.py --checkpoint checkpoints/rayan-1-small.npz
 
 خروجی: reports/evaluation.json و reports/samples.md
 """
@@ -18,10 +18,10 @@ import numpy as np
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-from parsia.generate import Engine, polish  # noqa: E402
-from parsia.thinking import deep_reply  # noqa: E402
-from parsia.model import forward, load_checkpoint  # noqa: E402
-from parsia.tokenizer import BPETokenizer  # noqa: E402
+from rayan.generate import Engine, polish  # noqa: E402
+from rayan.thinking import deep_reply  # noqa: E402
+from rayan.model import forward, load_checkpoint  # noqa: E402
+from rayan.tokenizer import BPETokenizer  # noqa: E402
 
 PROMPTS = [
     ("chat", "سلام! خودت را معرفی کن"),
@@ -73,8 +73,8 @@ def evaluate_loss(cfg, params, data: np.ndarray, block: int, batch_size: int = 8
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--checkpoint", default="checkpoints/parsia-1-small.npz")
-    parser.add_argument("--tokenizer", default="tokenizer/parsia_bpe.json")
+    parser.add_argument("--checkpoint", default="checkpoints/rayan-1-small.npz")
+    parser.add_argument("--tokenizer", default="tokenizer/rayan_bpe.json")
     parser.add_argument("--val", default="data/val.txt")
     parser.add_argument("--out", default="reports")
     parser.add_argument("--seeds", default="11,23,37,53,71")
@@ -155,7 +155,7 @@ def main() -> None:
     with open(os.path.join(args.out, "evaluation.json"), "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
 
-    lines = ["# نمونه‌های تولید پارسیا", "", f"checkpoint: `{args.checkpoint}` · step {meta.get('step')}", ""]
+    lines = ["# نمونه‌های تولید رایان", "", f"checkpoint: `{args.checkpoint}` · step {meta.get('step')}", ""]
     if "evaluation" in report:
         ev = report["evaluation"]
         lines += [

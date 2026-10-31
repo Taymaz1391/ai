@@ -21,3 +21,13 @@ logs/*.pid
 
 # نسخه‌های میانی وزن‌ها
 checkpoints/*-step*.npz
+
+# خروجی سایت استاتیک (GitHub Pages)
+_site/
+
+# پایگاه‌دادهٔ محلی و وابستگی‌های آزمون رابط
+data/*.sqlite3
+data/*.sqlite3-shm
+data/*.sqlite3-wal
+tests/ui/node_modules
+node_modules/

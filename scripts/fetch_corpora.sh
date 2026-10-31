@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# دانلود منابع خام فارسی برای بازسازی پیکرهٔ پارسیا.
+# دانلود منابع خام فارسی برای بازسازی پیکرهٔ رایان.
 # داده‌ها بیرون از مخزن ذخیره می‌شوند (پیش‌فرض: ../corpora).
 set -euo pipefail
 
@@ -31,6 +31,6 @@ echo "منابع در $DEST آماده شد."
 echo "قدم بعدی:"
 echo "  python data/build_corpus.py --sources $DEST --out data"
 echo "  python data/train_tokenizer.py --vocab-size 10000"
-echo "  python -m parsia.train --steps 1800 --batch-size 24 --block-size 256 --layers 5 --heads 4 --embed 256"
+echo "  python -m rayan.train --steps 1800 --batch-size 24 --block-size 256 --layers 5 --heads 4 --embed 256"
 echo
 echo "توجه: این داده‌ها متعلق به منابع اصلی هستند؛ شرایط آن‌ها را در NOTICE.md ببینید."

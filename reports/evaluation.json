@@ -1,5 +1,5 @@
 {
-  "checkpoint": "checkpoints/parsia-1-small.npz",
+  "checkpoint": "checkpoints/rayan-1-small.npz",
   "meta": {
     "step": 2400,
     "tokens_seen": 14745600,
@@ -8,7 +8,7 @@
     "bits_per_char": 1.8008,
     "params": 6574848,
     "trained_seconds": 1948.9,
-    "tokenizer": "tokenizer/parsia_bpe.json",
+    "tokenizer": "tokenizer/rayan_bpe.json",
     "corpus": "Persian news + Hamshahri + classical poetry + chat seeds"
   },
   "config": {

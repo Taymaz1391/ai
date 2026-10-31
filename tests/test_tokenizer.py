@@ -1,4 +1,4 @@
-"""آزمون‌های توکنایزر فارسی پارسیا."""
+"""آزمون‌های توکنایزر فارسی رایان."""
 from __future__ import annotations
 
 import os
@@ -8,9 +8,9 @@ import unittest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-from parsia.tokenizer import SPECIAL_TOKENS, BPETokenizer
+from rayan.tokenizer import SPECIAL_TOKENS, BPETokenizer
 
-TOKENIZER = os.path.join(ROOT, "tokenizer", "parsia_bpe.json")
+TOKENIZER = os.path.join(ROOT, "tokenizer", "rayan_bpe.json")
 
 
 @unittest.skipUnless(os.path.exists(TOKENIZER), "tokenizer not trained yet")

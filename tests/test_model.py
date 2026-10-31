@@ -10,7 +10,7 @@ import numpy as np
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-from parsia.model import (
+from rayan.model import (
     GPTConfig, InferenceModel, backward, forward, init_params, sample_from_logits,
 )
 
