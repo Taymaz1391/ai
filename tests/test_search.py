@@ -160,10 +160,16 @@ class SearchApiTest(unittest.TestCase):
         self.assertIn("https://example.com/x", data["answer"])
 
     def test_chat_without_web_stays_mocked_offline(self):
-        """بدون وب، مدل محلی پاسخ می‌دهد و هیچ فراخوانی شبکه‌ای لازم نیست."""
-        res = self.client.post("/api/chat", json={
-            "message": "باران پاییزی", "mode": "chat", "web": False, "max_new_tokens": 16,
-        })
+        """بدون وب، مدل محلی پاسخ می‌دهد و هیچ فراخوانی شبکه‌ای لازم نیست.
+
+        جست‌وجوی خودکار را صریح خاموش می‌کنیم؛ وگرنه روی ماشینی که اینترنت دارد
+        پاسخِ ضعیف «زمینه‌دار» می‌شود و آزمون به شبکه وابسته می‌ماند.
+        """
+        empty = {"query": "x", "provider": "test", "cached": False, "results": []}
+        with mock.patch.object(search, "search", return_value=empty):
+            res = self.client.post("/api/chat", json={
+                "message": "باران پاییزی", "mode": "chat", "web": False, "max_new_tokens": 16,
+            })
         self.assertEqual(res.status_code, 200, res.text)
         self.assertEqual(res.json()["engine"], "chat")
         self.assertEqual(res.json()["sources"], [])
