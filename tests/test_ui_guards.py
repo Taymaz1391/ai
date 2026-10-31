@@ -13,10 +13,9 @@
 from __future__ import annotations
 
 import re
+import struct
 import unittest
 from pathlib import Path
-
-from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 STATIC = ROOT / "web" / "static"
@@ -24,6 +23,19 @@ VIDEO = STATIC / "assets" / "video"
 BRAND = STATIC / "assets" / "brand"
 
 FA = re.compile(r"[\u0600-\u06FF]")
+
+
+def png_size(path: Path) -> tuple[int, int]:
+    """عرض و ارتفاع را از سرصفحهٔ IHDR می‌خواند.
+
+    Pillow در نیازمندی‌های اجرا نیست و CI نباید برای یک آزمون تصویر نصبش کند؛
+    سرصفحهٔ PNG استاندارد است و همین دو عدد کافی‌اند.
+    """
+    with open(path, "rb") as fh:
+        head = fh.read(24)
+    if head[:8] != b"\x89PNG\r\n\x1a\n" or head[12:16] != b"IHDR":
+        raise ValueError(f"not a png: {path}")
+    return struct.unpack(">II", head[16:24])
 
 
 def css_rules(path: Path) -> list[tuple[str, str]]:
@@ -67,9 +79,8 @@ class BrandTest(unittest.TestCase):
     def test_mark_ratio_matches_markup(self):
         """نسبت لوگوتایپ در نشانه‌گذاری باید با فایل رسمی بخواند، وگرنه کشیده می‌شود."""
         for name in ("mark-ink.png", "mark-white.png"):
-            with Image.open(BRAND / name) as img:
-                ratio = round(img.width / img.height, 3)
-            self.assertAlmostEqual(ratio, 514 / 262, places=2, msg=name)
+            w, h = png_size(BRAND / name)
+            self.assertAlmostEqual(w / h, 514 / 262, places=2, msg=name)
         for page in STATIC.glob("*.html"):
             html = page.read_text(encoding="utf-8")
             for w, h in re.findall(r'mark-(?:ink|white)\.png"[^>]*width="(\d+)" height="(\d+)"', html):
