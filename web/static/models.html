@@ -139,6 +139,31 @@
     <section class="section-sm">
       <div class="wrap">
         <div class="section-head">
+          <h2 class="section-title" style="font-size:26px">بنچمارک شفاف</h2>
+          <p class="section-sub">همان چیزی که قابل سنجش است، با اجرای تکرارپذیر؛ خروجی خام در
+            <a href="/api/benchmark">/api/benchmark</a>.</p>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="bench-table">
+            <thead><tr><th>سنجه</th><th>نتیجه</th><th>معنی</th></tr></thead>
+            <tbody>
+              <tr><td>دقت ماشین‌حساب</td><td data-bench="tools_percent">۱۰۰٪</td><td>عبارت ریاضی داخل جمله</td></tr>
+              <tr><td>ساعت و تقویم شمسی</td><td data-bench="clock_percent">۱۰۰٪</td><td>بدون API بیرونی</td></tr>
+              <tr><td>یکدست‌سازی خط فارسی</td><td data-bench="normalize_percent">۱۰۰٪</td><td>ی/ک عربی، نیم‌فاصله، فاصلهٔ اضافه</td></tr>
+              <tr><td>کیفیت تولید متن</td><td data-bench="generation_percent">۶۲٫۵٪</td><td>واژهٔ کلیدی، طول، فارسی‌بودن</td></tr>
+              <tr><td>تأخیر میانه</td><td data-bench="latency">۰٫۰۴ ثانیه</td><td>روی همین دو vCPU</td></tr>
+              <tr><td>هزینه</td><td>۰ دلار</td><td>سرور خودت؛ بدون توکن</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="section-sub" style="margin-top:12px">اعداد مرجع Opus 5.5 و توضیح اینکه چرا این
+          مقایسه هم‌سنگ نیست، در <code>docs/BENCHMARKS.md</code> آمده است.</p>
+      </div>
+    </section>
+
+    <section class="section-sm">
+      <div class="wrap">
+        <div class="section-head">
           <h2 class="section-title" style="font-size:26px">ترکیب پیکره</h2>
         </div>
         <div class="table-wrap">
