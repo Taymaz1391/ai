@@ -1,0 +1,45 @@
+plugins { id "com.android.application" }
+
+def serverUrl = (project.findProperty("serverUrl") ?: "https://rayan.example").toString()
+
+android {
+    namespace "ir.rayan.app"
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "ir.rayan.app"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "6.0.0"
+        buildConfigField "String", "SERVER_URL", "\"${serverUrl}\""
+    }
+
+    signingConfigs {
+        release {
+            storeFile file("../rayan-sideload.p12")
+            storeType "PKCS12"
+            storePassword "rayan-sideload-2024"
+            keyAlias "rayan"
+            keyPassword "rayan-sideload-2024"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+        debug {
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-debug"
+        }
+    }
+
+    buildFeatures { buildConfig true }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

@@ -39,6 +39,7 @@ from web.store import store  # noqa: E402
 from web import admin as admin_module  # noqa: E402
 from web import locale as locale_module  # noqa: E402
 from web import owner as owner_module  # noqa: E402
+from web import search as search_module  # noqa: E402
 from web import tools as tools_module  # noqa: E402
 
 STATIC_DIR = os.path.join(ROOT, "web", "static")
@@ -200,6 +201,7 @@ class ChatRequest(BaseModel):
     top_k: int | None = Field(default=None, ge=1, le=200)
     max_new_tokens: int | None = Field(default=None, ge=16, le=220)
     seed: int | None = Field(default=None, ge=0, le=2**31 - 1)
+    web: bool = False
 
 
 class RegisterRequest(BaseModel):
@@ -1078,13 +1080,16 @@ def _prepare(req: ChatRequest, owner: dict, ip: str) -> tuple[Engine, str, list[
 
 def _persist_turn(owner: dict, conv_id: str | None, message: str, answer: str,
                   stats: dict, trace: dict | None, deep: bool,
-                  tool: dict | None = None) -> tuple[str | None, int | None]:
+                  tool: dict | None = None,
+                  sources: list[dict] | None = None) -> tuple[str | None, int | None]:
     """پیام کاربر و پاسخ را ذخیره می‌کند؛ شناسهٔ گفتگو و پیام پاسخ را برمی‌گرداند."""
     title = message.strip().replace("\n", " ")[:60] or "گفتگوی تازه"
     if conv_id is None:
         conv_id = store().create_conversation(owner, title)["id"]
     store().add_message(conv_id, "user", message)
     meta = {"stats": stats, "deep": deep, "trace": trace, "tool": tool}
+    if sources:
+        meta["sources"] = sources
     msg_id = store().add_message(conv_id, "assistant", answer, meta)
     existing = store().get_conversation_meta(conv_id)
     if existing and existing["title"] in ("گفتگوی تازه", ""):
@@ -1096,6 +1101,20 @@ def _record_usage(owner: dict, ip: str, kind: str) -> None:
     store().record_event(kind, user_id=owner.get("user_id"), guest_id=owner.get("guest_id"), ip=ip)
 
 
+@app.get("/api/search")
+def api_search(request: Request, q: str = "", limit: int = 5) -> dict:
+    """جست‌وجوی وب سمت سرور؛ کلید API لازم نیست و هیچ داده‌ای به سرویس بیرونی نمی‌رود."""
+    if not admin_module.flags().get("web_search", True):
+        raise HTTPException(503, "جست‌وجوی وب توسط مدیر خاموش شده است.")
+    ip = client_ip(request)
+    if not limiter.allow(f"search:{ip}"):
+        raise HTTPException(429, "جست‌وجوهای زیاد؛ چند لحظه بعد دوباره تلاش کنید.")
+    query = (q or "").strip()
+    if len(query) < 2:
+        raise HTTPException(422, "عبارت جست‌وجو خیلی کوتاه است.")
+    return search_module.search(query, limit=max(1, min(int(limit), 8)))
+
+
 @app.post("/api/chat")
 def chat(req: ChatRequest, request: Request, response: Response) -> dict:
     global request_count
@@ -1105,6 +1124,33 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
     tool_result = None if req.mode != "chat" else tools_module.detect(message)
     started = time.time()
     kwargs = _generation_kwargs(req)
+
+    web_results: list[dict] = []
+    if req.web and req.mode == "chat" and admin_module.flags().get("web_search", True):
+        web_results = search_module.search(message, limit=5).get("results") or []
+        if web_results:
+            answer = search_module.compose(message, web_results)
+            stats = {
+                "prompt_tokens": 0, "tokens": 0, "seconds": round(time.time() - started, 2),
+                "tokens_per_second": 0.0, "confidence": 0.0, "entropy": 0.0,
+                "finish_reason": "web", "seed": 0,
+            }
+            conv_id, msg_id = _persist_turn(owner, conv_id, message, answer, stats, None, False,
+                                            tool_result, web_results)
+            _remember(req.session_id, message, answer)
+            _record_usage(owner, ip, "chat")
+            _set_guest_cookie(response, owner)
+            with stats_lock:
+                request_count += 1
+            used, limit = _quota(owner, ip, "chat")
+            return {
+                "answer": answer, "mode": req.mode, "deep": False, "trace": None,
+                "stats": stats, "latency_s": round(time.time() - started, 2),
+                "session_id": req.session_id, "conversation_id": conv_id,
+                "message_id": msg_id, "usage": {"used": used, "limit": limit},
+                "tool": tool_result, "sources": web_results, "engine": "web",
+            }
+
     if not _acquire_slot():
         raise HTTPException(503, "سرور شلوغ است؛ چند لحظه بعد دوباره تلاش کنید.")
     try:
@@ -1144,6 +1190,8 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
         "message_id": msg_id,
         "usage": {"used": used, "limit": limit},
         "tool": tool_result,
+        "sources": web_results,
+        "engine": "chat",
     }
 
 

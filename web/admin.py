@@ -399,6 +399,7 @@ def flags() -> dict:
         "deep_enabled": raw.get("deep_enabled", "1") == "1",
         "studio_enabled": raw.get("studio_enabled", "1") == "1",
         "maintenance": raw.get("maintenance", "0") == "1",
+        "web_search": raw.get("web_search", "1") == "1",
         "announcement": raw.get("announcement", ""),
     }
 

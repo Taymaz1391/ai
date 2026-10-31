@@ -18,6 +18,7 @@
     models: [],
     model: "rayan-1-small",
     deep: false,
+    web: localStorage.getItem("rayan.web") === "1",
     mode: "chat",
     settings: loadSettings(),
     sending: false,
@@ -128,6 +129,7 @@
     send: $("#send-btn"),
     stop: $("#stop-btn"),
     deep: $("#deep-toggle"),
+    web: $("#web-toggle"),
     mode: $("#mode-select"),
     hint: $("#composer-hint"),
     convList: $("#conv-list"),
@@ -584,6 +586,29 @@
     return elx;
   }
 
+  function sourcesEl(sources) {
+    const box = document.createElement("div");
+    box.className = "msg-sources";
+    const head = document.createElement("div");
+    head.className = "sources-head";
+    head.innerHTML = `<span class="sources-badge">وب</span><span>${nf(sources.length)} منبع</span>`;
+    const list = document.createElement("div");
+    list.className = "sources-list";
+    sources.forEach((item, index) => {
+      const card = document.createElement("a");
+      card.className = "source-card";
+      card.href = item.url;
+      card.target = "_blank";
+      card.rel = "noopener noreferrer nofollow";
+      card.innerHTML = `<span class="source-index">${nf(index + 1)}</span>
+        <span class="source-body"><b>${escapeHtml(item.title || "منبع")}</b>
+        <em>${escapeHtml(item.domain || "")}</em></span>`;
+      list.append(card);
+    });
+    box.append(head, list);
+    return box;
+  }
+
   function traceEl(trace) {
     const details = document.createElement("details");
     details.className = "trace";
@@ -731,7 +756,8 @@
     setBusy(true);
 
     const wantsDeep = state.deep && state.mode === "chat";
-    if (wantsDeep) {
+    const wantsWeb = state.web && state.mode === "chat" && !wantsDeep;
+    if (wantsDeep || wantsWeb) {
       const { msg, bubble } = appendBotShell();
       try {
         const data = await request("/api/chat", {
@@ -741,7 +767,8 @@
             conversation_id: state.currentId,
             model: state.model,
             mode: state.mode,
-            deep: true,
+            deep: wantsDeep,
+            web: wantsWeb,
             candidates: state.settings.candidates,
             temperature: state.settings.temperature,
             top_p: state.settings.top_p,
@@ -750,14 +777,16 @@
           },
         });
         msg.content = data.answer || "…";
-        msg.meta = { stats: data.stats, trace: data.trace, deep: true, tool: data.tool };
+        msg.meta = { stats: data.stats, trace: data.trace, deep: wantsDeep, tool: data.tool, sources: data.sources };
         msg.streaming = false;
         msg.id = data.message_id;
         bubble.classList.remove("streaming");
         bubble.innerHTML = renderMarkdown(msg.content);
         const body = bubble.parentElement;
         body.querySelector(".msg-stats")?.remove();
-        if (msg.meta.stats) body.append(statsEl(msg.meta.stats, true));
+        if (msg.meta.stats && wantsDeep) body.append(statsEl(msg.meta.stats, true));
+        body.querySelector(".msg-sources")?.remove();
+        if (data.sources && data.sources.length) body.append(sourcesEl(data.sources));
         body.querySelector(".msg-tools")?.remove();
         body.append(toolsFor(msg));
         if (data.trace) body.prepend(traceEl(data.trace));
@@ -1000,6 +1029,16 @@
   el.stop.addEventListener("click", () => {
     if (state.controller) state.controller.abort();
   });
+  if (el.web) {
+    el.web.setAttribute("aria-pressed", String(state.web));
+    el.web.addEventListener("click", () => {
+      state.web = !state.web;
+      el.web.setAttribute("aria-pressed", String(state.web));
+      localStorage.setItem("rayan.web", state.web ? "1" : "0");
+      updateHint();
+      toast(state.web ? "جست‌وجوی وب روشن شد؛ پاسخ با منبع و لینک می‌آید." : "جست‌وجوی وب خاموش شد.", "");
+    });
+  }
   el.deep.addEventListener("click", () => {
     state.deep = !state.deep;
     el.deep.setAttribute("aria-pressed", String(state.deep));

@@ -366,6 +366,7 @@
     ["guest_chat", "گفتگوی مهمان"],
     ["deep_enabled", "اندیشهٔ ژرف"],
     ["studio_enabled", "استودیو تصویر"],
+    ["web_search", "جست‌وجوی وب"],
     ["maintenance", "حالت نگهداری"],
   ];
 
