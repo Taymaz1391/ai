@@ -32,7 +32,7 @@
         <a class="nav-link" href="/en#limits">Limits</a>
       </nav>
       <div class="nav-actions">
-        <a class="btn btn-ghost btn-sm" href="/docs" hreflang="fa" lang="fa">فارسی</a>
+        <a class="btn btn-ghost btn-sm" href="/docs" hreflang="fa">Persian</a>
         <a class="btn btn-primary btn-sm" href="/chat">Open chat</a>
       </div>
     </div>
@@ -83,11 +83,11 @@ curl -s localhost:8000/api/plans
 
 curl -s -X POST localhost:8000/api/chat \
   -H 'content-type: application/json' \
-  -d '{"message":"سلام","max_new_tokens":48}'
+  -d '{"message":"Hello, introduce yourself","max_new_tokens":48}'
 
 curl -s -X POST localhost:8000/api/tools/run \
   -H 'content-type: application/json' \
-  -d '{"name":"calc","args":{"expression":"۲+۲"}}'</code></pre>
+  -d '{"name":"calc","args":{"expression":"2+2"}}'</code></pre>
         <p>Streaming lives at <code>/api/chat/stream</code> and returns newline-delimited JSON events: <code>start</code>, <code>token</code>, <code>done</code>, <code>error</code>. The <code>done</code> event also carries the tool result when one was detected.</p>
         <p>Public endpoints: <code>/api/health</code>, <code>/api/status</code>, <code>/api/flags</code>, <code>/api/plans</code>, <code>/api/models</code>, <code>/api/samples</code>, <code>/api/tools</code>, <code>/api/ads</code>, <code>/api/locale</code>. Admin-only: <code>/api/selftest</code> and <code>/api/download/checkpoint</code> (weights). Admin endpoints require a session cookie and the <code>x-rayan-csrf</code> header on writes; anonymous calls receive <code>401</code>.</p>
 
@@ -142,8 +142,8 @@ python -m rayan.train --steps 2400 --batch 16 --ctx 512</code></pre>
   <footer class="footer">
     <div class="wrap footer-bottom" style="border-top:0;margin-top:0">
       <div class="footer-brandmark">
-        <img class="wordmark-for-light" src="/static/assets/brand/wordmark-ink.png" alt="رایان" width="116" height="47">
-        <img class="wordmark-for-dark" src="/static/assets/brand/wordmark-white.png" alt="رایان" width="116" height="47">
+        <img class="wordmark-for-light" src="/static/assets/brand/wordmark-ink.png" alt="Rayan" width="116" height="47">
+        <img class="wordmark-for-dark" src="/static/assets/brand/wordmark-white.png" alt="Rayan" width="116" height="47">
       </div>
       <span>© 2026 Rayan · self-hosted</span>
       <a href="/en">Back to overview</a>

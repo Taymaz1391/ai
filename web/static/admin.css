@@ -125,7 +125,7 @@
 .switch i::after {
   content: ""; position: absolute; inset-block: 3px; inset-inline-start: 3px;
   width: 18px; height: 18px; border-radius: 50%; background: var(--surface-solid);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); transition: 0.2s var(--ease);
+  box-shadow: 0 1px 3px rgba(4, 16, 40, 0.24); transition: 0.2s var(--ease);
 }
 .switch input:checked + i { background: var(--accent-solid); }
 .switch input:checked + i::after { transform: translateX(-18px); }

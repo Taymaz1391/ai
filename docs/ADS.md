@@ -26,7 +26,7 @@
 | آموزش کامل ۵ ساعته | A free five-hour course |
 | همه‌چیز روی سرور خودت | Everything self-hosted |
 | ۱۰ درس، از داده تا محصول | From data to product |
-| ویدیوی ۱۲ ثانیه‌ای ببین | Watch the 12-second film |
+| ویدیوی ۱۶ ثانیه‌ای ببین | Watch the 16-second film |
 | بدون ثبت‌نام امتحان کن | Try it, no sign-up |
 | کد باز، MIT | Open source, MIT |
 | ساخته‌شده با NumPy | Built with NumPy |

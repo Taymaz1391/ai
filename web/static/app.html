@@ -17,7 +17,7 @@
 <body class="app-body">
   <div class="app-shell">
     <!-- ========================================================= نوار کنار -->
-    <aside class="sidebar" id="sidebar" aria-label="گفتگوها">
+    <aside class="sidebar" id="sidebar" aria-label="گفتگوها" aria-hidden="true" inert>
       <div class="sidebar-head">
         <a class="brand" href="/" aria-label="رایان، خانه">
         <img class="brand-wordmark wordmark-for-light" src="/static/assets/brand/wordmark-ink.png"
@@ -132,7 +132,10 @@
           <div class="empty-foot">
             <button class="chip" data-scroll="models">مدل چطور ساخته شده؟</button>
             <button class="chip" data-scroll="pricing">سهمیه‌ام چقدر است؟</button>
-            <button class="chip" data-scroll="honest">رایان چه کاری نمی‌تواند؟</button>
+            <button class="chip chip-play" id="promo-open" type="button">
+              <span class="chip-play-icon" aria-hidden="true"></span>
+              ویدیوی ۱۶ ثانیه‌ای
+            </button>
           </div>
         </div>
 
@@ -249,6 +252,25 @@
       <div class="modal-foot">
         <button class="btn btn-sm" data-close="confirm-modal">انصراف</button>
         <button class="btn btn-sm" id="confirm-yes" style="border-color:rgba(255,122,138,.5);color:#ffb3bd">حذف</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop promo-modal" id="promo-modal" hidden>
+    <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="promo-title">
+      <div class="modal-head">
+        <h3 id="promo-title">ویدیوی معرفی</h3>
+        <button class="icon-btn" data-close="promo-modal" aria-label="بستن">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="promo-player">
+          <video id="promo-modal-video" class="promo-video" controls loop playsinline
+                 preload="none" poster="/static/assets/video/promo-fa-poster.jpg"
+                 aria-label="ویدیوی معرفی رایان">
+            <source src="/static/assets/video/promo-fa-16x9.mp4" type="video/mp4">
+          </video>
+        </div>
+        <p class="muted promo-modal-note">ساخته‌شده در همین مخزن — بدون استوک و بدون سرویس بیرونی.</p>
       </div>
     </div>
   </div>

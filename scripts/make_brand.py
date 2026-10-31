@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import math
 import os
+import sys
 
 import arabic_reshaper
 import numpy as np
@@ -16,6 +17,12 @@ from bidi.algorithm import get_display
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "scripts"))
+
+from fontcache import ensure_fonts  # noqa: E402
+
+ensure_fonts()
+
 BRAND_DIR = os.path.join(ROOT, "web", "static", "assets", "brand")
 ICON_DIR = os.path.join(ROOT, "web", "static", "assets", "icons")
 FONT_DIR = "/tmp"

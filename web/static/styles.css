@@ -36,15 +36,15 @@
 :root {
   /* ---- تم روشن (پیش‌فرض) ---- */
   --bg: #ffffff;
-  --bg-2: #f6f9ff;
+  --bg-2: #f2f6ff;
   --surface: rgba(255, 255, 255, 0.92);
-  --surface-2: #f3f7fd;
+  --surface-2: #eef4ff;
   --surface-solid: #ffffff;
-  --line: #e4eaf4;
-  --line-strong: #ccd8ea;
-  --text: #0b1a2b;
-  --text-2: #3f5069;
-  --text-3: #5f7186;
+  --line: #dde7f7;
+  --line-strong: #c3d4ee;
+  --text: #0a1730;
+  --text-2: #35496a;
+  --text-3: #51658c;
   --blue: #1a5ce0;
   --blue-2: #0b8fd6;
   --blue-3: #12b5e5;
@@ -58,7 +58,7 @@
   --accent-solid: #1a5ce0;
   --accent-solid-hover: #1450c4;
   --accent-soft: rgba(26, 92, 224, 0.10);
-  --sidebar-bg: linear-gradient(180deg, #ffffff, #f7faff);
+  --sidebar-bg: linear-gradient(180deg, #ffffff, #eef4ff);
   --shadow-sm: 0 1px 2px rgba(13, 27, 42, 0.06), 0 2px 8px rgba(13, 27, 42, 0.05);
   --shadow: 0 18px 44px -24px rgba(15, 40, 80, 0.35);
   --shadow-lg: 0 40px 100px -46px rgba(15, 40, 80, 0.45);
@@ -104,7 +104,7 @@
   --accent-solid-hover: #2f6bff;
   --accent-soft: rgba(110, 168, 255, 0.14);
   --sidebar-bg: linear-gradient(180deg, #0a1529, #060e1e);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-sm: 0 2px 8px rgba(4, 16, 40, 0.28);
   --shadow: 0 18px 50px -22px rgba(6, 20, 48, 0.9);
   --shadow-lg: 0 40px 110px -40px rgba(3, 12, 32, 0.95);
   --glow: 0 0 0 1px rgba(56, 210, 255, 0.18), 0 22px 70px -30px rgba(46, 139, 255, 0.65);
@@ -151,7 +151,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   background:
     radial-gradient(1100px 620px at 84% -12%, rgba(26, 99, 240, 0.10), transparent 62%),
     radial-gradient(900px 520px at 6% 2%, rgba(53, 200, 245, 0.10), transparent 64%),
-    linear-gradient(180deg, #ffffff 0%, #f7faff 58%, #f2f6fd 100%);
+    linear-gradient(180deg, #ffffff 0%, #eef4ff 58%, #e9f1ff 100%);
 }
 .backdrop::after {
   content: "";
@@ -180,7 +180,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   background:
     radial-gradient(1000px 600px at 82% -10%, rgba(24, 88, 200, 0.35), transparent 60%),
     radial-gradient(900px 520px at 8% 4%, rgba(12, 60, 130, 0.32), transparent 62%),
-    linear-gradient(180deg, #050b1a 0%, #040915 60%, #03070f 100%);
+    linear-gradient(180deg, #050d20 0%, #040b1a 60%, #030a16 100%);
 }
 [data-theme="dark"] .backdrop::after {
   background-image:
@@ -240,7 +240,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .nav.is-scrolled { border-bottom-color: var(--line); background: var(--nav-bg); box-shadow: var(--shadow-sm); }
 .nav-inner { display: flex; align-items: center; gap: 26px; width: min(1180px, 100% - 40px); margin-inline: auto; }
 .brand { display: inline-flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.brand-wordmark { height: 37px; width: auto; display: block; }
+.brand-wordmark { height: 37px; width: auto; aspect-ratio: 232 / 94; display: block; object-fit: contain; }
 .wordmark-for-dark { display: none; }
 [data-theme="dark"] .wordmark-for-dark { display: block; }
 [data-theme="dark"] .wordmark-for-light { display: none; }
@@ -360,7 +360,13 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .preview-bar i:first-child { background: rgba(255, 122, 138, 0.6); }
 .preview-bar i:nth-child(2) { background: rgba(245, 183, 74, 0.6); }
 .preview-bar i:nth-child(3) { background: rgba(94, 234, 212, 0.6); }
-.preview-bar span { margin-inline-start: auto; font-size: 11.5px; color: var(--text-3); letter-spacing: 0.06em; }
+.preview-bar span.preview-brand {
+  margin-inline-start: auto; display: inline-flex; align-items: center; gap: 8px;
+  font-size: 11.5px; color: var(--text-3); letter-spacing: 0.04em;
+}
+.preview-brand img { height: 22px; width: auto; aspect-ratio: 232 / 94; display: block; }
+.preview-brand em { font-style: normal; }
+.preview-brand em::before { content: "·"; margin-inline-end: 6px; opacity: .6; }
 .preview-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
 .preview-msg { display: flex; gap: 10px; align-items: flex-start; }
 .preview-msg .who {
@@ -813,7 +819,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .pill.is-bad { background: var(--danger-bg); color: var(--danger-fg); }
 
 /* ----------------------------------------------------------- لوگو و آکادمی */
-.lockup { width: min(190px, 54vw); height: auto; display: block; }
+.lockup { width: min(168px, 48vw); height: auto; aspect-ratio: 1000 / 1278; display: block; }
 .lockup-for-dark { display: none; }
 [data-theme="dark"] .lockup-for-dark { display: block; }
 [data-theme="dark"] .lockup-for-light { display: none; }
@@ -901,7 +907,18 @@ body::before {
   border: 1px solid var(--line); background: var(--surface);
   box-shadow: var(--shadow);
 }
-.promo-media { position: relative; border-radius: var(--r); overflow: hidden; background: #050b1a; }
+.promo-media {
+  position: relative; border-radius: var(--r); overflow: hidden;
+  background: radial-gradient(120% 120% at 20% 0%, #0a1a3a, #050b1a 70%);
+  border: 1px solid color-mix(in srgb, var(--blue) 22%, transparent);
+  box-shadow: 0 26px 60px -34px rgba(10, 60, 150, 0.65),
+              0 0 0 6px color-mix(in srgb, var(--blue) 6%, transparent);
+}
+.promo-media::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, transparent 62%, rgba(3, 10, 24, 0.42));
+  border-radius: inherit;
+}
 .promo-video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
 .promo-sound {
   position: absolute; inset-inline-start: 12px; bottom: 12px;
@@ -945,7 +962,7 @@ body::before {
   opacity: .55;
   cursor: not-allowed;
   pointer-events: none;
-  filter: grayscale(.35);
+  filter: saturate(.55) brightness(1.05);
 }
 
 /* نسخه‌های قابل دانلود ویدیوی تبلیغاتی */
@@ -971,3 +988,13 @@ body::before {
   transition: color .18s ease, border-color .18s ease, transform .18s ease;
 }
 .promo-variants a:hover { color: var(--blue); border-color: currentColor; transform: translateY(-1px); }
+
+/* لوگوتایپ درون‌خطی: نام برند همیشه تصویر است، نه متن تایپ‌شده */
+.wm-inline {
+  height: 0.92em; width: auto; aspect-ratio: 232 / 94;
+  display: inline-block; vertical-align: -0.16em; margin-inline-end: 0.28em;
+  object-fit: contain;
+}
+.wm-inline.wordmark-for-dark { display: none; }
+[data-theme="dark"] .wm-inline.wordmark-for-dark { display: inline-block; }
+[data-theme="dark"] .wm-inline.wordmark-for-light { display: none; }

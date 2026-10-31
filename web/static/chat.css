@@ -13,27 +13,60 @@
   grid-template-columns: minmax(0, 1fr);
   height: 100dvh;
 }
-/* نوار گفتگوها همیشه کشویی است و پیش‌فرض بسته می‌ماند */
+/* ============================================================ نوار گفتگوها
+   یک منبع حقیقت برای وضعیت باز/بسته: کلاس .is-open روی #sidebar.
+   بسته = کاملاً بیرون از قاب + نامرئی + inert (نه فقط جابه‌جایی).
+   دکمهٔ همبرگری همیشه دیده می‌شود تا بتوان نوار را برگرداند. */
 .sidebar {
   position: fixed;
   inset-block: 0;
-  inset-inline-end: 0;
+  inset-inline-start: 0;
   width: min(318px, 88vw);
   z-index: 90;
-  transform: translateX(105%);
-  transition: transform 0.26s var(--ease);
-  box-shadow: -24px 0 70px rgba(4, 12, 28, 0.28);
+  transform: translateX(var(--sidebar-shift, 105%));
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 0.28s var(--ease), visibility 0s linear 0.28s;
+  box-shadow: 0 24px 70px rgba(4, 14, 34, 0.34);
 }
-.sidebar.is-open { transform: none; }
-.sidebar-close { display: grid; }
+[dir="rtl"] .sidebar { --sidebar-shift: 105%; }
+[dir="ltr"] .sidebar { --sidebar-shift: -105%; }
+.sidebar.is-open {
+  transform: none;
+  visibility: visible;
+  pointer-events: auto;
+  transition: transform 0.28s var(--ease), visibility 0s;
+}
+.sidebar.is-open .sidebar-head,
+.sidebar.is-open .new-chat,
+.sidebar.is-open .sidebar-search,
+.sidebar.is-open .conv-list,
+.sidebar.is-open .sidebar-foot {
+  animation: sidebar-item 0.34s var(--ease) both;
+}
+.sidebar.is-open .new-chat { animation-delay: 0.03s; }
+.sidebar.is-open .sidebar-search { animation-delay: 0.06s; }
+.sidebar.is-open .conv-list { animation-delay: 0.09s; }
+.sidebar.is-open .sidebar-foot { animation-delay: 0.12s; }
+@keyframes sidebar-item { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .sidebar.is-open .sidebar-head,
+  .sidebar.is-open .new-chat,
+  .sidebar.is-open .sidebar-search,
+  .sidebar.is-open .conv-list,
+  .sidebar.is-open .sidebar-foot { animation: none; }
+}
 .sidebar-open { display: grid; }
 .sidebar-scrim {
   position: fixed; inset: 0; z-index: 80;
-  background: rgba(2, 6, 15, 0.55);
-  backdrop-filter: blur(2px);
+  background: rgba(3, 10, 24, 0.62);
+  backdrop-filter: blur(3px);
+  animation: sidebar-fade 0.22s var(--ease);
 }
+.sidebar-scrim[hidden] { display: none; }
+@keyframes sidebar-fade { from { opacity: 0; } to { opacity: 1; } }
 .app-brand { display: inline-flex; align-items: center; padding-inline-end: 4px; }
-.app-brand img { height: 30px; width: auto; }
+.app-brand img { height: 26px; width: auto; aspect-ratio: 232 / 94; }
 .app-brand .wordmark-for-dark { display: none; }
 [data-theme="dark"] .app-brand .wordmark-for-dark { display: block; }
 [data-theme="dark"] .app-brand .wordmark-for-light { display: none; }
@@ -48,8 +81,8 @@
   border-inline-end: 1px solid var(--line);
   min-height: 0;
 }
-.sidebar-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 6px 6px; }
-.sidebar-close { display: none; }
+.sidebar-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 6px 6px; gap: 8px; }
+.sidebar-close { display: grid; }
 .new-chat {
   display: flex; align-items: center; gap: 9px;
   padding: 11px 14px;
@@ -134,7 +167,7 @@
   padding: 11px 13px;
   border-radius: 12px;
   border: 1px solid var(--line);
-  background: rgba(10, 20, 40, 0.7);
+  background: var(--surface);
 }
 .usage-head { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-2); margin-bottom: 7px; }
 .usage-head span:first-child { font-weight: 600; color: var(--text); }
@@ -149,7 +182,7 @@
   width: 100%; padding: 9px 10px;
   border-radius: 12px;
   border: 1px solid var(--line);
-  background: rgba(10, 20, 40, 0.6);
+  background: var(--surface);
   transition: 0.18s;
 }
 .account-btn:hover { border-color: var(--line-strong); background: var(--surface-2); }
@@ -193,8 +226,8 @@
   height: 60px;
   padding: 0 18px;
   border-bottom: 1px solid var(--line);
-  background: rgba(5, 11, 26, 0.72);
-  backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  backdrop-filter: blur(16px) saturate(140%);
   z-index: 20;
 }
 .icon-btn {
@@ -205,20 +238,18 @@
   transition: 0.18s;
 }
 .icon-btn:hover { background: rgba(125, 168, 235, 0.1); color: var(--text); border-color: var(--line); }
-.sidebar-open { display: none; }
-
 .picker { position: relative; }
 .picker-btn {
   display: flex; align-items: center; gap: 8px;
   padding: 7px 12px;
   border-radius: 11px;
   border: 1px solid var(--line);
-  background: rgba(10, 20, 40, 0.6);
+  background: var(--surface);
   font-size: 14px; font-weight: 600;
   color: var(--text);
   transition: 0.18s;
 }
-.picker-btn:hover { border-color: var(--line-strong); background: rgba(16, 30, 56, 0.8); }
+.picker-btn:hover { border-color: var(--line-strong); background: var(--surface-2); }
 .picker-btn img { border-radius: 50%; }
 .picker-btn svg { color: var(--text-3); }
 .menu {
@@ -398,7 +429,7 @@
 /* ============================================================ ورودی */
 .composer-wrap {
   padding: 6px 20px 14px;
-  background: linear-gradient(180deg, rgba(5, 11, 26, 0), rgba(5, 11, 26, 0.92) 30%);
+  background: linear-gradient(180deg, transparent, var(--bg-2) 42%);
 }
 .composer {
   width: min(760px, 100%);
@@ -612,3 +643,32 @@
 .source-body b { font-size: 12.5px; font-weight: 600; line-height: 1.6;
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .source-body em { font-style: normal; font-size: 11px; color: var(--text-3); direction: ltr; text-align: right; }
+
+/* ======================================================== پخش‌کنندهٔ ویدیو */
+.modal.modal-wide { width: min(940px, calc(100vw - 28px)); }
+.promo-player {
+  position: relative; border-radius: 16px; overflow: hidden;
+  background: #050d1f; border: 1px solid var(--line);
+  box-shadow: 0 24px 60px -28px rgba(3, 12, 30, 0.75);
+}
+.promo-player video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+.promo-modal-note { margin-top: 12px; font-size: 13px; text-align: center; }
+@media (max-width: 560px) {
+  .promo-player video { aspect-ratio: 9 / 16; max-height: 68vh; }
+}
+.chip-play { display: inline-flex; align-items: center; gap: 8px; }
+.chip-play-icon {
+  width: 0; height: 0; display: inline-block;
+  border-inline-start: 9px solid currentColor;
+  border-block: 6px solid transparent;
+  border-inline-end: 0;
+}
+
+/* تم تاریک: همان سطح‌های شیشه‌ای سرمه‌ای */
+[data-theme="dark"] .app-top { background: rgba(5, 11, 26, 0.76); }
+[data-theme="dark"] .usage-card,
+[data-theme="dark"] .account-btn,
+[data-theme="dark"] .picker-btn { background: rgba(10, 20, 40, 0.62); }
+[data-theme="dark"] .composer-wrap {
+  background: linear-gradient(180deg, rgba(5, 11, 26, 0), rgba(5, 11, 26, 0.92) 34%);
+}

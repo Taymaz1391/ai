@@ -170,40 +170,59 @@
       $$(".modal-backdrop").forEach((m) => { m.hidden = true; });
       el.accountMenu.hidden = true;
       el.modelMenu.hidden = true;
-      closeSidebar();
+      closeSidebar({ restoreFocus: true });
     }
   });
 
-  // نوار گفتگوها پیش‌فرض بسته است؛ آخرین وضعیت در حافظهٔ محلی می‌ماند.
-  const SIDEBAR_KEY = "rayan.sidebar.open";
+  // نوار گفتگوها: پیش‌فرض بسته، با یک دکمه باز/بسته می‌شود و کامل ناپدید می‌گردد.
   const sidebarToggle = $("#sidebar-open");
-  function closeSidebar() {
-    el.sidebar.classList.remove("is-open");
-    el.scrim.hidden = true;
-    if (sidebarToggle) sidebarToggle.setAttribute("aria-expanded", "false");
-    try { localStorage.setItem(SIDEBAR_KEY, "0"); } catch { /* حالت خصوصی */ }
-  }
-  function openSidebar() {
-    el.sidebar.classList.add("is-open");
-    el.scrim.hidden = false;
-    if (sidebarToggle) sidebarToggle.setAttribute("aria-expanded", "true");
-    try { localStorage.setItem(SIDEBAR_KEY, "1"); } catch { /* حالت خصوصی */ }
-    const search = $("#conv-search");
-    if (search) search.focus({ preventScroll: true });
-  }
-  if (sidebarToggle) sidebarToggle.addEventListener("click", () => {
-    if (el.sidebar.classList.contains("is-open")) closeSidebar();
-    else openSidebar();
-  });
-  $("#sidebar-close").addEventListener("click", closeSidebar);
-  el.scrim.addEventListener("click", closeSidebar);
+  const sidebarClose = $("#sidebar-close");
+  const canHover = window.matchMedia("(hover: hover) and (pointer: fine)");
 
+  function sidebarIsOpen() {
+    return el.sidebar.classList.contains("is-open");
+  }
+
+  function setSidebar(open, opts) {
+    const wasOpen = sidebarIsOpen();
+    el.sidebar.classList.toggle("is-open", open);
+    el.sidebar.toggleAttribute("inert", !open);
+    el.sidebar.setAttribute("aria-hidden", open ? "false" : "true");
+    el.scrim.hidden = !open;
+    document.body.classList.toggle("sidebar-visible", open);
+    if (sidebarToggle) sidebarToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open) {
+      const target = canHover.matches ? $("#conv-search") : sidebarClose;
+      if (target) requestAnimationFrame(() => target.focus({ preventScroll: true }));
+    } else if (wasOpen && (opts && opts.restoreFocus) && sidebarToggle) {
+      sidebarToggle.focus({ preventScroll: true });
+    }
+  }
+
+  function openSidebar() { setSidebar(true); }
+  function closeSidebar(opts) {
+    if (!sidebarIsOpen()) return;
+    const inside = el.sidebar.contains(document.activeElement);
+    setSidebar(false, { restoreFocus: inside || (opts && opts.restoreFocus) });
+  }
+
+  if (sidebarToggle) {
+    sidebarToggle.addEventListener("click", () => {
+      if (sidebarIsOpen()) closeSidebar({ restoreFocus: true });
+      else openSidebar();
+    });
+  }
+  if (sidebarClose) sidebarClose.addEventListener("click", () => closeSidebar({ restoreFocus: true }));
+  el.scrim.addEventListener("click", () => closeSidebar());
   // بستن با کلیک بیرون
   document.addEventListener("pointerdown", (event) => {
-    if (!el.sidebar.classList.contains("is-open")) return;
+    if (!sidebarIsOpen()) return;
     if (el.sidebar.contains(event.target) || (sidebarToggle && sidebarToggle.contains(event.target))) return;
     closeSidebar();
   });
+  // در حالت بسته، فوکوس داخل نوار نماند
+  el.sidebar.toggleAttribute("inert", !sidebarIsOpen());
+  el.sidebar.setAttribute("aria-hidden", sidebarIsOpen() ? "false" : "true");
 
   // ---------------------------------------------------------- وضعیت کاربر
   function planLabel(plan) {
@@ -356,7 +375,7 @@
     $$(".conv-menu").forEach((n) => n.remove());
     const menu = document.createElement("div");
     menu.className = "account-menu conv-menu";
-    menu.style.cssText = "position:absolute;inset-block-start:auto;inset-block-end:auto;min-width:170px;z-index:70;padding:6px;border-radius:12px;border:1px solid var(--line-strong);background:#0b1730;box-shadow:var(--shadow-lg)";
+    menu.style.cssText = "position:absolute;inset-block-start:auto;inset-block-end:auto;min-width:170px;z-index:70;padding:6px;border-radius:12px;border:1px solid var(--line-strong);background:var(--surface-solid);box-shadow:var(--shadow-lg)";
     const rect = row.getBoundingClientRect();
     menu.style.position = "fixed";
     menu.style.top = `${Math.min(rect.bottom + 6, window.innerHeight - 220)}px`;
@@ -399,6 +418,7 @@
   }
 
   async function openConversation(id, pushState = true) {
+    closeSidebar();
     try {
       const data = await request(`/api/conversations/${id}`);
       const conv = data.conversation;
@@ -420,6 +440,7 @@
   }
 
   function newChat() {
+    closeSidebar();
     state.currentId = null;
     state.messages = [];
     renderAllMessages();
@@ -1055,6 +1076,43 @@
     }
   });
   $("#new-chat").addEventListener("click", newChat);
+
+  // ---------------------------------------------------------- ویدیوی معرفی
+  const promoVideo = $("#promo-modal-video");
+  if (promoVideo) {
+    // نسخهٔ زبان صفحه (فارسی/انگلیسی) و نسبت تصویر درست
+    const promoLang = (document.documentElement.lang || "fa").slice(0, 2).toLowerCase() === "en" ? "en" : "fa";
+    const portrait = window.matchMedia("(max-width: 560px)");
+    function syncPromoSource() {
+      const ratio = portrait.matches ? "9x16" : "16x9";
+      const src = `/static/assets/video/promo-${promoLang}-${ratio}.mp4`;
+      const source = promoVideo.querySelector("source");
+      if (source && source.getAttribute("src") !== src) {
+        source.setAttribute("src", src);
+        promoVideo.load();
+      }
+      promoVideo.setAttribute("poster", `/static/assets/video/promo-${promoLang}-${ratio}-poster.jpg`);
+    }
+    syncPromoSource();
+    portrait.addEventListener("change", syncPromoSource);
+    const openBtn = $("#promo-open");
+    if (openBtn) {
+      openBtn.addEventListener("click", () => {
+        openModal("promo-modal");
+        promoVideo.currentTime = 0;
+        const play = promoVideo.play();
+        if (play && play.catch) play.catch(() => { /* پخش با کلیک کاربر */ });
+      });
+    }
+    // وقتی مودال بسته شد، صدا و پخش هم قطع شود
+    const promoModal = $("#promo-modal");
+    if (promoModal) {
+      const observer = new MutationObserver(() => {
+        if (promoModal.hidden) promoVideo.pause();
+      });
+      observer.observe(promoModal, { attributes: true, attributeFilter: ["hidden"] });
+    }
+  }
 
   document.addEventListener("keydown", (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {

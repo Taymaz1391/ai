@@ -226,7 +226,7 @@
 }
 @media print {
   .nav, .course-toc, .lesson-tools, .course-progress-actions, .footer { display: none !important; }
-  .lesson { break-inside: avoid; border: 1px solid #ddd; }
+  .lesson { break-inside: avoid; border: 1px solid color-mix(in srgb, var(--blue) 16%, var(--line)); }
   .course-grid { grid-template-columns: 1fr; }
   body { background: #fff; }
 }

@@ -1,5 +1,5 @@
 /* رایان — سرویس‌ورکر: دارایی‌های ایستا کش، صفحه‌ها شبکه-اول، آفلاین‌پذیر */
-const VERSION = "rayan-v6";
+const VERSION = "rayan-v8";
 const SHELL = [
   "/static/styles.css",
   "/static/pages.css",
@@ -23,13 +23,13 @@ const PAGES = ["/", "/chat", "/pricing", "/models", "/about", "/docs", "/course"
 const OFFLINE_HTML = `<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>رایان — آفلاین</title>
 <style>
- body{margin:0;min-height:100dvh;display:grid;place-items:center;background:#f7faff;color:#0c1a2b;
+ body{margin:0;min-height:100dvh;display:grid;place-items:center;background:#f2f6ff;color:#0a1730;
       font-family:Vazirmatn,Tahoma,sans-serif;text-align:center;padding:24px}
- .card{max-width:420px;background:#fff;border:1px solid #e4eaf4;border-radius:24px;padding:34px;
-       box-shadow:0 30px 80px -50px rgba(15,40,80,.45)}
+ .card{max-width:420px;background:#fff;border:1px solid #dde7f7;border-radius:24px;padding:34px;
+       box-shadow:0 30px 80px -50px rgba(12,44,104,.45)}
  img{width:96px;height:96px;margin-bottom:14px}
  h1{font-size:20px;margin:0 0 8px}
- p{color:#46586f;font-size:14px;line-height:1.9;margin:0 0 18px}
+ p{color:#3b4f73;font-size:14px;line-height:1.9;margin:0 0 18px}
  button{padding:10px 18px;border-radius:12px;border:0;background:#1a63f0;color:#fff;font:inherit;font-weight:700;cursor:pointer}
  a{color:#1a63f0;font-size:13px;text-decoration:none;display:inline-block;margin-top:14px}
 </style></head><body><div class="card">

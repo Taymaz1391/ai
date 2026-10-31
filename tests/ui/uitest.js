@@ -164,6 +164,35 @@ async function testChat() {
   const uname = doc.querySelector("[data-user-name]")?.textContent;
   check("chat: account chrome", uname === "مهمان", uname);
 
+  // نوار گفتگوها: یک دکمه باز می‌کند، یک دکمه می‌بندد و نوار کامل ناپدید می‌شود
+  const sidebar = doc.querySelector("#sidebar");
+  const scrim = doc.querySelector("#sidebar-scrim");
+  const toggle = doc.querySelector("#sidebar-open");
+  check("chat: sidebar closed by default", !sidebar.classList.contains("is-open"));
+  toggle.click();
+  check("chat: sidebar opens", sidebar.classList.contains("is-open") && scrim.hidden === false,
+    `${sidebar.className}|${scrim.hidden}`);
+  check("chat: sidebar aria expanded", toggle.getAttribute("aria-expanded") === "true");
+  doc.querySelector("#sidebar-close").click();
+  check("chat: sidebar fully hidden", !sidebar.classList.contains("is-open")
+    && sidebar.hasAttribute("inert") && sidebar.getAttribute("aria-hidden") === "true",
+    `${sidebar.className}|${sidebar.hasAttribute("inert")}`);
+  check("chat: scrim removed", scrim.hidden === true);
+  check("chat: toggle still reachable", !!toggle && !toggle.hasAttribute("hidden")
+    && !toggle.hasAttribute("disabled"));
+  toggle.click();
+  check("chat: one button restores sidebar", sidebar.classList.contains("is-open") && scrim.hidden === false);
+  toggle.click();
+  check("chat: same button closes again", !sidebar.classList.contains("is-open") && scrim.hidden === true);
+
+  // ویدیوی معرفی در همان صفحه
+  check("chat: promo modal present", doc.querySelector("#promo-modal")?.hidden === true);
+  check("chat: promo video source", /promo-fa-16x9\.mp4/.test(
+    doc.querySelector("#promo-modal-video source")?.getAttribute("src") || ""));
+  doc.querySelector("#promo-open").click();
+  check("chat: promo modal opens", doc.querySelector("#promo-modal").hidden === false);
+  doc.querySelector("#promo-modal").hidden = true;
+
   // ارسال پیام واقعی (جریان)
   const prompt = doc.querySelector("#prompt");
   prompt.value = "سلام! خودت را معرفی کن";

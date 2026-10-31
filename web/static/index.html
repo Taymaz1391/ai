@@ -99,7 +99,7 @@
             <div class="hero-video-chip">
               <a class="video-chip" href="#promo" aria-label="دیدن ویدیوی تبلیغاتی">
                 <span class="video-chip-play" aria-hidden="true"></span>
-                <span><b>ویدیوی تبلیغاتی</b><small>۱۲ ثانیه · با صدا · ساخته‌شده در همین مخزن</small></span>
+                <span><b>ویدیوی تبلیغاتی</b><small>۱۶ ثانیه · با صدا و موسیقی · ساخته‌شده در همین مخزن</small></span>
               </a>
             </div>
             <div class="hero-stats">
@@ -114,7 +114,10 @@
             <div class="preview-frame">
               <div class="preview-bar">
                 <i></i><i></i><i></i>
-                <span>رایان · گفتگوی تازه</span>
+                <span class="preview-brand">
+                  <img src="/static/assets/brand/wordmark-white.png" alt="رایان" width="62" height="25" decoding="async">
+                  <em>گفتگوی تازه</em>
+                </span>
               </div>
               <div class="preview-body">
                 <div class="preview-msg user">
@@ -316,8 +319,9 @@
         <div class="promo-card reveal">
           <div class="promo-media">
             <video id="promo-video" class="promo-video" muted autoplay loop playsinline
-                   preload="metadata" poster="/static/assets/video/promo-fa-poster.jpg"
-                   aria-label="ویدیوی تبلیغاتی رایان">
+                   preload="metadata" disableremoteplayback
+                   poster="/static/assets/video/promo-fa-poster.jpg"
+                   aria-label="ویدیوی تبلیغاتی رایان: نشان، گفتگو، سه عدد راستین و فراخوان">
               <source src="/static/assets/video/promo-fa-16x9.mp4" type="video/mp4">
             </video>
             <button class="promo-sound" type="button" id="promo-sound" aria-pressed="false">
@@ -326,8 +330,8 @@
             </button>
           </div>
           <div class="promo-copy">
-            <span class="eyebrow">تبلیغ رایان</span>
-            <h2 class="section-title">۱۲ ثانیه، با موسیقی و افکت</h2>
+            <span class="eyebrow">ویدیوی معرفی</span>
+            <h2 class="section-title">۱۶ ثانیه، با موسیقی و افکت</h2>
             <p class="section-sub">
               این ویدیو هم داخل همین مخزن ساخته شده: تصویرها با پایتون، صدا با numpy و
               چسباندن نهایی با ffmpeg. بدون استوک، بدون سرویس ابری.

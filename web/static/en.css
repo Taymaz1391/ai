@@ -25,6 +25,7 @@ body.en .hc-head { display: flex; align-items: center; gap: 8px; font-size: 11px
 body.en .hc-head .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 4px color-mix(in srgb, var(--mint) 18%, transparent); }
 body.en .hc-line { margin: 0 0 8px; color: var(--text-2); line-height: 1.75; }
 body.en .hc-line b { color: var(--text); font-weight: 800; margin-inline-end: 6px; }
+body.en .hc-brand { height: 22px; width: auto; aspect-ratio: 232 / 94; vertical-align: -6px; margin-inline-end: 6px; }
 body.en .hc-stats { display: flex; gap: 8px; flex-wrap: wrap; font-size: 10.5px; color: var(--text-3); }
 body.en .hc-stats span { padding: 3px 8px; border-radius: 999px; background: var(--surface-2); }
 
