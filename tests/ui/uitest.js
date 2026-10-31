@@ -226,12 +226,78 @@ async function testPages() {
   }
 }
 
+async function testAcademy() {
+  const { window } = await loadPage("/academy");
+  const doc = window.document;
+  check("academy: title", /آکادمی/.test(doc.title), doc.title);
+  check("academy: lessons", doc.querySelectorAll("#lesson-list .lesson, #lesson-list li, #lesson-list button").length >= 3,
+    String(doc.querySelectorAll("#lesson-list .lesson, #lesson-list li, #lesson-list button").length));
+  check("academy: progress bar", !!doc.querySelector("#course-progress"));
+  check("academy: next button", !!doc.querySelector("#next"));
+}
+
+async function testAdminGate() {
+  const { window } = await loadPage("/admin");
+  const doc = window.document;
+  check("admin: login gate", doc.querySelector("#admin-login")?.hidden === false);
+  check("admin: shell hidden", doc.querySelector("#admin-shell")?.hidden === true);
+  const pw = doc.querySelector("#admin-password");
+  pw.value = "wrong-password-123";
+  doc.querySelector("#login-form").dispatchEvent(new window.Event("submit", { cancelable: true, bubbles: true }));
+  await wait(700);
+  const err = doc.querySelector("#login-error")?.textContent || "";
+  check("admin: wrong password rejected", err.length > 2, err);
+}
+
+async function testOfflinePage() {
+  const { window } = await loadPage("/offline");
+  const doc = window.document;
+  check("offline: headline", /بدون اتصال|اتصال/.test(doc.body.textContent));
+  check("offline: retry", !!doc.querySelector("#retry"));
+  check("offline: noindex", /noindex/.test(doc.querySelector('meta[name="robots"]')?.content || ""));
+}
+
+async function testToolChip() {
+  const { window } = await loadPage("/chat");
+  const doc = window.document;
+  const prompt = doc.querySelector("#prompt");
+  prompt.value = "۷*۶ چند است؟";
+  doc.querySelector("#composer").dispatchEvent(new window.Event("submit", { cancelable: true, bubbles: true }));
+  await wait(1800);
+  const chip = doc.querySelector(".tool-result .tool-badge")?.textContent || "";
+  const value = doc.querySelector(".tool-result b")?.textContent || "";
+  check("chat: tool chip shown", /ماشین/.test(chip), chip);
+  check("chat: tool value 42", value.replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).includes("42"), value);
+}
+
+async function testThemeToggle() {
+  const { window } = await loadPage("/");
+  const doc = window.document;
+  const html = doc.documentElement;
+  check("theme: light by default", html.getAttribute("data-theme") !== "dark", html.getAttribute("data-theme") || "light");
+  const toggle = doc.querySelector("[data-theme-toggle]");
+  check("theme: toggle present", !!toggle);
+  if (toggle) {
+    toggle.click();
+    await wait(120);
+    check("theme: switches to dark", html.getAttribute("data-theme") === "dark", html.getAttribute("data-theme"));
+    toggle.click();
+    await wait(120);
+    check("theme: switches back", html.getAttribute("data-theme") === "light", html.getAttribute("data-theme"));
+  }
+}
+
 (async () => {
   try {
     await testLanding();
     await testAuth();
     await testChat();
     await testPages();
+    await testAcademy();
+    await testAdminGate();
+    await testOfflinePage();
+    await testToolChip();
+    await testThemeToggle();
   } catch (err) {
     errors.push(`FATAL: ${err.stack}`);
   }

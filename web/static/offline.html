@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>رایان — بدون اتصال</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
+  <script src="/static/theme-boot.js"></script>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/pages.css">
+  <style>
+    .offline-wrap { min-height: 100dvh; display: grid; place-items: center; padding: 32px 20px; }
+    .offline-card {
+      max-width: 520px; width: 100%; text-align: center; padding: 44px 32px 38px;
+      border-radius: 28px; border: 1px solid var(--line); background: var(--surface);
+      box-shadow: var(--shadow-lg);
+    }
+    .offline-card .orb-xl { width: 104px; height: 104px; margin: 0 auto 18px; display: block; }
+    .offline-card h1 { font-size: 23px; margin-bottom: 10px; }
+    .offline-card p { color: var(--text-2); font-size: 14.5px; line-height: 2; margin: 0 auto 22px; max-width: 42ch; }
+    .offline-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .offline-hints { margin: 26px auto 0; padding-top: 20px; border-top: 1px solid var(--line); text-align: right; }
+    .offline-hints h2 { font-size: 13px; color: var(--text-3); font-weight: 600; margin-bottom: 10px; }
+    .offline-hints ul { list-style: none; display: grid; gap: 8px; font-size: 13px; color: var(--text-2); }
+    .offline-hints li::before { content: "•"; color: var(--blue); margin-inline-end: 8px; }
+    .offline-badge {
+      display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600;
+      padding: 6px 12px; border-radius: 999px; margin-bottom: 16px;
+      color: var(--amber, #b5760a); background: color-mix(in srgb, var(--amber, #b5760a) 12%, transparent);
+    }
+    .offline-badge i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  </style>
+</head>
+<body>
+  <main class="offline-wrap">
+    <section class="offline-card">
+      <img class="orb-xl" src="/static/assets/brand/orb-256.png" alt="گل‌مهر رایان" width="104" height="104">
+      <span class="offline-badge"><i></i> حالت بدون اتصال</span>
+      <h1>الان به شبکه دسترسی نیست</h1>
+      <p>
+        رایان برای فکر کردن به سرور خودش نیاز دارد، ولی حافظهٔ گفتگوها روی همین دستگاه
+        نگه داشته می‌شود. به‌محض برگشتن اینترنت، همه‌چیز دقیقاً از همان‌جا ادامه پیدا می‌کند.
+      </p>
+      <div class="offline-actions">
+        <button class="btn btn-primary" id="retry" type="button">تلاش دوباره</button>
+        <a class="btn btn-ghost" href="/pricing">پلن‌ها</a>
+      </div>
+      <div class="offline-hints">
+        <h2>اگر اینترنت وصل است ولی این پیام را می‌بینی</h2>
+        <ul>
+          <li>سرور رایان موقتاً در دسترس نیست؛ چند لحظه بعد دوباره امتحان کن.</li>
+          <li>در بعضی شبکه‌های داخلی، دسترسی به دامنه محدود می‌شود؛ شبکه یا DNS را بررسی کن.</li>
+          <li>اگر خودت رایان را اجرا می‌کنی، سرویس پایتون باید روی پورت ۸۰۰۰ بالا باشد.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+  <script src="/static/offline.js"></script>
+</body>
+</html>

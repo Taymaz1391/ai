@@ -25,6 +25,8 @@ PAGES = {
     "models.html": "models.html",
     "about.html": "about.html",
     "docs.html": "docs.html",
+    "academy.html": "academy.html",
+    "offline.html": "offline.html",
 }
 
 # مسیرهای سرور → فایل‌های استاتیک
@@ -37,6 +39,8 @@ ROUTES = {
     "/docs": "docs.html",
     "/login": "login.html",
     "/signup": "signup.html",
+    "/academy": "academy.html",
+    "/offline": "offline.html",
 }
 
 RUNTIME_CONFIG = """/* ساخته‌شده به‌صورت خودکار برای نسخهٔ استاتیک (GitHub Pages). */
@@ -83,6 +87,7 @@ def rewrite_js(js: str) -> str:
     js = js.replace('"/manifest.webmanifest"', '"manifest.webmanifest"')
     js = js.replace('navigator.serviceWorker.register("/sw.js")', 'navigator.serviceWorker.register("sw.js")')
     js = js.replace('"/chat"', '"chat.html"')
+    js = js.replace('"/academy"', '"academy.html"')
     js = js.replace('"/login"', '"login.html"')
     js = js.replace('"/signup"', '"signup.html"')
     return js
@@ -119,7 +124,9 @@ def build(out: Path) -> dict:
     # دارایی‌ها
     shutil.copytree(STATIC / "assets", out / "static" / "assets")
     for name in ("styles.css", "pages.css", "landing.css", "chat.css",
-                 "ui.js", "landing.js", "app.js", "auth.js", "models.js", "share.js"):
+                 "ui.js", "landing.js", "app.js", "auth.js", "models.js", "share.js",
+                 "studio.js", "ads.js", "academy.js", "theme-boot.js", "offline.js",
+                 "pricing.js"):
         path = STATIC / name
         if path.exists():
             text = read(path)

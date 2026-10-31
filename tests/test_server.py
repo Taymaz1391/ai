@@ -190,5 +190,179 @@ class ApiTest(unittest.TestCase):
             server.LIMITS["free"] = original
 
 
+@unittest.skipUnless(HAVE_CLIENT, "httpx/fastapi TestClient unavailable")
+@unittest.skipUnless(os.path.exists(CHECKPOINT), "checkpoint not trained yet")
+class V3Test(unittest.TestCase):
+    """ویژگی‌های نسخهٔ سوم: وضعیت، پرچم‌ها، ابزارها، تبلیغات، آکادمی، پنل و آفلاین."""
+
+    @classmethod
+    def setUpClass(cls):
+        tmp = tempfile.NamedTemporaryFile(suffix=".sqlite3", delete=False)
+        tmp.close()
+        cls.db_path = tmp.name
+        os.environ["RAYAN_DB"] = cls.db_path
+        os.environ["RAYAN_ADMIN_PASSWORD"] = "v3-test-admin-pass"
+        from web import server, store as store_module
+        store_module._store = None
+        os.chdir(ROOT)
+        server.engine = server.load_engine(CHECKPOINT)
+        server.engine_error = None
+        cls.server = server
+        cls.client = TestClient(server.app)
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            os.unlink(cls.db_path)
+        except OSError:
+            pass
+        os.environ.pop("RAYAN_DB", None)
+        os.environ.pop("RAYAN_ADMIN_PASSWORD", None)
+        from web import store as store_module
+        store_module._store = None
+
+    def test_status_and_flags(self):
+        status = self.client.get("/api/status").json()
+        self.assertEqual(status["version"], "3.0.0")
+        self.assertTrue(status["model_loaded"])
+        flags = self.client.get("/api/flags").json()["flags"]
+        for key in ("ads_enabled", "signup_open", "guest_chat", "deep_enabled", "studio_enabled", "maintenance"):
+            self.assertIn(key, flags)
+
+    def test_selftest(self):
+        data = self.client.get("/api/selftest").json()
+        self.assertTrue(any(c["name"] == "database" and c["ok"] for c in data["checks"]))
+
+    def test_new_pages(self):
+        for path in ("/academy", "/admin", "/offline", "/privacy"):
+            res = self.client.get(path)
+            self.assertEqual(res.status_code, 200, path)
+        self.assertIn("حالت بدون اتصال", self.client.get("/offline").text)
+        self.assertIn("آکادمی", self.client.get("/academy").text)
+        self.assertNotIn("/offline", self.client.get("/sitemap.xml").text)
+
+    def test_tools_catalog_and_run(self):
+        catalog = self.client.get("/api/tools").json()
+        self.assertGreaterEqual(len(catalog["tools"]), 4)
+        calc = self.client.post("/api/tools/run", json={"name": "calc", "args": {"expression": "۷*۶"}}).json()
+        self.assertTrue(calc["ok"])
+        self.assertEqual(calc["value"], 42)
+        conv = self.client.post("/api/tools/run", json={
+            "name": "convert", "args": {"value": 3, "from": "mile", "to": "km"},
+        }).json()
+        self.assertTrue(conv["ok"])
+        self.assertAlmostEqual(float(conv["value"]), 4.828032, places=3)
+
+    def test_chat_returns_tool_meta(self):
+        res = self.client.post("/api/chat", json={
+            "message": "۷*۶ چند است؟", "max_new_tokens": 16, "session_id": "tool-meta",
+        })
+        self.assertEqual(res.status_code, 200)
+        tool = res.json()["tool"]
+        self.assertIsNotNone(tool)
+        self.assertEqual(tool["value"], 42)
+
+    def test_ads_public_flow(self):
+        empty = self.client.get("/api/ads", params={"slot": "home-top"}).json()
+        self.assertEqual(empty["ads"], [])
+        login = self.client.post("/api/admin/login", json={"password": "v3-test-admin-pass"})
+        self.assertEqual(login.status_code, 200)
+        csrf = login.json()["csrf"]
+        headers = {"x-rayan-csrf": csrf}
+        created = self.client.post("/api/admin/ads", json={
+            "slot": "home-top", "title": "کمپین آزمون", "body": "تبلیغ تستی",
+            "cta": "ببین", "url": "/pricing", "active": True,
+        }, headers=headers)
+        self.assertEqual(created.status_code, 200, created.text)
+        shown = self.client.get("/api/ads", params={"slot": "home-top"}).json()["ads"]
+        self.assertEqual(shown[0]["title"], "کمپین آزمون")
+        self.assertEqual(self.client.get("/api/ads", params={"slot": "home-mid"}).json()["ads"], [])
+        ad_id = shown[0]["id"]
+        # ویرایش جزئی: خاموش‌کردن بدون فرستادن بقیهٔ فیلدها
+        off = self.client.patch(f"/api/admin/ads/{ad_id}", json={"active": False}, headers=headers)
+        self.assertEqual(off.status_code, 200, off.text)
+        self.assertEqual(self.client.get("/api/ads", params={"slot": "home-top"}).json()["ads"], [])
+        renamed = self.client.patch(f"/api/admin/ads/{ad_id}", json={"active": True, "title": "کمپین ویرایش"},
+                                    headers=headers)
+        self.assertEqual(renamed.status_code, 200)
+        self.assertEqual(renamed.json()["ad"]["title"], "کمپین ویرایش")
+        self.assertEqual(self.client.delete(f"/api/admin/ads/{ad_id}", headers=headers).status_code, 200)
+        self.assertEqual(self.client.get("/api/ads", params={"slot": "home-top"}).json()["ads"], [])
+        # نشانی ناامن رد می‌شود
+        self.assertEqual(self.client.patch("/api/admin/ads/999", json={"url": "javascript:alert(1)"},
+                                           headers=headers).status_code, 404)
+
+    def test_admin_requires_auth(self):
+        fresh = TestClient(self.server.app)
+        self.assertIn(fresh.get("/api/admin/overview").status_code, (401, 403))
+        self.assertEqual(fresh.post("/api/admin/maintenance", json={"on": True}).status_code, 401)
+
+    def test_origin_guard_blocks_cross_site_writes(self):
+        res = self.client.post("/api/auth/login", json={"email": "a@b.c", "password": "x"},
+                               headers={"origin": "https://evil.example"})
+        self.assertEqual(res.status_code, 403)
+
+    def test_plans_are_public_and_configurable(self):
+        data = self.client.get("/api/plans").json()
+        self.assertTrue(data["ok"])
+        ids = [p["id"] for p in data["plans"]]
+        self.assertEqual(ids, ["guest", "free", "pro"])
+        pro = data["plans"][2]
+        self.assertEqual(pro["price"], 0)
+        self.assertFalse(pro["for_sale"])
+        login = self.client.post("/api/admin/login", json={"password": "v3-test-admin-pass"})
+        headers = {"x-rayan-csrf": login.json()["csrf"]}
+        saved = self.client.post("/api/admin/settings", json={"values": {
+            "plan_pro_price": "299000", "plan_pro_days": "30",
+            "payments_enabled": "1", "payment_provider": "درگاه آزمون",
+            "payment_link": "https://pay.example/c/rayan", "payment_note": "فعال است",
+        }}, headers=headers)
+        self.assertEqual(saved.status_code, 200)
+        data = self.client.get("/api/plans").json()
+        pro = data["plans"][2]
+        self.assertEqual(pro["price"], 299000)
+        self.assertTrue(pro["for_sale"])
+        self.assertEqual(data["payments"]["provider"], "درگاه آزمون")
+        self.assertEqual(data["payments"]["link"], "https://pay.example/c/rayan")
+        # پاک‌سازی تنظیمات آزمون
+        self.client.post("/api/admin/settings", json={"values": {
+            "plan_pro_price": "0", "payments_enabled": "0", "payment_link": "",
+            "payment_provider": "", "payment_note": "",
+        }}, headers=headers)
+
+    def test_security_headers(self):
+        res = self.client.get("/")
+        csp = res.headers.get("content-security-policy", "")
+        self.assertIn("script-src 'self'", csp)
+        self.assertNotIn("unsafe-inline; connect-src", csp)
+        self.assertIn("object-src 'none'", csp)
+        self.assertEqual(res.headers.get("x-frame-options"), "SAMEORIGIN")
+        self.assertEqual(res.headers.get("x-content-type-options"), "nosniff")
+        self.assertIn("permissions-policy", {k.lower() for k in res.headers.keys()})
+        api = self.client.get("/api/status")
+        self.assertEqual(api.headers.get("cache-control"), "no-store")
+
+    def test_no_inline_scripts_in_pages(self):
+        import re
+        from pathlib import Path as _Path
+        static = _Path(ROOT) / "web" / "static"
+        offenders = []
+        for page in static.glob("*.html"):
+            if page.name in ("share.html",):
+                continue
+            text = page.read_text(encoding="utf-8")
+            for match in re.finditer(r"<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>", text, re.S):
+                body = match.group(1).strip()
+                if body and 'type="application/ld+json"' not in text[: match.start(1)][-60:]:
+                    offenders.append(page.name)
+                    break
+        self.assertEqual(offenders, [])
+
+    def test_shared_static_assets_exist(self):
+        for path in ("/static/assets/brand/lockup-ink.png", "/static/assets/brand/og-image.png",
+                     "/static/assets/video/rayan-intro.mp4"):
+            self.assertEqual(self.client.get(path).status_code, 200, path)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -500,12 +500,20 @@
     if (msg.role === "user") {
       who.textContent = initials(state.user ? (state.user.name || state.user.email) : "م");
     } else {
+      const orb = document.createElement("span");
+      orb.className = "orb-live who-orb";
+      orb.style.width = "32px";
+      orb.style.height = "32px";
       const img = document.createElement("img");
       img.src = "/static/assets/brand/orb-128.png";
       img.alt = "رایان";
       img.width = 32;
       img.height = 32;
-      who.append(img);
+      const l = document.createElement("i"); l.className = "lid l";
+      const r = document.createElement("i"); r.className = "lid r";
+      orb.append(img, l, r);
+      who.append(orb);
+      if (window.RAYAN && window.RAYAN.initOrbs) window.RAYAN.initOrbs(who);
     }
 
     const body = document.createElement("div");
@@ -522,11 +530,26 @@
       bubble.className = "bubble";
       bubble.innerHTML = renderMarkdown(msg.content);
       body.append(bubble);
+      if (msg.meta && msg.meta.tool) body.append(toolEl(msg.meta.tool));
       if (msg.meta && msg.meta.stats) body.append(statsEl(msg.meta.stats, msg.meta.deep));
       if (!msg.streaming) body.append(toolsFor(msg));
     }
     wrap.append(who, body);
     return wrap;
+  }
+
+  function toolEl(tool) {
+    const box = document.createElement("div");
+    box.className = "tool-result";
+    const labels = { calc: "ماشین‌حساب", now: "تاریخ و ساعت", convert: "تبدیل یکا", text: "آمار متن" };
+    const name = labels[tool.tool] || tool.tool;
+    let value = "";
+    if (tool.tool === "calc") value = `${nf(tool.value)}`;
+    else if (tool.tool === "now") value = tool.jalali_long || tool.iso;
+    else if (tool.tool === "convert") value = `${nf(tool.value)} ${tool.to}`;
+    else if (tool.tool === "text") value = `${nf(tool.words)} واژه · ${nf(tool.chars)} نویسه`;
+    box.innerHTML = `<span class="tool-badge">${name}</span><b>${value}</b>`;
+    return box;
   }
 
   function statsEl(stats, deep) {
@@ -586,6 +609,18 @@
       toast("متن کپی شد.", "ok");
     }));
     if (msg.role === "assistant") {
+      const studio = window.RAYAN_STUDIO;
+      if (studio && msg.content) {
+        const arts = studio.extractArtifacts(msg.content);
+        if (arts.length) {
+          const fileIcon = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M14 3v5h5"/><path d="M6 3h8l5 5v13H6z"/></svg>';
+          arts.forEach((art, index) => {
+            bar.append(mk(arts.length > 1 ? `پیش‌نمایش ${index + 1}` : "پیش‌نمایش فایل", fileIcon, () => {
+              studio.openArtifact(Object.assign({ name: `rayan-${Date.now()}` }, art));
+            }));
+          });
+        }
+      }
       bar.append(mk("تولید دوباره", redoIcon, () => regenerate(msg)));
       bar.append(mk("پاسخ خوب بود", upIcon, () => sendFeedback(msg, 1)));
       bar.append(mk("پاسخ بد بود", downIcon, () => sendFeedback(msg, -1)));
@@ -613,7 +648,8 @@
     const node = buildMessage(msg);
     const bubble = node.querySelector(".bubble");
     bubble.classList.add("streaming");
-    bubble.innerHTML = '<span class="thinking"><i></i><i></i><i></i></span>';
+    bubble.innerHTML = '<span class="typing" aria-label="در حال نوشتن"><i></i><i></i><i></i></span>';
+    setOrbState("thinking");
     el.messages.append(node);
     scrollToBottom();
     return { msg, node, bubble };
@@ -632,8 +668,18 @@
     return turns.slice(-2);
   }
 
+  function setOrbState(next) {
+    const orb = document.querySelector(".empty-orb .orb-live") || document.querySelector(".who-orb");
+    if (orb) orb.dataset.state = next || "";
+    document.querySelectorAll(".who-orb").forEach((node) => {
+      if (node !== orb) node.dataset.state = "";
+    });
+  }
+
   function setBusy(busy) {
     state.sending = busy;
+    if (!busy) setOrbState("happy");
+    if (!busy) setTimeout(() => setOrbState(""), 1200);
     el.send.hidden = busy;
     el.stop.hidden = !busy;
     el.composer.classList.toggle("is-busy", busy);
@@ -685,7 +731,7 @@
           },
         });
         msg.content = data.answer || "…";
-        msg.meta = { stats: data.stats, trace: data.trace, deep: true };
+        msg.meta = { stats: data.stats, trace: data.trace, deep: true, tool: data.tool };
         msg.streaming = false;
         msg.id = data.message_id;
         bubble.classList.remove("streaming");
@@ -696,6 +742,7 @@
         body.querySelector(".msg-tools")?.remove();
         body.append(toolsFor(msg));
         if (data.trace) body.prepend(traceEl(data.trace));
+        if (data.tool) body.prepend(toolEl(data.tool));
         if (data.usage) { state.usage = Object.assign({}, state.usage, { chat: data.usage }); renderUsage(); }
         await afterTurn(data);
       } catch (err) {
@@ -759,10 +806,11 @@
           } else if (event.type === "done") {
             msg.content = event.answer || answer;
             msg.id = event.message_id;
-            msg.meta = { stats: event.stats };
+            msg.meta = { stats: event.stats, tool: event.tool, deep: false };
             msg.streaming = false;
             bubble.classList.remove("streaming");
             bubble.innerHTML = renderMarkdown(msg.content);
+            if (event.tool) bubble.parentElement.append(toolEl(event.tool));
             if (event.stats) bubble.parentElement.append(statsEl(event.stats, false));
             bubble.parentElement.append(toolsFor(msg));
             if (event.usage) { state.usage = Object.assign({}, state.usage, { chat: event.usage }); renderUsage(); }

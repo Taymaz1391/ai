@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>رایان | هوش مصنوعی فارسی، ساخته‌شده از صفر</title>
   <meta name="description" content="رایان، دستیار هوش مصنوعی فارسی: مدل زبانی بومی که بدون هیچ مدل آماده، از صفر روی متن فارسی آموزش دیده است. گفتگو، شعر و ادامهٔ متن با شفافیت کامل.">
-  <meta name="theme-color" content="#050b1a">
+  <meta name="theme-color" content="#ffffff">
   <meta property="og:title" content="رایان | هوش مصنوعی فارسی">
   <meta property="og:description" content="دستیار هوش مصنوعی فارسی؛ ساخته‌شده از صفر با NumPy و آموزش‌دیده روی متن فارسی.">
   <meta property="og:type" content="website">
@@ -20,6 +20,7 @@
   <link rel="preload" href="/static/assets/fonts/Vazirmatn-Black.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="stylesheet" href="/static/landing.css">
+  <script src="/static/theme-boot.js"></script>
 </head>
 <body>
   <div class="backdrop" aria-hidden="true">
@@ -48,6 +49,7 @@
         <a class="nav-link" href="#how">چطور ساخته شد</a>
         <a class="nav-link" href="/models">مدل‌ها</a>
         <a class="nav-link" href="/pricing">تعرفه</a>
+        <a class="nav-link" href="/academy">آکادمی</a>
         <a class="nav-link" href="/docs">مستندات</a>
         <a class="nav-link" href="/about">درباره</a>
       </nav>
@@ -64,12 +66,21 @@
   </header>
 
   <main>
+    <div class="wrap" style="padding-top:14px">
+      <div class="ad-slot" data-ad-slot="home-top" hidden></div>
+    </div>
     <!-- ============================================================ هیرو -->
     <section class="hero">
       <div class="wrap">
         <div class="hero-grid">
           <div class="hero-copy">
-            <span class="eyebrow">هوش مصنوعی فارسی · نسخهٔ ۱٫۰</span>
+            <div class="hero-orb-row">
+              <span class="orb-live hero-orb" data-size="72">
+                <img src="/static/assets/brand/orb-128.png" alt="رایان" width="72" height="72" loading="eager">
+                <i class="lid l"></i><i class="lid r"></i>
+              </span>
+              <span class="eyebrow">هوش مصنوعی فارسی · نسخهٔ ۲٫۰</span>
+            </div>
             <h1 class="hero-title">فارسی را<br>می‌فهمد، <span class="grad-text">از صفر</span><span class="dot">.</span></h1>
             <p class="hero-sub">
               رایان یک دستیار هوش مصنوعی فارسی است که <em>هیچ</em> مدل آماده‌ای ندارد.
@@ -84,6 +95,12 @@
               <a class="btn btn-lg" href="/login">ساخت حساب رایگان</a>
             </div>
             <p class="hero-note"><span class="dot-live"></span><span id="hero-status">در حال خواندن وضعیت مدل…</span></p>
+            <div class="hero-video-chip">
+              <a class="video-chip" href="#video" aria-label="دیدن ویدیوی معرفی">
+                <span class="video-chip-play" aria-hidden="true"></span>
+                <span><b>ویدیوی معرفی</b><small>۳۶ ثانیه · ساخته‌شده در همین مخزن</small></span>
+              </a>
+            </div>
             <div class="hero-stats">
               <div class="hero-stat"><b id="stat-params">۶٫۵۷ میلیون</b><span>پارامتر</span></div>
               <div class="hero-stat"><b id="stat-tokens">۱۴٫۷ میلیون</b><span>توکن آموزش</span></div>
@@ -280,6 +297,26 @@
       </div>
     </section>
 
+    <!-- ========================================================== ویدیو -->
+    <section class="section" id="video">
+      <div class="wrap">
+        <div class="section-head center">
+          <span class="eyebrow">ویدیوی معرفی</span>
+          <h2 class="section-title">۳۶ ثانیه با رایان</h2>
+          <p class="section-sub">بدون صداگذاری و بدونِ هیچ سرویس بیرونی ساخته شده است؛ همهٔ فریم‌ها در همین مخزن تولید می‌شوند.</p>
+        </div>
+        <div class="video-wrap reveal">
+          <video class="intro-video" controls preload="metadata" playsinline
+                 poster="/static/assets/video/rayan-intro-poster.jpg">
+            <source src="/static/assets/video/rayan-intro.mp4" type="video/mp4">
+            <source src="/static/assets/video/rayan-intro.webm" type="video/webm">
+            مرورگر شما ویدیو را پخش نمی‌کند؛
+            <a href="/static/assets/video/rayan-intro.mp4">دانلود ویدیو</a>.
+          </video>
+        </div>
+      </div>
+    </section>
+
     <!-- ========================================================== آمار -->
     <section class="section-sm">
       <div class="wrap">
@@ -293,6 +330,38 @@
     </section>
 
     <!-- ========================================================= تعرفه -->
+    <!-- ======================================================= آکادمی -->
+    <section class="section" id="academy">
+      <div class="wrap">
+        <div class="academy-band reveal">
+          <div class="academy-art">
+            <img class="lockup lockup-for-light" src="/static/assets/brand/lockup-ink.png" alt="" loading="lazy">
+            <img class="lockup lockup-for-dark" src="/static/assets/brand/lockup-glow.png" alt="" loading="lazy">
+          </div>
+          <div class="academy-copy">
+            <span class="eyebrow">آکادمی رایان</span>
+            <h2 class="section-title">ChatGPT چطور ساخته شد؟</h2>
+            <p class="section-sub">
+              ده درس فارسی، از توکن تا RLHF؛ هر درس با کد واقعی همین مخزن، نمودار و آزمون کوتاه.
+              بدون وعدهٔ توخالی، بدون میان‌بر.
+            </p>
+            <div class="academy-points">
+              <span class="tag">۱۰ درس</span>
+              <span class="tag">کد اجراشدنی</span>
+              <span class="tag">آزمون پایان درس</span>
+              <span class="tag-blue tag">رایگان</span>
+            </div>
+            <div class="hero-cta">
+              <a class="btn btn-primary" href="/academy">ورود به آکادمی</a>
+              <a class="btn" href="/docs">مستندات فنی</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="wrap"><div class="ad-slot ad-inline" data-ad-slot="home-mid" hidden></div></div>
+
     <section class="section" id="pricing">
       <div class="wrap">
         <div class="section-head center">
@@ -393,9 +462,9 @@
     <div class="wrap">
       <div class="footer-grid">
         <div class="footer-about">
-          <a class="brand" href="/">
-            <img class="brand-orb" src="/static/assets/brand/orb-128.png" alt="" width="34" height="34">
-            <span class="brand-name"><b>رایان</b><span>RAYAN</span></span>
+          <a href="/" aria-label="رایان، خانه">
+            <img class="lockup lockup-for-light" src="/static/assets/brand/lockup-ink.png" alt="رایان — هوش مصنوعی، به زبان فارسی" loading="lazy">
+            <img class="lockup lockup-for-dark" src="/static/assets/brand/lockup-glow.png" alt="رایان — هوش مصنوعی، به زبان فارسی" loading="lazy">
           </a>
           <p>هوش مصنوعی فارسی، ساخته‌شده از صفر. کد، داده و وزن‌ها عمومی‌اند.</p>
         </div>
@@ -412,6 +481,7 @@
           <h4>پروژه</h4>
           <ul>
             <li><a href="/about">درباره</a></li>
+            <li><a href="/academy">آکادمی</a></li>
             <li><a href="/docs">مستندات</a></li>
             <li><a href="https://github.com/Taymaz1391/ai" rel="noopener">GitHub</a></li>
             <li><a href="/api/health">وضعیت سرویس</a></li>
@@ -440,6 +510,8 @@
 
   <script src="/static/config.js"></script>
   <script src="/static/ui.js"></script>
+  <script src="/static/studio.js"></script>
+  <script src="/static/ads.js"></script>
   <script src="/static/landing.js"></script>
 </body>
 </html>

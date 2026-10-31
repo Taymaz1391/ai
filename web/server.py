@@ -16,6 +16,7 @@ import secrets
 import sys
 import threading
 import time
+from contextlib import asynccontextmanager
 from collections import deque
 from typing import Literal
 
@@ -34,6 +35,8 @@ from rayan.generate import MODES, Engine, polish  # noqa: E402
 from rayan.text import normalize, prepare_user_input  # noqa: E402
 from rayan.thinking import deep_reply  # noqa: E402
 from web.store import store  # noqa: E402
+from web import admin as admin_module  # noqa: E402
+from web import tools as tools_module  # noqa: E402
 
 STATIC_DIR = os.path.join(ROOT, "web", "static")
 CHECKPOINTS = [
@@ -113,13 +116,61 @@ SAMPLES = [
     {"mode": "poetry", "title": "بیت‌سازی", "text": ""},
 ]
 
-app = FastAPI(title="رایان", version="2.0.0", docs_url=None, redoc_url=None)
+_SHUTDOWN = threading.Event()
+_BOOT_LOCK = threading.Lock()
+_BOOTED = {"done": False}
+
+
+def boot() -> None:
+    """آماده‌سازی سرور بدون توجه به این‌که با uvicorn یا `python -m web.server` بالا بیاید."""
+    with _BOOT_LOCK:
+        if _BOOTED["done"]:
+            return
+        _BOOTED["done"] = True
+    global engine, engine_error
+    try:
+        store()
+    except Exception as exc:  # pragma: no cover
+        print(f"[rayan] store init failed: {exc}", flush=True)
+    try:
+        admin_module.admin_credentials()
+        admin_module.start_scheduler()
+    except Exception as exc:  # pragma: no cover
+        print(f"[rayan] admin bootstrap skipped: {exc}", flush=True)
+    if engine is None:
+        def _load() -> None:
+            global engine, engine_error
+            try:
+                engine = load_engine()
+                engine_error = None
+                print(f"[rayan] loaded {engine.checkpoint} | step={engine.meta.get('step')}", flush=True)
+            except Exception as exc:
+                engine_error = str(exc)
+                print(f"[rayan] model not loaded: {exc}", flush=True)
+
+        threading.Thread(target=_load, name="rayan-loader", daemon=True).start()
+    if os.environ.get("RAYAN_WATCH", "1") != "0":
+        threading.Thread(target=watcher, args=(_SHUTDOWN,), name="rayan-watch", daemon=True).start()
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    boot()
+    try:
+        yield
+    finally:
+        _SHUTDOWN.set()
+
+
+app = FastAPI(title="رایان", version="3.0.0", docs_url=None, redoc_url=None, lifespan=lifespan)
 app.add_middleware(GZipMiddleware, minimum_size=1024)
+_PUBLIC_ORIGINS = {o.strip() for o in os.environ.get("RAYAN_ORIGINS", "").split(",") if o.strip()}
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=sorted(_PUBLIC_ORIGINS),
+    allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    allow_headers=["Content-Type", "X-RayAn-CSRF", "x-rayan-csrf"],
 )
 
 if os.path.isdir(STATIC_DIR):
@@ -394,6 +445,19 @@ def _quota(owner: dict, ip: str, kind: str) -> tuple[int, int]:
     return used, limit
 
 
+def _flag(name: str, default: str = "1") -> bool:
+    return store().setting(name, default) == "1"
+
+
+def _guard_flags(kind: str | None = None, signup: bool = False, deep: bool = False) -> None:
+    if _flag("maintenance", "0"):
+        raise HTTPException(503, "سرویس در حال به‌روزرسانی است؛ چند دقیقهٔ دیگر برگردید.")
+    if signup and not _flag("signup_open"):
+        raise HTTPException(403, "ثبت‌نام موقتاً بسته است.")
+    if deep and not _flag("deep_enabled"):
+        raise HTTPException(403, "اندیشهٔ ژرف موقتاً خاموش است.")
+
+
 def _check_quota(owner: dict, ip: str, kind: str) -> None:
     used, limit = _quota(owner, ip, kind)
     if used >= limit:
@@ -405,18 +469,52 @@ def _check_quota(owner: dict, ip: str, kind: str) -> None:
         )
 
 
+MUTATING = {"POST", "PATCH", "DELETE", "PUT"}
+
+
+@app.middleware("http")
+async def origin_guard(request: Request, call_next):
+    """درخواست‌های تغییردهنده فقط از همین دامنه پذیرفته می‌شوند."""
+    if request.method in MUTATING and not request.url.path.startswith("/api/admin"):
+        origin = request.headers.get("origin")
+        if origin:
+            host = request.headers.get("host", "")
+            host_name = host.split(":")[0]
+            allowed = {f"https://{host}", f"http://{host}", f"https://{host_name}", f"http://{host_name}"}
+            allowed.update(_PUBLIC_ORIGINS)
+            if origin.rstrip("/") not in {a.rstrip("/") for a in allowed}:
+                return JSONResponse({"detail": "مبدأ درخواست مجاز نیست."}, status_code=403)
+    return await call_next(request)
+
+
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
     response = await call_next(request)
+    path = request.url.path
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
-        "img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'"
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+    response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
+    response.headers["Permissions-Policy"] = (
+        "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
     )
-    if request.url.path.startswith("/static/assets/"):
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; "
+        "connect-src 'self'; worker-src 'self'; manifest-src 'self'; "
+        "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+    )
+    if IS_PROD:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    if path.startswith("/static/assets/"):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif path.startswith("/api/"):
+        if "cache-control" not in response.headers:
+            response.headers["Cache-Control"] = "no-store"
+    elif path in ("/sw.js", "/manifest.webmanifest") or path.endswith(".html") or path == "/":
+        response.headers["Cache-Control"] = "no-cache"
     return response
 
 
@@ -466,6 +564,26 @@ def docs_page() -> FileResponse:
     return _page("docs.html")
 
 
+@app.get("/academy", response_class=HTMLResponse)
+def academy_page() -> FileResponse:
+    return _page("academy.html")
+
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin_page() -> FileResponse:
+    return _page("admin.html")
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+def privacy_page() -> FileResponse:
+    return _page("about.html")
+
+
+@app.get("/offline", response_class=HTMLResponse)
+def offline_page() -> FileResponse:
+    return _page("offline.html")
+
+
 @app.get("/s/{token}", response_class=HTMLResponse)
 def shared_page(token: str) -> FileResponse:
     if store().shared_conversation(token) is None:
@@ -501,7 +619,7 @@ def robots() -> Response:
 @app.get("/sitemap.xml")
 def sitemap(request: Request) -> Response:
     base = os.environ.get("RAYAN_PUBLIC_URL", str(request.base_url).rstrip("/"))
-    pages = ["", "chat", "pricing", "models", "about", "docs"]
+    pages = ["", "chat", "pricing", "models", "about", "docs", "academy"]
     urls = "".join(f"<url><loc>{base}/{p}</loc></url>" for p in pages)
     xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
     return Response(xml, media_type="application/xml")
@@ -606,6 +724,7 @@ def public_stats() -> dict:
 # ------------------------------------------------------------------- حساب
 @app.post("/api/auth/register")
 def register(req: RegisterRequest, request: Request, response: Response) -> dict:
+    _guard_flags(signup=True)
     ip = client_ip(request)
     if not limiter.allow(f"auth:{ip}"):
         raise HTTPException(429, "تلاش‌های زیاد؛ یک دقیقه بعد دوباره امتحان کنید.")
@@ -620,12 +739,17 @@ def register(req: RegisterRequest, request: Request, response: Response) -> dict
 
 @app.post("/api/auth/login")
 def login(req: LoginRequest, request: Request, response: Response) -> dict:
+    _guard_flags()
     ip = client_ip(request)
     if not limiter.allow(f"auth:{ip}"):
         raise HTTPException(429, "تلاش‌های زیاد؛ یک دقیقه بعد دوباره امتحان کنید.")
+    key = f"login:{req.email.strip().lower()}:{ip}"
+    if store().note_attempt(key) > 8:
+        raise HTTPException(429, "تلاش‌های ناموفق زیاد است؛ ۱۵ دقیقه بعد دوباره امتحان کنید.")
     user = store().verify_user(req.email, req.password)
     if user is None:
         raise HTTPException(401, "ایمیل یا رمز عبور نادرست است.")
+    store().clear_attempts(key)
     token = store().create_session(user_id=user["id"], user_agent=request.headers.get("user-agent", ""), ip=ip)
     _set_session_cookie(response, token)
     store().record_event("login", user_id=user["id"], ip=ip)
@@ -798,6 +922,9 @@ def _generation_kwargs(req: ChatRequest) -> dict:
 
 
 def _prepare(req: ChatRequest, owner: dict, ip: str) -> tuple[Engine, str, list[tuple[str, str]], str | None]:
+    _guard_flags(deep=req.deep)
+    if owner.get("user_id") is None and not _flag("guest_chat"):
+        raise HTTPException(403, "گفتگوی مهمان موقتاً بسته است؛ برای ادامه وارد شوید.")
     if not limiter.allow(f"chat:{ip}"):
         raise HTTPException(429, "درخواست‌های پیاپی زیاد است؛ چند لحظه صبر کنید.")
     model = _engine()
@@ -823,13 +950,14 @@ def _prepare(req: ChatRequest, owner: dict, ip: str) -> tuple[Engine, str, list[
 
 
 def _persist_turn(owner: dict, conv_id: str | None, message: str, answer: str,
-                  stats: dict, trace: dict | None, deep: bool) -> tuple[str | None, int | None]:
+                  stats: dict, trace: dict | None, deep: bool,
+                  tool: dict | None = None) -> tuple[str | None, int | None]:
     """پیام کاربر و پاسخ را ذخیره می‌کند؛ شناسهٔ گفتگو و پیام پاسخ را برمی‌گرداند."""
     title = message.strip().replace("\n", " ")[:60] or "گفتگوی تازه"
     if conv_id is None:
         conv_id = store().create_conversation(owner, title)["id"]
     store().add_message(conv_id, "user", message)
-    meta = {"stats": stats, "deep": deep, "trace": trace}
+    meta = {"stats": stats, "deep": deep, "trace": trace, "tool": tool}
     msg_id = store().add_message(conv_id, "assistant", answer, meta)
     existing = store().get_conversation_meta(conv_id)
     if existing and existing["title"] in ("گفتگوی تازه", ""):
@@ -847,6 +975,7 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
     owner = _owner(request)
     ip = client_ip(request)
     model, message, history, conv_id = _prepare(req, owner, ip)
+    tool_result = None if req.mode != "chat" else tools_module.detect(message)
     started = time.time()
     kwargs = _generation_kwargs(req)
     with model.lock:
@@ -865,7 +994,7 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
     stats = _stats(generation, prompt_ids)
     if req.mode == "chat":
         _remember(req.session_id, message, answer)
-    conv_id, msg_id = _persist_turn(owner, conv_id, message, answer, stats, trace, req.deep)
+    conv_id, msg_id = _persist_turn(owner, conv_id, message, answer, stats, trace, req.deep, tool_result)
     _record_usage(owner, ip, "deep" if req.deep else "chat")
     _set_guest_cookie(response, owner)
     with stats_lock:
@@ -882,6 +1011,7 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
         "conversation_id": conv_id,
         "message_id": msg_id,
         "usage": {"used": used, "limit": limit},
+        "tool": tool_result,
     }
 
 
@@ -893,6 +1023,7 @@ def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     if req.deep:
         raise HTTPException(400, "برای اندیشهٔ ژرف از /api/chat استفاده کنید.")
     model, message, history, conv_id = _prepare(req, owner, ip)
+    tool_result = None if req.mode != "chat" else tools_module.detect(message)
     kwargs = _generation_kwargs(req)
     kwargs["seed"] = req.seed
     kwargs = {k: v for k, v in kwargs.items() if v is not None}
@@ -914,7 +1045,7 @@ def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
             if req.mode == "chat":
                 _remember(req.session_id, message, answer)
             stats = _stats(generation, ids)
-            new_conv, msg_id = _persist_turn(owner, conv_id, message, answer, stats, None, False)
+            new_conv, msg_id = _persist_turn(owner, conv_id, message, answer, stats, None, False, tool_result)
             _record_usage(owner, ip, "chat")
             with stats_lock:
                 request_count += 1
@@ -926,12 +1057,178 @@ def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
                 "conversation_id": new_conv,
                 "message_id": msg_id,
                 "usage": {"used": used, "limit": limit},
+                "tool": tool_result,
             }, ensure_ascii=False) + "\n"
 
     headers = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
     response = StreamingResponse(generate_events(), media_type="application/x-ndjson", headers=headers)
     _set_guest_cookie(response, owner)
     return response
+
+
+# =============================================================== تبلیغات
+class AdClick(BaseModel):
+    id: int
+
+
+@app.get("/api/ads")
+def ads_public(slot: str = "") -> dict:
+    if not admin_module.flags()["ads_enabled"]:
+        return {"ads": []}
+    if slot:
+        ad = store().pick_ad(slot)
+        return {"ads": [ad] if ad else []}
+    return {"ads": store().list_ads(only_active=True)}
+
+
+@app.post("/api/ads/{ad_id}/click")
+def ads_click(ad_id: int, request: Request) -> dict:
+    if not limiter.allow(f"adclick:{client_ip(request)}"):
+        raise HTTPException(429, "درخواست زیاد است.")
+    url = store().click_ad(ad_id)
+    if url is None:
+        raise HTTPException(404, "این تبلیغ فعال نیست.")
+    return {"ok": True, "url": url}
+
+
+# ============================================================== مدیریت
+app.include_router(admin_module.router)
+
+
+@app.get("/api/flags")
+def public_flags() -> dict:
+    return {"flags": admin_module.flags()}
+
+
+PLAN_TEXTS = {
+    "free": {
+        "name": "رایگان",
+        "tag": "پیشنهادی",
+        "desc": "حساب کامل: تاریخچهٔ همیشگی و سهمیهٔ بیشتر.",
+        "features": ["تاریخچهٔ دائمی و جست‌وجو", "اشتراک‌گذاری عمومی گفتگو",
+                     "خروجی Markdown", "استودیو تصویر و ابزارها"],
+    },
+    "pro": {
+        "name": "حرفه‌ای",
+        "tag": "پولی",
+        "desc": "همان رایان، با سهمیهٔ بیشتر برای کار روزمره.",
+        "features": ["سهمیهٔ چندبرابری گفتگو", "اندیشهٔ ژرف بیشتر",
+                     "پشتیبانی از توسعهٔ مدل", "دسترسی زودهنگام به مدل‌های بعدی"],
+    },
+}
+
+
+def _num_setting(raw: dict, key: str, default: int) -> int:
+    try:
+        return max(0, int(float(raw.get(key, default))))
+    except (TypeError, ValueError):
+        return default
+
+
+@app.get("/api/plans")
+def public_plans() -> dict:
+    """تعرفهٔ عمومی: از تنظیمات مدیر خوانده می‌شود تا بدون کد بتوان قیمت گذاشت."""
+    raw = store().all_settings()
+    pro_price = _num_setting(raw, "plan_pro_price", 0)
+    pro_days = _num_setting(raw, "plan_pro_days", 30) or 30
+    payments_enabled = raw.get("payments_enabled", "0") == "1"
+    provider = (raw.get("payment_provider", "") or "").strip()
+    link = (raw.get("payment_link", "") or "").strip()
+    note = (raw.get("payment_note", "") or "").strip()
+    plans = []
+    for pid in ("guest", "free", "pro"):
+        limits = LIMITS.get(pid.replace("guest", "guest"), {})
+        base = PLAN_TEXTS.get(pid, PLAN_TEXTS["free"])
+        price = pro_price if pid == "pro" else 0
+        plans.append({
+            "id": pid,
+            "name": "مهمان" if pid == "guest" else base["name"],
+            "tag": "بدون ثبت‌نام" if pid == "guest" else base["tag"],
+            "price": price,
+            "period": f"{pro_days} روز" if pid == "pro" and price else "همیشه",
+            "desc": "برای امتحان کردن؛ تاریخچه در همین مرورگر می‌ماند." if pid == "guest" else base["desc"],
+            "features": (["۲۵ پیام در روز", "هر سه حالت گفتگو، ادامهٔ متن و شعر"] if pid == "guest"
+                         else base["features"]),
+            "limits": limits,
+            "for_sale": bool(pid == "pro" and price > 0 and payments_enabled),
+        })
+    return {
+        "ok": True,
+        "currency": (raw.get("currency_label", "تومان") or "تومان")[:16],
+        "plans": plans,
+        "payments": {
+            "enabled": payments_enabled,
+            "provider": provider[:40],
+            "link": link[:300] if re.match(r"^(https?://|/)", link) else "",
+            "note": note[:200],
+        },
+    }
+
+
+# ================================================================ ابزارها
+class ToolRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=40)
+    args: dict = Field(default_factory=dict)
+
+
+@app.get("/api/tools")
+def tools_catalog() -> dict:
+    return {"tools": tools_module.catalog()}
+
+
+@app.post("/api/tools/run")
+def tools_run(req: ToolRequest, request: Request) -> dict:
+    if not limiter.allow(f"tool:{client_ip(request)}"):
+        raise HTTPException(429, "درخواست زیاد است.")
+    return tools_module.run(req.name, req.args)
+
+
+# ======================================================= خودآزمون و پایش
+@app.get("/api/selftest")
+def selftest() -> dict:
+    checks = []
+
+    def add(name: str, ok: bool, detail: str = "") -> None:
+        checks.append({"name": name, "ok": bool(ok), "detail": detail})
+
+    try:
+        row = store()._one("SELECT 1 AS one")  # noqa: SLF001
+        add("database", bool(row), "sqlite ok")
+    except Exception as exc:
+        add("database", False, str(exc))
+    add("model", engine is not None, engine_error or "loaded")
+    add("checkpoint", os.path.exists(CHECKPOINTS[-1]), CHECKPOINTS[-1])
+    add("tokenizer", os.path.exists(TOKENIZER_PATH), TOKENIZER_PATH)
+    add("static_dir", os.path.isdir(STATIC_DIR), STATIC_DIR)
+    add("admin", bool(admin_module.admin_credentials().get("pw_hash")), "credentials ready")
+    free = -1
+    try:
+        import shutil
+        free = int(shutil.disk_usage(ROOT).free / (1024 ** 2))
+    except Exception:
+        pass
+    add("disk", free > 50, f"{free} MB free")
+    ok = all(item["ok"] for item in checks)
+    return {"ok": ok, "checks": checks, "uptime_s": round(time.time() - STARTED, 1),
+            "version": app.version}
+
+
+@app.get("/api/status")
+def status() -> dict:
+    """نمای عمومی سلامت برای بنر سایت و مانیتورینگ."""
+    flags = admin_module.flags()
+    return {
+        "ok": engine is not None,
+        "version": app.version,
+        "model_loaded": engine is not None,
+        "maintenance": flags["maintenance"],
+        "announcement": flags["announcement"],
+        "uptime_s": round(time.time() - STARTED, 1),
+        "requests": request_count,
+        "db_bytes": os.path.getsize(os.environ.get("RAYAN_DB", "data/rayan.sqlite3"))
+        if os.path.exists(os.environ.get("RAYAN_DB", "data/rayan.sqlite3")) else 0,
+    }
+
 
 
 def main() -> None:
@@ -942,17 +1239,15 @@ def main() -> None:
     parser.add_argument("--checkpoint", default="")
     parser.add_argument("--no-reload", action="store_true")
     args = parser.parse_args()
-    try:
-        engine = load_engine(args.checkpoint or None)
-        print(f"[rayan] loaded {engine.checkpoint} | step={engine.meta.get('step')} "
-              f"| params={sum(p.size for p in engine.params.values()):,}", flush=True)
-    except Exception as exc:
-        engine_error = str(exc)
-        print(f"[rayan] model not loaded: {exc}", flush=True)
-    store()
-    stop = threading.Event()
-    if not args.no_reload:
-        threading.Thread(target=watcher, args=(stop,), daemon=True).start()
+    if args.checkpoint:
+        try:
+            engine = load_engine(args.checkpoint)
+            print(f"[rayan] loaded {engine.checkpoint} | step={engine.meta.get('step')} "
+                  f"| params={sum(p.size for p in engine.params.values()):,}", flush=True)
+        except Exception as exc:
+            engine_error = str(exc)
+            print(f"[rayan] model not loaded: {exc}", flush=True)
+    boot()
     import uvicorn
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
 

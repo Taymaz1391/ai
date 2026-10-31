@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>آکادمی رایان — ChatGPT چطور ساخته شد؟</title>
+  <meta name="description" content="ده درس فارسی دربارهٔ ساخت یک مدل زبانی و محصولی مثل ChatGPT: توکنایزر، ترنسفورمر، پیش‌آموزش، SFT، RLHF و DPO، استنتاج و محصول.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/pages.css">
+  <link rel="stylesheet" href="/static/academy.css">
+  <script src="/static/theme-boot.js"></script>
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true"><div class="glow glow-a"></div><div class="glow glow-b"></div></div>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/"><img class="brand-orb" src="/static/assets/brand/orb-128.png" alt="" width="34" height="34"><span class="brand-name"><b>رایان</b><span>RAYAN</span></span></a>
+      <nav class="nav-links" aria-label="پیمایش">
+        <a class="nav-link" href="/#features">قابلیت‌ها</a>
+        <a class="nav-link" href="/models">مدل‌ها</a>
+        <a class="nav-link" href="/pricing">تعرفه</a>
+        <a class="nav-link is-active" href="/academy">آکادمی</a>
+        <a class="nav-link" href="/docs">مستندات</a>
+        <a class="nav-link" href="/about">درباره</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-ghost btn-sm" href="/login" data-auth="guest">ورود</a>
+        <a class="btn btn-primary btn-sm" href="/chat">شروع گفتگو</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="academy-hero">
+      <div class="wrap">
+        <div class="academy-hero-grid">
+          <div>
+            <span class="eyebrow">آکادمی رایان · نسخهٔ ۱</span>
+            <h1>از «توکن بعدی» تا ChatGPT</h1>
+            <p class="academy-lead">
+              ده درس فارسی، هر کدام با کد واقعی همین مخزن و یک آزمون کوتاه.
+              هدف این است که در پایان بدانی یک مدل زبانی و یک محصول گفتگو <em>دقیقاً</em>
+              از چه بخش‌هایی ساخته شده‌اند — نه در حد شعار، در حد کد.
+            </p>
+            <div class="academy-progress-box">
+              <div class="progress-line"><i id="course-progress" style="width:0%"></i></div>
+              <span id="progress-label">۰ از ۱۰ درس</span>
+            </div>
+          </div>
+          <div class="academy-hero-art">
+            <img class="lockup lockup-for-light" src="/static/assets/brand/lockup-ink.png" alt="رایان">
+            <img class="lockup lockup-for-dark" src="/static/assets/brand/lockup-glow.png" alt="رایان">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-sm">
+      <div class="wrap">
+        <div class="lesson-list" id="lesson-list"></div>
+      </div>
+    </section>
+
+    <section class="section" id="next">
+      <div class="wrap wrap-narrow">
+        <div class="next-band">
+          <h2>این را روی یک مدل واقعی ببین</h2>
+          <p>همین آکادمی همهٔ چیزهایی را توضیح می‌دهد که در رایان پیاده شده‌اند: ۶٫۵۷ میلیون پارامتر، آموزش روی CPU، استریم توکنی و سهمیهٔ مصرف.</p>
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="/chat">گفتگو با رایان</a>
+            <a class="btn" href="/models">جدول سنجه‌ها</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap">
+      <div class="footer-bottom" style="border-top:0;margin-top:0">
+        <span>© ۱۴۰۵ رایان · MIT</span>
+        <a href="https://github.com/Taymaz1391/ai" rel="noopener">مخزن GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/config.js"></script>
+  <script src="/static/ui.js"></script>
+  <script src="/static/academy.js"></script>
+  <script src="/static/ads.js"></script>
+</body>
+</html>

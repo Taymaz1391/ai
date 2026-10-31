@@ -5,13 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>گفتگو · رایان</title>
   <meta name="description" content="گفتگو با رایان، دستیار هوش مصنوعی فارسی.">
-  <meta name="theme-color" content="#050b1a">
+  <meta name="theme-color" content="#ffffff">
   <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/static/assets/icons/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="preload" href="/static/assets/fonts/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="stylesheet" href="/static/chat.css">
+  <script src="/static/theme-boot.js"></script>
 </head>
 <body class="app-body">
   <div class="app-shell">
@@ -68,6 +69,9 @@
             <a href="/login" data-auth="guest" role="menuitem">ورود</a>
             <a href="/pricing" role="menuitem">تعرفه و سهمیه</a>
             <a href="/models" role="menuitem">مدل‌ها</a>
+            <a href="/academy" role="menuitem">آکادمی رایان</a>
+            <button type="button" data-action="studio" role="menuitem">استودیو تصویر</button>
+            <a href="/admin" role="menuitem" data-admin-link hidden>پنل مدیریت</a>
             <a href="/about" role="menuitem">دربارهٔ رایان</a>
             <button type="button" data-action="logout" data-auth="user" role="menuitem">خروج از حساب</button>
           </div>
@@ -110,11 +114,15 @@
       <div class="chat-scroll" id="chat-scroll">
         <div class="empty-state" id="empty-state">
           <div class="empty-orb">
-            <img src="/static/assets/brand/orb-256.png" alt="رایان" width="88" height="88">
+            <span class="orb-live" style="width:96px;height:96px">
+              <img src="/static/assets/brand/orb-256.png" alt="رایان" width="96" height="96">
+              <i class="lid l"></i><i class="lid r"></i>
+            </span>
           </div>
           <h1 id="empty-title">امروز چه کاری برایت انجام دهم؟</h1>
           <p class="empty-sub" id="empty-sub">مدل رایان ۱ — کوچک · ۶٫۵۷ میلیون پارامتر · از صفر ساخته شده</p>
           <div class="suggestions" id="suggestions"></div>
+          <div class="ad-slot ad-inline" data-ad-slot="chat-empty" hidden></div>
           <div class="empty-foot">
             <button class="chip" data-scroll="models">مدل چطور ساخته شده؟</button>
             <button class="chip" data-scroll="pricing">سهمیه‌ام چقدر است؟</button>
@@ -231,5 +239,7 @@
   <script src="/static/config.js"></script>
   <script src="/static/ui.js"></script>
   <script src="/static/app.js"></script>
+  <script src="/static/studio.js"></script>
+  <script src="/static/ads.js"></script>
 </body>
 </html>

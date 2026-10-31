@@ -1,8 +1,9 @@
-"""ساخت دارایی‌های برند رایان: نشان کره‌ای، فاوآیکون و تصویر اشتراک‌گذاری.
+"""ساخت دارایی‌های برند رایان — نشان، قفل کامل لوگو، فاوآیکون و تصویر اشتراک.
 
     python scripts/make_brand.py
 
-همهٔ خروجی‌ها قطعی و بازتولیدپذیرند (بدون وابستگی به سرویس بیرونی).
+منبع قفل لوگو: ``web/static/assets/brand/logo-source.jpg`` (همان فایل اصلی برند).
+خروجی‌ها قطعی و بازتولیدپذیرند و هیچ سرویس بیرونی لازم ندارند.
 """
 from __future__ import annotations
 
@@ -21,12 +22,17 @@ FONT_DIR = "/tmp"
 
 NAVY = (5, 11, 26)
 NAVY_2 = (8, 18, 40)
+INK = (11, 23, 43)          # متن تیره برای تم روشن
+PAPER = (247, 250, 255)     # پس‌زمینهٔ تم روشن
+
+SOURCE = os.path.join(BRAND_DIR, "logo-source.jpg")
 
 
 def _fa(text: str) -> str:
     return get_display(arabic_reshaper.reshape(text))
 
 
+# ---------------------------------------------------------------- نشان کره‌ای
 def orb(size: int, glow: float = 0.0) -> Image.Image:
     """کرهٔ برند با گرادیان شعاعی و دو چشم سفید، در ابعاد دلخواه."""
     ss = 2
@@ -34,10 +40,8 @@ def orb(size: int, glow: float = 0.0) -> Image.Image:
     ys, xs = np.mgrid[0:n, 0:n].astype(np.float32)
     cx, cy = 0.34 * n, 0.26 * n
     cx2, cy2 = 0.50 * n, 0.50 * n
-    # شعاع درون کره
     r_full = 0.36 * n
     dist = np.sqrt(((xs - cx2) / r_full) ** 2 + ((ys - cy2) / r_full) ** 2)
-    # جهت گرادیان از نور بالا-راست
     t = np.sqrt(((xs - cx) / (1.55 * n)) ** 2 + ((ys - cy) / (1.55 * n)) ** 2)
     t = np.clip(t / max(t.max(), 1e-6) * 1.18, 0, 1)[..., None]
     stops = np.array([
@@ -53,15 +57,12 @@ def orb(size: int, glow: float = 0.0) -> Image.Image:
         f = (t - p0) / max(p1 - p0, 1e-6)
         for ch in range(3):
             rgb[..., ch] = np.where(mask[..., 0], c0[ch] + (c1[ch] - c0[ch]) * f[..., 0], rgb[..., ch])
-    eye_y = 0.50 * n
-    eye_r = 0.0527 * n * (size / 256 * 256 / size)  # نسبت ثابت به اندازهٔ کره
     eye_r = 0.0527 * n
-    alpha = np.clip((1.0 - dist) * n * 0.5, 0, 1)  # لبهٔ نرم
+    alpha = np.clip((1.0 - dist) * n * 0.5, 0, 1)
     img = np.zeros((n, n, 4), dtype=np.uint8)
     img[..., :3] = np.clip(rgb, 0, 255).astype(np.uint8)
     img[..., 3] = (alpha * 255).astype(np.uint8)
     out = Image.fromarray(img, "RGBA").resize((size, size), Image.LANCZOS)
-    # بازتاب نور روی لایهٔ جدا تا شفافیت کره حفظ شود
     shine = Image.new("RGBA", out.size, (0, 0, 0, 0))
     sd = ImageDraw.Draw(shine)
     sd.ellipse([0.25 * size, 0.16 * size, 0.60 * size, 0.42 * size], fill=(255, 255, 255, 34))
@@ -99,31 +100,175 @@ def _center_text(draw, box, text, font, fill):
     draw.text((x, y), text, font=font, fill=fill)
 
 
+# ------------------------------------------------------- قفل کامل لوگو (artwork)
+def _ramp(x: np.ndarray, lo: float, hi: float) -> np.ndarray:
+    """رمپ نرم بین دو آستانه؛ ترتیب آستانه‌ها اهمیتی ندارد."""
+    if abs(hi - lo) < 1e-6:
+        return (x >= hi).astype(np.float32)
+    t = np.clip((x - lo) / (hi - lo), 0, 1)
+    return (t * t * (3 - 2 * t)).astype(np.float32)
+
+
+def _extract(source_path: str = SOURCE) -> tuple[Image.Image, Image.Image]:
+    """پس‌زمینهٔ تیرهٔ لوگو را به آلفا تبدیل می‌کند.
+
+    بازمی‌گرداند (نسخهٔ متن سفید, نسخهٔ متن جوهری) — هر دو با پس‌زمینهٔ شفاف.
+    """
+    src = Image.open(source_path).convert("RGB")
+    px = np.asarray(src).astype(np.float32) / 255.0
+    mx = px.max(axis=2)
+    mn = px.min(axis=2)
+    sat = (mx - mn) / np.maximum(mx, 1e-4)
+
+    # متن سفید: روشنایی بالا و اشباع کم؛ هالهٔ آبی پس‌زمینه زیر آستانه می‌ماند
+    text_a = _ramp(mx, 0.34, 0.62) * _ramp(sat, 0.42, 0.16)
+    # کرهٔ رنگی: اشباع بالا حتی با روشنایی متوسط
+    orb_a = _ramp(mx * (0.35 + 0.65 * sat), 0.30, 0.52)
+    alpha = np.clip(np.maximum(text_a, orb_a), 0, 1)
+
+    bg = np.array(NAVY, dtype=np.float32) / 255.0
+    safe = np.maximum(alpha, 1e-3)[..., None]
+    color = np.clip((px - bg * (1 - safe)) / safe, 0, 1)
+
+    # حذف هاله‌های پراکندهٔ پس‌زمینه: فقط پیکسل‌هایی می‌مانند که نزدیک محتوای اصلی‌اند
+    strong = alpha > 0.55
+    near = strong.copy()
+    for dy in range(-5, 6):
+        for dx in range(-5, 6):
+            if dx * dx + dy * dy > 25:
+                continue
+            shifted = np.roll(np.roll(strong, dy, axis=0), dx, axis=1)
+            near |= shifted
+    alpha = np.where(near, alpha, 0.0)
+
+    # لبهٔ کره را به دایرهٔ دقیق تبدیل می‌کنیم (حذف پیکسل‌های نویزی هالهٔ بالا)
+    core = (sat > 0.55) & (mx > 0.45)
+    core[int(src.height * 0.40):] = False          # فقط ناحیهٔ بالای قفل لوگو
+    if core.any():
+        ys_o, xs_o = np.nonzero(core)
+        cy_o = (ys_o.min() + ys_o.max()) / 2.0
+        cx_o = (xs_o.min() + xs_o.max()) / 2.0
+        radius = min(xs_o.max() - xs_o.min(), ys_o.max() - ys_o.min()) / 2.0 + 1.0
+        yy, xx = np.mgrid[0:src.height, 0:src.width]
+        r = np.sqrt((yy - cy_o) ** 2 + (xx - cx_o) ** 2)
+        disc = _ramp(r, radius + 0.8, radius - 1.2)   # ۱ داخل، ۰ خارج
+        orb_zone = yy < cy_o + radius + 4
+        alpha = np.where(orb_zone, np.minimum(alpha, disc) if False else disc, alpha)
+        # داخل کره رنگ اصلی حفظ می‌شود، حتی اگر آلفا کمی کم بوده باشد
+        alpha = np.where(orb_zone & (r < radius - 1), np.maximum(alpha, 0.985), alpha)
+
+    a8 = (alpha * 255).astype(np.uint8)
+    white_img = Image.fromarray(np.dstack([(color * 255).astype(np.uint8), a8]), "RGBA")
+
+    # نسخهٔ متن تیره: متن سفید به جوهری تبدیل می‌شود، اما کره و چشم‌هایش دست‌نخورده می‌مانند
+    rows = strong.any(axis=1)
+    orb_end = int(np.argmax(rows)) + int(np.argmin(rows[int(np.argmax(rows)):]))  # پایان کره
+    ink_weight = _ramp(sat, 0.34, 0.12) * _ramp(mx, 0.30, 0.55)
+    band = np.ones((px.shape[0], 1), dtype=np.float32)
+    band[max(orb_end - 6, 0):] = 1.0
+    band[:max(orb_end - 6, 0)] = 0.0
+    ink_weight = ink_weight * band
+    ink_weight = ink_weight[..., None]
+    ink = np.array(INK, dtype=np.float32) / 255.0
+    tinted = color * (1 - ink_weight) + ink * ink_weight
+    ink_img = Image.fromarray(np.dstack([(np.clip(tinted, 0, 1) * 255).astype(np.uint8), a8]), "RGBA")
+
+    bbox = alpha > 0.20
+    rows = np.where(bbox.any(axis=1))[0]
+    cols = np.where(bbox.any(axis=0))[0]
+    pad = 12
+    box = (max(int(cols[0]) - pad, 0), max(int(rows[0]) - pad, 0),
+           min(int(cols[-1]) + pad, src.width), min(int(rows[-1]) + pad, src.height))
+    return white_img.crop(box), ink_img.crop(box)
+
+
+def _fit(img: Image.Image, width: int) -> Image.Image:
+    if img.width == width:
+        return img
+    height = round(img.height * width / img.width)
+    return img.resize((width, height), Image.LANCZOS)
+
+
+def _on_canvas(art: Image.Image, bg: tuple[int, int, int], pad_ratio: float = 0.10,
+               glow: bool = True) -> Image.Image:
+    """قفل لوگو را روی یک بوم مربع/مستطیل با هالهٔ نرم می‌نشاند."""
+    w = max(art.width, 1)
+    pad = int(w * pad_ratio)
+    size = (art.width + pad * 2, art.height + pad * 2)
+    canvas = Image.new("RGBA", size, bg + (255,))
+    if glow:
+        halo = Image.new("RGBA", size, (0, 0, 0, 0))
+        d = ImageDraw.Draw(halo)
+        d.ellipse([size[0] * 0.18, size[1] * 0.02, size[0] * 0.82, size[1] * 0.55],
+                  fill=(20, 96, 220, 90))
+        halo = halo.filter(ImageFilter.GaussianBlur(int(size[0] * 0.09)))
+        canvas = Image.alpha_composite(canvas, halo)
+    canvas.alpha_composite(art, (pad, pad))
+    return canvas
+
+
+def lockups() -> dict[str, tuple[int, int]]:
+    os.makedirs(BRAND_DIR, exist_ok=True)
+    white, ink = _extract()
+    out: dict[str, tuple[int, int]] = {}
+
+    variants = {
+        "lockup-glow.png": (_fit(white, 1000), None, 0.0),      # شفاف برای پس‌زمینهٔ تیره
+        "lockup-ink.png": (_fit(ink, 1000), None, 0.0),         # شفاف برای پس‌زمینهٔ روشن
+        "lockup-dark.png": (_fit(white, 1000), NAVY, 0.10),     # کارت تیره
+        "lockup-light.png": (_fit(ink, 1000), PAPER, 0.10),     # کارت روشن
+        "lockup-stacked.png": (_fit(ink, 760), PAPER, 0.12),
+    }
+    for name, (art, bg, pad) in variants.items():
+        if bg is None:
+            img = art
+        else:
+            img = _on_canvas(art, bg, pad_ratio=pad or 0.1, glow=(bg == NAVY))
+        img.save(os.path.join(BRAND_DIR, name), optimize=True)
+        out[name] = img.size
+
+    # نسخهٔ تک‌رنگ برای مهر و فوتر
+    mono_white = Image.new("RGBA", white.size, (255, 255, 255, 0))
+    mono_white.putalpha(white.getchannel("A"))
+    mono_white.save(os.path.join(BRAND_DIR, "lockup-mono-white.png"), optimize=True)
+    mono_ink = Image.new("RGBA", ink.size, INK + (0,))
+    mono_ink.putalpha(ink.getchannel("A"))
+    mono_ink.save(os.path.join(BRAND_DIR, "lockup-mono-ink.png"), optimize=True)
+    out["lockup-mono-white.png"] = mono_white.size
+    out["lockup-mono-ink.png"] = mono_ink.size
+    return out
+
+
+# --------------------------------------------------------------- تصویر اشتراک
 def og_image(path: str) -> None:
     W, H = 1200, 630
-    bg = Image.new("RGB", (W, H), NAVY)
-    # هاله‌های نرم
-    glow = Image.new("RGB", (W, H), NAVY)
+    white, _ink = _extract()
+    # قفل لوگو را در کادر بالا-چپ جا می‌دهیم تا متن فارسی کنارش جا شود
+    art = _fit(white, 430)
+    if art.height > 380:
+        art = art.resize((int(art.width * 380 / art.height), 380), Image.LANCZOS)
+    bg = Image.new("RGBA", (W, H), NAVY + (255,))
+    glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(glow)
-    d.ellipse([W * 0.22, -H * 0.55, W * 0.78, H * 0.55], fill=(10, 34, 88))
-    d.ellipse([W * 0.34, -H * 0.30, W * 0.66, H * 0.35], fill=(10, 52, 128))
-    glow = glow.filter(ImageFilter.GaussianBlur(90))
-    bg = Image.blend(bg, glow, 0.9)
-    # شبکهٔ نقطه‌ای محو
+    d.ellipse([W * 0.42, -H * 0.45, W * 0.95, H * 0.55], fill=(14, 66, 160, 150))
+    d.ellipse([-W * 0.1, H * 0.5, W * 0.55, H * 1.1], fill=(10, 48, 120, 120))
+    glow = glow.filter(ImageFilter.GaussianBlur(95))
+    bg = Image.alpha_composite(bg, glow)
     grid = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     gd = ImageDraw.Draw(grid)
     for x in range(0, W, 40):
         for y in range(0, H, 40):
-            gd.point((x, y), fill=(120, 190, 255, 26))
-    bg = Image.alpha_composite(bg.convert("RGBA"), grid)
-    # کره
-    ball = orb(230, glow=0.9)
-    bg.alpha_composite(ball, (int(W / 2 - 115), 46))
+            gd.point((x, y), fill=(120, 190, 255, 24))
+    bg = Image.alpha_composite(bg, grid)
+    bg.alpha_composite(art, ((W - art.width) // 2, 28))
     d = ImageDraw.Draw(bg)
-    _center_text(d, (0, 292, W, 404), _fa("رایان"), _font("Vazirmatn-Black.ttf", 104), (255, 255, 255))
-    _center_text(d, (0, 408, W, 448), "R A Y A N", _font("Vazirmatn-Bold.ttf", 30), (110, 170, 255))
-    _center_text(d, (0, 466, W, 512), _fa("هوش مصنوعی، به زبان فارسی"), _font("Vazirmatn-Medium.ttf", 30), (170, 200, 235))
-    _center_text(d, (0, 552, W, 590), "from scratch · numpy · 6.57M params", _font("Vazirmatn-Regular.ttf", 21), (108, 132, 168))
+    _center_text(d, (0, H - 196, W, H - 130), _fa("هوش مصنوعی، به زبان فارسی"),
+                 _font("Vazirmatn-Black.ttf", 48), (255, 255, 255))
+    _center_text(d, (0, H - 138, W, H - 96),
+                 "from scratch · numpy · 6.57M params · persian ai",
+                 _font("Vazirmatn-Medium.ttf", 23), (124, 172, 222))
+    _center_text(d, (0, H - 84, W, H - 34), "taymaz1391.github.io/ai",
+                 _font("Vazirmatn-Bold.ttf", 25), (86, 156, 255))
     bg.convert("RGB").save(path, quality=92, optimize=True)
 
 
@@ -146,10 +291,13 @@ def main() -> None:
     orb(256).save(os.path.join(BRAND_DIR, "orb-256.png"), optimize=True)
     orb(128).save(os.path.join(BRAND_DIR, "orb-128.png"), optimize=True)
     avatar(os.path.join(ICON_DIR, "favicon-32.png"), 32, None)
-    avatar(os.path.join(ICON_DIR, "favicon-192.png"), 192, (5, 11, 26))
-    avatar(os.path.join(ICON_DIR, "apple-touch-icon.png"), 180, (5, 11, 26))
-    avatar(os.path.join(ICON_DIR, "maskable-512.png"), 512, (5, 11, 26))
+    avatar(os.path.join(ICON_DIR, "favicon-192.png"), 192, NAVY)
+    avatar(os.path.join(ICON_DIR, "apple-touch-icon.png"), 180, NAVY)
+    avatar(os.path.join(ICON_DIR, "maskable-512.png"), 512, NAVY)
+    sizes = lockups()
     og_image(os.path.join(BRAND_DIR, "og-image.png"))
+    for name, size in sorted(sizes.items()):
+        print(f"  {name:28s} {size[0]}×{size[1]}")
     print("brand assets written to", BRAND_DIR, "and", ICON_DIR)
 
 

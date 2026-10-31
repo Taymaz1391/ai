@@ -27,6 +27,8 @@ _site/
 
 # پایگاه‌دادهٔ محلی و وابستگی‌های آزمون رابط
 data/*.sqlite3
+data/admin.json
+data/backups/
 data/*.sqlite3-shm
 data/*.sqlite3-wal
 tests/ui/node_modules
