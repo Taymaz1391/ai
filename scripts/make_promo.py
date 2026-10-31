@@ -71,22 +71,6 @@ TEXT = {
         "url": "github.com/Taymaz1391/ai",
         "final_note": "متن‌باز، بدون API بیرونی، ساخته‌شده در ایران",
     },
-    "en": {
-        "kicker": "BUILT FROM ZERO",
-        "tagline": "Persian AI, built from scratch",
-        "headline": ["It reads Persian", "and it was built from zero"],
-        "chips": ["Chat + streaming", "Local tools", "Zero external APIs"],
-        "chat_title": "New chat",
-        "chat_user": "Write one line about the rain.",
-        "chat_bot": "The night is open; the rain writes you a poem.",
-        "chat_hint": "Message Rayan",
-        "stats_title": "Measured on this server",
-        "stats": [("6,574,848", "parameters"), ("84", "tokens / sec"), ("0.04", "s median reply")],
-        "stats_note": "no GPU, no external service, zero cost",
-        "cta": "Try it now",
-        "url": "github.com/Taymaz1391/ai",
-        "final_note": "Open source, no external API, built from scratch",
-    },
 }
 
 
@@ -1008,7 +992,7 @@ def poster(renderer: Renderer, key: str, lang: str, path: str, at: float) -> Non
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=os.path.join(ROOT, "web", "static", "assets", "video"))
-    ap.add_argument("--lang", default="fa", choices=["fa", "en", "both"])
+    ap.add_argument("--lang", default="fa", choices=["fa"], help="سایت تک‌زبانه است")
     ap.add_argument("--ratio", default="", help="16x9 یا 9x16 یا 1x1 (خالی = همه)")
     ap.add_argument("--preview", default="", help="زمان‌ها با کاما، مثلاً 1.6,4.6")
     ap.add_argument("--fps", type=int, default=FPS)
@@ -1021,7 +1005,7 @@ def main() -> None:
 
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
     renderer = Renderer()
-    langs = ["fa", "en"] if args.lang == "both" else [args.lang]
+    langs = [args.lang]
 
     if args.preview:
         for lang in langs:

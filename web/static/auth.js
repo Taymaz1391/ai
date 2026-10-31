@@ -59,21 +59,29 @@
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") go();
     }, { once: true });
-    // صدا روشن؛ اگر مرورگر اجازه نداد، بی‌صدا پخش می‌شود
+    // صدا روشن؛ اگر مرورگر اجازه نداد، بی‌صدا پخش می‌شود و دکمه صدا روشن می‌ماند
+    const setSoundLabel = () => {
+      if (!sound) return;
+      sound.setAttribute("aria-pressed", vid.muted ? "false" : "true");
+      sound.textContent = vid.muted ? "صدا" : "بی‌صدا";
+    };
     vid.muted = false;
     const attempt = vid.play();
-    if (attempt && typeof attempt.catch === "function") {
-      attempt.catch(() => {
+    if (attempt && typeof attempt.then === "function") {
+      attempt.then(setSoundLabel).catch(() => {
         vid.muted = true;
-        if (sound) sound.setAttribute("aria-pressed", "false");
+        setSoundLabel();
         vid.play().catch(go);
       });
+    } else {
+      setSoundLabel();
     }
+    if (skip) skip.focus({ preventScroll: true });
     if (sound) {
+      setSoundLabel();
       sound.addEventListener("click", () => {
         vid.muted = !vid.muted;
-        sound.setAttribute("aria-pressed", vid.muted ? "false" : "true");
-        sound.textContent = vid.muted ? "صدا" : "بی‌صدا";
+        setSoundLabel();
         if (!vid.muted) vid.play().catch(() => {});
       });
     }

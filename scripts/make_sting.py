@@ -150,7 +150,7 @@ def render(out_path: str, key: str, lang: str, renderer: Renderer, ffmpeg: str, 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=os.path.join(ROOT, "web", "static", "assets", "video"))
-    ap.add_argument("--lang", default="both", choices=["fa", "en", "both"])
+    ap.add_argument("--lang", default="fa", choices=["fa"])
     ap.add_argument("--ratio", default="", help="16x9 یا 1x1 (خالی = هر دو)")
     ap.add_argument("--preview", default="", help="زمان‌ها با کاما")
     ap.add_argument("--crf", default="23")
@@ -162,7 +162,7 @@ def main() -> None:
 
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
     renderer = Renderer()
-    langs = ["fa", "en"] if args.lang == "both" else [args.lang]
+    langs = [args.lang]
     keys = [args.ratio] if args.ratio else ["16x9", "1x1"]
 
     if args.preview:
