@@ -124,10 +124,10 @@
 }
 .switch i::after {
   content: ""; position: absolute; inset-block: 3px; inset-inline-start: 3px;
-  width: 18px; height: 18px; border-radius: 50%; background: #fff;
+  width: 18px; height: 18px; border-radius: 50%; background: var(--surface-solid);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); transition: 0.2s var(--ease);
 }
-.switch input:checked + i { background: var(--blue); }
+.switch input:checked + i { background: var(--accent-solid); }
 .switch input:checked + i::after { transform: translateX(-18px); }
 [dir="ltr"] .switch input:checked + i::after { transform: translateX(18px); }
 
@@ -143,3 +143,15 @@
   .admin-nav button { white-space: nowrap; }
   .ad-form .wide { grid-column: 1 / -1; }
 }
+
+/* هشدار گذرواژهٔ پیش‌فرض مالک */
+.admin-warn {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin: 0 0 16px; padding: 12px 16px;
+  border: 1px solid color-mix(in srgb, var(--rose) 45%, transparent);
+  background: var(--danger-bg); color: var(--danger-fg);
+  border-radius: 14px; font-size: 13px; line-height: 1.8;
+}
+.admin-warn b { font-size: 13.5px; }
+.admin-warn .btn { margin-inline-start: auto; background: var(--surface-solid); color: var(--text); }
+.admin-warn[hidden] { display: none; }

@@ -55,8 +55,10 @@
             <input class="input" id="name" name="name" type="text" autocomplete="name" placeholder="مثلاً سارا">
           </div>
           <div class="field">
-            <label for="email">ایمیل</label>
-            <input class="input" id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" dir="ltr" required>
+            <label for="email" id="identifier-label">ایمیل</label>
+            <input class="input" id="email" name="identifier" type="text" autocomplete="username"
+                   placeholder="you@example.com" dir="auto" required>
+            <span class="field-hint" id="identifier-hint">با ایمیل یا نام کاربری وارد شو.</span>
           </div>
           <div class="field">
             <label for="password">رمز عبور</label>

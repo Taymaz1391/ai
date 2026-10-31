@@ -172,17 +172,36 @@
     }
   });
 
+  // نوار گفتگوها پیش‌فرض بسته است؛ آخرین وضعیت در حافظهٔ محلی می‌ماند.
+  const SIDEBAR_KEY = "rayan.sidebar.open";
+  const sidebarToggle = $("#sidebar-open");
   function closeSidebar() {
     el.sidebar.classList.remove("is-open");
     el.scrim.hidden = true;
+    if (sidebarToggle) sidebarToggle.setAttribute("aria-expanded", "false");
+    try { localStorage.setItem(SIDEBAR_KEY, "0"); } catch { /* حالت خصوصی */ }
   }
   function openSidebar() {
     el.sidebar.classList.add("is-open");
     el.scrim.hidden = false;
+    if (sidebarToggle) sidebarToggle.setAttribute("aria-expanded", "true");
+    try { localStorage.setItem(SIDEBAR_KEY, "1"); } catch { /* حالت خصوصی */ }
+    const search = $("#conv-search");
+    if (search) search.focus({ preventScroll: true });
   }
-  $("#sidebar-open").addEventListener("click", openSidebar);
+  if (sidebarToggle) sidebarToggle.addEventListener("click", () => {
+    if (el.sidebar.classList.contains("is-open")) closeSidebar();
+    else openSidebar();
+  });
   $("#sidebar-close").addEventListener("click", closeSidebar);
   el.scrim.addEventListener("click", closeSidebar);
+
+  // بستن با کلیک بیرون
+  document.addEventListener("pointerdown", (event) => {
+    if (!el.sidebar.classList.contains("is-open")) return;
+    if (el.sidebar.contains(event.target) || (sidebarToggle && sidebarToggle.contains(event.target))) return;
+    closeSidebar();
+  });
 
   // ---------------------------------------------------------- وضعیت کاربر
   function planLabel(plan) {
@@ -893,10 +912,23 @@
     $("#set-candidates").value = s.candidates;
     $("#temp-value").textContent = nf(s.temperature, 2);
     $("#topp-value").textContent = nf(s.top_p, 2);
+    const tokens = $("#tokens-value");
+    if (tokens) tokens.textContent = nf(s.max_new_tokens) + " توکن";
+    const cand = $("#cand-value");
+    if (cand) cand.textContent = nf(s.candidates);
   }
-  $("#settings-btn").addEventListener("click", () => {
+  $("#settings-btn").addEventListener("click", (event) => {
+    event.stopPropagation();
     syncSettingsUI();
-    openModal("settings-modal");
+    const pop = $("#settings-modal");
+    pop.hidden = !pop.hidden;
+  });
+  document.addEventListener("pointerdown", (event) => {
+    const pop = $("#settings-modal");
+    if (!pop || pop.hidden) return;
+    if (pop.contains(event.target) || $("#settings-btn").contains(event.target)) return;
+    pop.hidden = true;
+    saveSettings();
   });
   $("#set-temp").addEventListener("input", (e) => {
     state.settings.temperature = Number(e.target.value);
@@ -906,11 +938,13 @@
     state.settings.top_p = Number(e.target.value);
     $("#topp-value").textContent = nf(state.settings.top_p, 2);
   });
-  $("#set-tokens").addEventListener("change", (e) => {
-    state.settings.max_new_tokens = Math.max(16, Math.min(220, Number(e.target.value) || 110));
+  $("#set-tokens").addEventListener("input", (e) => {
+    state.settings.max_new_tokens = Math.max(40, Math.min(220, Number(e.target.value) || 110));
+    $("#tokens-value").textContent = nf(state.settings.max_new_tokens) + " توکن";
   });
-  $("#set-candidates").addEventListener("change", (e) => {
+  $("#set-candidates").addEventListener("input", (e) => {
     state.settings.candidates = Math.max(2, Math.min(6, Number(e.target.value) || 4));
+    $("#cand-value").textContent = nf(state.settings.candidates);
   });
   $("#reset-settings").addEventListener("click", () => {
     state.settings = Object.assign({}, DEFAULTS);

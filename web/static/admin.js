@@ -42,6 +42,7 @@
       if (info.authenticated) {
         state.csrf = info.csrf;
         state.user = info.user;
+        state.sessionInfo = info;
         enterPanel();
         return;
       }
@@ -49,10 +50,20 @@
     $("#admin-login").hidden = false;
   }
 
+  function applyOwner(info) {
+    state.owner = (info && info.owner) || null;
+    const warn = document.getElementById("owner-warning");
+    if (warn) warn.hidden = !(state.owner && state.owner.default_password);
+    const who = document.getElementById("admin-user");
+    if (who && state.user) who.textContent = state.user.name || state.user.email;
+    const ownerName = document.getElementById("owner-name");
+    if (ownerName && state.owner) ownerName.textContent = state.owner.name || "";
+  }
+
   function enterPanel() {
     $("#admin-login").hidden = true;
     $("#admin-shell").hidden = false;
-    $("#admin-user").textContent = state.user ? state.user.email : "admin";
+    applyOwner(state.sessionInfo || { owner: state.owner });
     loadOverview();
     loadSelfTest();
     healthLoop();
@@ -72,6 +83,7 @@
       state.csrf = data.csrf;
       const info = await api("/api/admin/session");
       state.user = info.user;
+      state.sessionInfo = info;
       enterPanel();
       toast("خوش آمدید.", "ok");
     } catch (err) {
@@ -80,6 +92,32 @@
     } finally {
       btn.disabled = false;
       btn.textContent = "ورود امن";
+    }
+  });
+
+  const ownerBtn = document.getElementById("owner-change-pw");
+  if (ownerBtn) ownerBtn.addEventListener("click", () => {
+    const tab = document.querySelector('[data-tab="settings"]');
+    if (tab) tab.click();
+    const input = document.getElementById("owner-new-password");
+    if (input) input.focus({ preventScroll: false });
+    const warn = document.getElementById("owner-warning");
+    if (warn) warn.hidden = true;
+  });
+
+  const saveOwner = document.getElementById("save-owner-password");
+  if (saveOwner) saveOwner.addEventListener("click", async () => {
+    const value = document.getElementById("owner-new-password").value;
+    if (value.length < 8) { toast("حداقل ۸ نویسه لازم است.", "error"); return; }
+    try {
+      const res = await api("/api/admin/owner-password", { method: "POST", body: { password: value } });
+      document.getElementById("owner-new-password").value = "";
+      state.owner = res.owner;
+      const warn = document.getElementById("owner-warning");
+      if (warn) warn.hidden = !(res.owner && res.owner.default_password);
+      toast("گذرواژهٔ مالک ذخیره شد.", "ok");
+    } catch (err) {
+      toast(err.message, "error");
     }
   });
 

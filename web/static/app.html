@@ -85,9 +85,13 @@
     <!-- ============================================================ اصلی -->
     <div class="app-main">
       <header class="app-top">
-        <button class="icon-btn sidebar-open" id="sidebar-open" aria-label="نمایش گفتگوها">
+        <button class="icon-btn sidebar-open" id="sidebar-open" aria-label="نمایش گفتگوها" aria-controls="sidebar" aria-expanded="false" title="گفتگوها">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
+        <a class="app-brand" href="/" aria-label="رایان، خانه">
+          <img class="wordmark-for-light" src="/static/assets/brand/wordmark-ink.png" alt="رایان" width="96" height="39">
+          <img class="wordmark-for-dark" src="/static/assets/brand/wordmark-white.png" alt="رایان" width="96" height="39">
+        </a>
 
         <div class="picker" id="model-picker">
           <button class="picker-btn" id="model-btn" aria-haspopup="listbox" aria-expanded="false">
@@ -170,36 +174,43 @@
   </div>
 
   <!-- =========================================================== مودال‌ها -->
-  <div class="modal-backdrop" id="settings-modal" hidden>
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-      <div class="modal-head">
-        <h3 id="settings-title">تنظیمات تولید</h3>
-        <button class="icon-btn" data-close="settings-modal" aria-label="بستن">✕</button>
+  <div class="settings-pop" id="settings-modal" role="dialog" aria-labelledby="settings-title" hidden>
+    <div class="sp-head">
+      <h3 id="settings-title">تنظیمات</h3>
+      <button class="icon-btn" data-close="settings-modal" aria-label="بستن">✕</button>
+    </div>
+    <div class="sp-body">
+      <label class="sp-row" for="set-temp">
+        <span>خلاقیت</span>
+        <b id="temp-value">۰٫۸۲</b>
+      </label>
+      <input class="sp-range" id="set-temp" type="range" min="0.2" max="1.4" step="0.05" value="0.82">
+
+      <label class="sp-row" for="set-tokens">
+        <span>طول پاسخ</span>
+        <b id="tokens-value">۱۱۰ توکن</b>
+      </label>
+      <input class="sp-range" id="set-tokens" type="range" min="40" max="220" step="16" value="110">
+
+      <details class="sp-advanced">
+        <summary>پیشرفته</summary>
+        <label class="sp-row" for="set-topp">
+          <span>top-p</span>
+          <b id="topp-value">۰٫۹۰</b>
+        </label>
+        <input class="sp-range" id="set-topp" type="range" min="0.5" max="1" step="0.01" value="0.9">
+        <label class="sp-row" for="set-candidates">
+          <span>مسیرهای اندیشهٔ ژرف</span>
+          <b id="cand-value">۴</b>
+        </label>
+        <input class="sp-range" id="set-candidates" type="range" min="2" max="6" step="1" value="4">
+      </details>
+
+      <div class="sp-foot">
+        <button class="btn btn-ghost btn-sm" id="reset-settings" type="button">بازنشانی</button>
+        <button class="btn btn-primary btn-sm" data-close="settings-modal" type="button">ذخیره</button>
       </div>
-      <div class="modal-body">
-        <div class="field">
-          <label for="set-temp">دما — خلاقیت</label>
-          <input class="input" id="set-temp" type="range" min="0.2" max="1.4" step="0.05" value="0.82">
-          <span class="form-note" id="temp-value">۰٫۸۲</span>
-        </div>
-        <div class="field">
-          <label for="set-topp">top-p — تنوع واژگان</label>
-          <input class="input" id="set-topp" type="range" min="0.5" max="1" step="0.01" value="0.9">
-          <span class="form-note" id="topp-value">۰٫۹۰</span>
-        </div>
-        <div class="field">
-          <label for="set-tokens">حداکثر توکن پاسخ</label>
-          <input class="input" id="set-tokens" type="number" min="16" max="220" step="8" value="110">
-        </div>
-        <div class="field">
-          <label for="set-candidates">تعداد مسیرهای اندیشهٔ ژرف</label>
-          <input class="input" id="set-candidates" type="number" min="2" max="6" step="1" value="4">
-        </div>
-      </div>
-      <div class="modal-foot">
-        <button class="btn btn-sm" id="reset-settings">بازنشانی</button>
-        <button class="btn btn-primary btn-sm" data-close="settings-modal">ذخیره</button>
-      </div>
+      <p class="sp-note">همه‌چیز محلی است؛ تنظیمات فقط در همین مرورگر ذخیره می‌شود.</p>
     </div>
   </div>
 

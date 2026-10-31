@@ -22,7 +22,7 @@ from web.store import store
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ADMIN_COOKIE = "rayan_admin"
 CSRF_HEADER = "x-rayan-csrf"
-ADMIN_FILE = os.path.join(ROOT, "data", "admin.json")
+ADMIN_FILE = os.environ.get("RAYAN_ADMIN_FILE") or os.path.join(ROOT, "data", "admin.json")
 LOGIN_WINDOW = 900
 MAX_ATTEMPTS = 5
 
@@ -94,7 +94,7 @@ def admin_credentials() -> dict:
         "generated_password": password,
     }
     _save_local(data)
-    print(f"[rayan-admin] گذرواژهٔ مدیریت ساخته شد: {password}  (فایل: data/admin.json)", flush=True)
+    print(f"[rayan-admin] گذرواژهٔ مدیریت ساخته شد: {password}  (فایل: {ADMIN_FILE})", flush=True)
     return data
 
 
@@ -194,11 +194,14 @@ def session_info(request: Request) -> dict:
     if session is None:
         return {"authenticated": False}
     session = require_admin(request)
+    from web import owner as owner_module
+    owner = owner_module.status()
     return {
         "authenticated": True,
         "csrf": session["csrf"],
         "user": {"id": session["user"]["id"], "name": session["user"]["name"], "email": session["user"]["email"]},
         "expires_at": session["expires_at"],
+        "owner": {"name": owner["name"], "default_password": owner["default_password"]},
     }
 
 
@@ -359,6 +362,23 @@ def maintenance(request: Request, task: str = "vacuum") -> dict:
         raise HTTPException(400, "کار ناشناخته.")
     audit(f"maintenance_{task}", request)
     return result
+
+
+@router.post("/owner-password")
+def owner_password(req: AdminLogin, request: Request) -> dict:
+    """گذرواژهٔ مالک (ورود با نام کاربری) را عوض می‌کند."""
+    require_admin(request, csrf=True)
+    from web import owner as owner_module
+    if len(req.password) < owner_module.MIN_LENGTH:
+        raise HTTPException(400, f"گذرواژهٔ مالک باید حداقل {owner_module.MIN_LENGTH} نویسه باشد.")
+    if req.password == owner_module.DEV_DEFAULT_PASSWORD:
+        raise HTTPException(400, "همان گذرواژهٔ پیش‌فرض قابل قبول نیست.")
+    try:
+        owner_module.set_password(req.password)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    audit("owner_password_changed", request)
+    return {"ok": True, "owner": owner_module.status()}
 
 
 @router.post("/password")

@@ -10,9 +10,33 @@
 }
 .app-shell {
   display: grid;
-  grid-template-columns: 292px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   height: 100dvh;
 }
+/* نوار گفتگوها همیشه کشویی است و پیش‌فرض بسته می‌ماند */
+.sidebar {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: min(318px, 88vw);
+  z-index: 90;
+  transform: translateX(105%);
+  transition: transform 0.26s var(--ease);
+  box-shadow: -24px 0 70px rgba(4, 12, 28, 0.28);
+}
+.sidebar.is-open { transform: none; }
+.sidebar-close { display: grid; }
+.sidebar-open { display: grid; }
+.sidebar-scrim {
+  position: fixed; inset: 0; z-index: 80;
+  background: rgba(2, 6, 15, 0.55);
+  backdrop-filter: blur(2px);
+}
+.app-brand { display: inline-flex; align-items: center; padding-inline-end: 4px; }
+.app-brand img { height: 30px; width: auto; }
+.app-brand .wordmark-for-dark { display: none; }
+[data-theme="dark"] .app-brand .wordmark-for-dark { display: block; }
+[data-theme="dark"] .app-brand .wordmark-for-light { display: none; }
 
 /* ============================================================ نوار کنار */
 .sidebar {
@@ -20,7 +44,7 @@
   flex-direction: column;
   gap: 12px;
   padding: 14px 12px 12px;
-  background: var(--sidebar-bg, linear-gradient(180deg, #ffffff, #f8fbff));
+  background: var(--sidebar-bg, var(--surface-solid));
   border-inline-end: 1px solid var(--line);
   min-height: 0;
 }
@@ -444,26 +468,7 @@
 
 /* ============================================================ واکنش */
 @media (max-width: 900px) {
-  .app-shell { grid-template-columns: 1fr; }
-  .sidebar {
-    position: fixed;
-    inset-block: 0;
-    inset-inline-end: 0;
-    width: min(300px, 86vw);
-    z-index: 90;
-    transform: translateX(105%);
-    transition: transform 0.28s var(--ease);
-    box-shadow: -20px 0 60px rgba(12, 26, 43, 0.18);
-  }
-  [dir="rtl"] .sidebar { transform: translateX(105%); }
-  .sidebar.is-open { transform: none; }
-  .sidebar-close { display: grid; }
-  .sidebar-open { display: grid; }
-  .sidebar-scrim {
-    position: fixed; inset: 0; z-index: 80;
-    background: rgba(2, 6, 15, 0.6);
-    backdrop-filter: blur(2px);
-  }
+  .sidebar { width: min(300px, 86vw); }
   .chat-scroll { padding: 18px 14px 8px; }
   .composer-wrap { padding: 6px 12px 10px; }
   .suggestions { grid-template-columns: 1fr; }
@@ -517,7 +522,7 @@
 .artifact-body { overflow: auto; display: flex; flex-direction: column; min-height: 0; }
 .artifact-preview { padding: 16px; display: grid; place-items: center; }
 .artifact-preview img { width: 100%; height: auto; border-radius: 14px; box-shadow: var(--shadow); }
-.artifact-preview iframe { width: 100%; height: 360px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.artifact-preview iframe { width: 100%; height: 360px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-solid); }
 .artifact-code { margin: 0; padding: 0 16px 16px; overflow: auto; direction: ltr; text-align: left; }
 .artifact-code code {
   font-family: var(--mono); font-size: 12.5px; line-height: 1.7;
@@ -562,3 +567,28 @@
   justify-content: center; border-inline: 0; border-top: 0;
   font-size: 13px;
 }
+
+/* ==================================================== تنظیمات مینیمال */
+.settings-pop {
+  position: fixed;
+  top: 62px;
+  inset-inline-end: 16px;
+  width: min(320px, calc(100vw - 32px));
+  z-index: 120;
+  background: var(--surface-solid);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow-lg);
+  padding: 14px 16px 12px;
+}
+.settings-pop[hidden] { display: none; }
+.sp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.sp-head h3 { font-size: 14.5px; margin: 0; color: var(--text); }
+.sp-body { display: grid; gap: 6px; }
+.sp-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--text-2); margin-top: 6px; }
+.sp-row b { color: var(--blue); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.sp-range { width: 100%; height: 26px; margin: 0; accent-color: var(--accent-solid); background: transparent; }
+.sp-advanced { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 8px; }
+.sp-advanced summary { cursor: pointer; font-size: 12.5px; color: var(--text-3); }
+.sp-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; }
+.sp-note { font-size: 11.5px; color: var(--text-3); margin: 8px 0 0; line-height: 1.7; }

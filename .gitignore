@@ -33,3 +33,7 @@ data/*.sqlite3-shm
 data/*.sqlite3-wal
 tests/ui/node_modules
 node_modules/
+
+# اعتبارنامهٔ مالک (هش scrypt؛ هرگز در Git نمی‌رود)
+data/owner.json
+data/owner.json.tmp

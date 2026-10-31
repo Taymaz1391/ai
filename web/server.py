@@ -38,6 +38,7 @@ from rayan.thinking import deep_reply  # noqa: E402
 from web.store import store  # noqa: E402
 from web import admin as admin_module  # noqa: E402
 from web import locale as locale_module  # noqa: E402
+from web import owner as owner_module  # noqa: E402
 from web import tools as tools_module  # noqa: E402
 
 STATIC_DIR = os.path.join(ROOT, "web", "static")
@@ -208,7 +209,10 @@ class RegisterRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    """ورود با ایمیل یا نام کاربری. فیلد ``identifier`` تازه است و ``email``
+    برای سازگاری با کلاینت‌های قدیمی پذیرفته می‌شود."""
+    email: str | None = Field(default=None, max_length=160)
+    identifier: str | None = Field(default=None, max_length=160)
     password: str = Field(min_length=1, max_length=128)
 
 
@@ -816,16 +820,60 @@ def register(req: RegisterRequest, request: Request, response: Response) -> dict
     return {"user": user}
 
 
+def _owner_login(req: LoginRequest, request: Request, response: Response, ident: str, ip: str) -> dict:
+    """ورود مالک با نام کاربری: هم نشست مدیر و هم نشست کاربر معمولی صادر می‌شود."""
+    key = f"owner:{ip}"
+    if store().note_attempt(key) > admin_module.MAX_ATTEMPTS:
+        admin_module.audit("owner_locked", request, detail="too many attempts")
+        raise HTTPException(429, "تلاش‌های ناموفق زیاد؛ ۱۵ دقیقه بعد دوباره امتحان کنید.")
+    if not owner_module.matches_username(ident) or not owner_module.verify(req.password):
+        admin_module.audit("owner_login_failed", request, detail=ident[:40])
+        raise HTTPException(401, "نام کاربری یا رمز عبور نادرست است.")
+    store().clear_attempts(key)
+
+    info = owner_module.status()
+    admin_id = admin_module._ensure_admin_user("owner@rayan.local")  # noqa: SLF001
+    if info.get("name"):
+        store().update_user(admin_id, name=info["name"])  # نام نمایشی مالک
+
+    user = store().get_user(admin_id)
+    token = store().create_session(user_id=admin_id, user_agent=request.headers.get("user-agent", ""), ip=ip)
+    _set_session_cookie(response, token)
+
+    csrf = secrets.token_urlsafe(24)
+    admin_token = store().create_admin_session(admin_id, csrf, ip=ip,
+                                               user_agent=request.headers.get("user-agent", ""))
+    response.set_cookie(admin_module.ADMIN_COOKIE, admin_token, max_age=2 * 3600, httponly=True,
+                        samesite="strict", secure=os.environ.get("RAYAN_ENV") == "prod", path="/")
+    store().record_event("owner_login", user_id=admin_id, ip=ip)
+    admin_module.audit("owner_login", request, target=str(admin_id))
+    return {
+        "user": user,
+        "admin": True,
+        "csrf": csrf,
+        "redirect": "/admin",
+        "owner": {"name": info.get("name"), "default_password": info.get("default_password")},
+    }
+
+
 @app.post("/api/auth/login")
 def login(req: LoginRequest, request: Request, response: Response) -> dict:
     _guard_flags()
     ip = client_ip(request)
     if not limiter.allow(f"auth:{ip}"):
         raise HTTPException(429, "تلاش‌های زیاد؛ یک دقیقه بعد دوباره امتحان کنید.")
-    key = f"login:{req.email.strip().lower()}:{ip}"
+    ident = (req.identifier or req.email or "").strip()
+    if not ident:
+        raise HTTPException(422, "ایمیل یا نام کاربری لازم است.")
+
+    # مسیر مالک: نام کاربری فارسی؛ گذرواژه فقط با هش محلی مقایسه می‌شود.
+    if "@" not in ident and owner_module.matches_username(ident):
+        return _owner_login(req, request, response, ident, ip)
+
+    key = f"login:{ident.lower()}:{ip}"
     if store().note_attempt(key) > 8:
         raise HTTPException(429, "تلاش‌های ناموفق زیاد است؛ ۱۵ دقیقه بعد دوباره امتحان کنید.")
-    user = store().verify_user(req.email, req.password)
+    user = store().verify_user(ident, req.password)
     if user is None:
         raise HTTPException(401, "ایمیل یا رمز عبور نادرست است.")
     store().clear_attempts(key)

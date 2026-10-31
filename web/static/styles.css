@@ -42,18 +42,23 @@
   --surface-solid: #ffffff;
   --line: #e4eaf4;
   --line-strong: #ccd8ea;
-  --text: #0c1a2b;
-  --text-2: #46586f;
-  --text-3: #78889d;
-  --blue: #1a63f0;
+  --text: #0b1a2b;
+  --text-2: #3f5069;
+  --text-3: #5f7186;
+  --blue: #1a5ce0;
   --blue-2: #0b8fd6;
   --blue-3: #12b5e5;
   --blue-deep: #0b47e8;
-  --mint: #0f9d8a;
-  --amber: #b5760a;
-  --rose: #d93a52;
-  --grad: linear-gradient(135deg, #35c8f5 0%, #1a63f0 55%, #4d5dfb 100%);
-  --grad-soft: linear-gradient(135deg, rgba(53, 200, 245, 0.14), rgba(26, 99, 240, 0.07));
+  --mint: #0a7a6b;
+  --amber: #8a5a00;
+  --rose: #c81e3c;
+  /* گرادیان همیشه با متن سفید خوانا می‌ماند (کمینهٔ کنتراست ۴٫۵:۱ روی همهٔ توقف‌ها) */
+  --grad: linear-gradient(135deg, #0a76bd 0%, #1a5ce0 55%, #4a3fd6 100%);
+  --grad-soft: linear-gradient(135deg, rgba(10, 118, 189, 0.12), rgba(26, 92, 224, 0.07));
+  --accent-solid: #1a5ce0;
+  --accent-solid-hover: #1450c4;
+  --accent-soft: rgba(26, 92, 224, 0.10);
+  --sidebar-bg: linear-gradient(180deg, #ffffff, #f7faff);
   --shadow-sm: 0 1px 2px rgba(13, 27, 42, 0.06), 0 2px 8px rgba(13, 27, 42, 0.05);
   --shadow: 0 18px 44px -24px rgba(15, 40, 80, 0.35);
   --shadow-lg: 0 40px 100px -46px rgba(15, 40, 80, 0.45);
@@ -83,24 +88,28 @@
   --surface-solid: #0b1730;
   --line: rgba(125, 168, 235, 0.14);
   --line-strong: rgba(125, 168, 235, 0.26);
-  --text: #eaf1ff;
-  --text-2: #a9bcd8;
-  --text-3: #6d829f;
-  --blue: #2e8bff;
+  --text: #e9f1ff;
+  --text-2: #b3c6e0;
+  --text-3: #8fa5c2;
+  --blue: #6ea8ff;
   --blue-2: #38d2ff;
   --blue-3: #7df0ff;
   --blue-deep: #0b47e8;
   --mint: #5eead4;
   --amber: #f5b74a;
   --rose: #ff7a8a;
-  --grad: linear-gradient(135deg, #38d2ff 0%, #2e8bff 52%, #5b6cff 100%);
-  --grad-soft: linear-gradient(135deg, rgba(56, 210, 255, 0.16), rgba(46, 139, 255, 0.08));
+  --grad: linear-gradient(135deg, #0b6fb8 0%, #1f5dea 55%, #4a3fd6 100%);
+  --grad-soft: linear-gradient(135deg, rgba(56, 210, 255, 0.14), rgba(46, 139, 255, 0.08));
+  --accent-solid: #1f5dea;
+  --accent-solid-hover: #2f6bff;
+  --accent-soft: rgba(110, 168, 255, 0.14);
+  --sidebar-bg: linear-gradient(180deg, #0a1529, #060e1e);
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
   --shadow: 0 18px 50px -22px rgba(6, 20, 48, 0.9);
   --shadow-lg: 0 40px 110px -40px rgba(3, 12, 32, 0.95);
   --glow: 0 0 0 1px rgba(56, 210, 255, 0.18), 0 22px 70px -30px rgba(46, 139, 255, 0.65);
   --nav-bg: rgba(6, 13, 30, 0.78);
-  --on-accent: #03142c;
+  --on-accent: #ffffff;
   --ink: #eaf1ff;
   --success-bg: rgba(94, 234, 212, 0.12); --success-fg: #7df0d8;
   --warn-bg: rgba(245, 183, 74, 0.12); --warn-fg: #ffd18a;
@@ -255,7 +264,8 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 
 /* --------------------------------------------------------------- دکمه‌ها */
 .btn {
-  --btn-bg: rgba(125, 168, 235, 0.08);
+  --btn-rest: rgba(26, 92, 224, 0.07);
+  --btn-hover: rgba(26, 92, 224, 0.13);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -263,7 +273,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   padding: 12px 22px;
   border-radius: var(--r-full);
   border: 1px solid var(--line-strong);
-  background: var(--btn-bg);
+  background: var(--btn-rest);
   color: var(--text);
   font-size: 15px;
   font-weight: 600;
@@ -271,7 +281,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   white-space: nowrap;
   transition: transform 0.18s var(--ease), background 0.2s, border-color 0.2s, box-shadow 0.25s;
 }
-.btn:hover { transform: translateY(-1px); border-color: rgba(125, 168, 235, 0.42); background: rgba(125, 168, 235, 0.14); }
+.btn:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--blue) 40%, transparent); background: var(--btn-hover); }
 .btn:active { transform: translateY(0); }
 .btn-primary {
   background: var(--grad);
@@ -901,7 +911,7 @@ body::before {
   backdrop-filter: blur(8px); transition: 0.18s var(--ease);
 }
 .promo-sound:hover { background: rgba(5, 11, 26, 0.82); }
-.promo-sound[aria-pressed="true"] { background: var(--blue); border-color: transparent; }
+.promo-sound[aria-pressed="true"] { background: var(--accent-solid); border-color: transparent; color: #fff; }
 .promo-copy { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
 .promo-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .promo-note { font-size: 12.5px; color: var(--text-3); }

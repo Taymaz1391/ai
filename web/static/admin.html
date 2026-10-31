@@ -64,6 +64,12 @@
         </div>
       </header>
 
+      <div class="admin-warn" id="owner-warning" hidden role="alert">
+        <b>گذرواژهٔ پیش‌فرض مالک فعال است.</b>
+        <span>تا وقتی آن را عوض نکنی، هر کسی که این مخزن را بخواند می‌تواند وارد شود.</span>
+        <button class="btn btn-sm" id="owner-change-pw" type="button">همین حالا عوض کن</button>
+      </div>
+
       <!-- نمای کلی -->
       <section class="admin-tab is-active" data-panel="overview">
         <div class="kpi-grid" id="kpi-grid"></div>
@@ -178,6 +184,14 @@
           </label>
           <div class="form-actions"><button class="btn" id="save-password">تغییر گذرواژه</button></div>
           <p class="hint">نشست‌های فعال مدیریت بازنشانی نمی‌شوند؛ برای خروج کامل از «خروج» استفاده کنید.</p>
+        </div>
+        <div class="panel" id="owner-panel">
+          <div class="panel-head"><h3>گذرواژهٔ مالک</h3><span class="hint" id="owner-name">—</span></div>
+          <label class="field"><span>گذرواژهٔ تازه برای ورود با نام کاربری (حداقل ۸ نویسه)</span>
+            <input id="owner-new-password" type="password" minlength="8" autocomplete="new-password">
+          </label>
+          <div class="form-actions"><button class="btn btn-primary" id="save-owner-password">ذخیرهٔ گذرواژهٔ مالک</button></div>
+          <p class="hint">این گذرواژه فقط به‌صورت هش scrypt در <code>data/owner.json</code> ذخیره می‌شود و در Git نمی‌رود.</p>
         </div>
       </section>
 
