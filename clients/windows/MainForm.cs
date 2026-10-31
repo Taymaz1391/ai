@@ -15,15 +15,15 @@ namespace Rayan;
 /// </summary>
 public sealed class MainForm : Form
 {
-    private static readonly string ServerUrl =
-        Environment.GetEnvironmentVariable("RAYAN_SERVER_URL") is { Length: > 0 } custom
-            ? custom.TrimEnd('/')
-            : BuildInfo.ServerUrl.TrimEnd('/');
+    private static readonly string SettingsDir = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Rayan");
 
-    private static readonly Uri ServerUri = new(ServerUrl);
     private readonly WebView2 _web = new();
     private readonly Panel _error = new();
     private readonly Label _status = new();
+    private readonly TextBox _serverBox = new();
+
+    private string _serverUrl = "";
 
     public MainForm()
     {
@@ -35,15 +35,50 @@ public sealed class MainForm : Form
         RightToLeft = RightToLeft.Yes;
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
 
+        _serverUrl = ResolveServerUrl();
+
         _web.Dock = DockStyle.Fill;
         Controls.Add(_web);
         BuildErrorPanel();
+
         Load += async (_, _) => await InitAsync();
         KeyPreview = true;
         KeyDown += (_, e) =>
         {
             if (e.KeyCode == Keys.F5) { e.Handled = true; _web.Reload(); }
         };
+    }
+
+    private static string ResolveServerUrl()
+    {
+        try
+        {
+            var file = Path.Combine(SettingsDir, "server.txt");
+            if (File.Exists(file))
+            {
+                var stored = File.ReadAllText(file).Trim();
+                if (stored.Length > 0) return Normalise(stored);
+            }
+        }
+        catch { /* نادیده */ }
+
+        if (Environment.GetEnvironmentVariable("RAYAN_SERVER_URL") is { Length: > 0 } custom)
+        {
+            return Normalise(custom);
+        }
+        return Normalise(BuildInfo.ServerUrl);
+    }
+
+    private static string Normalise(string raw)
+    {
+        var value = (raw ?? "").Trim().TrimEnd('/');
+        if (value.Length == 0) return "";
+        if (!value.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+            !value.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            value = "https://" + value;
+        }
+        return value;
     }
 
     private void BuildErrorPanel()
@@ -55,25 +90,43 @@ public sealed class MainForm : Form
         _status.Text = "اتصال به سرور برقرار نشد.\nرایان همهٔ پاسخ‌ها را از سرور می‌گیرد؛ اینترنت یا نشانی سرور را بررسی کن.";
         _status.AutoSize = false;
         _status.Dock = DockStyle.Top;
-        _status.Height = 90;
+        _status.Height = 78;
         _status.TextAlign = ContentAlignment.MiddleCenter;
         _status.Font = new Font("Segoe UI", 11F);
         _status.ForeColor = Color.FromArgb(63, 80, 105);
 
+        _serverBox.Dock = DockStyle.Top;
+        _serverBox.Height = 34;
+        _serverBox.Text = _serverUrl.Contains("rayan.example", StringComparison.OrdinalIgnoreCase) ? "" : _serverUrl;
+        _serverBox.PlaceholderText = "https://your-server.example";
+        _serverBox.RightToLeft = RightToLeft.No;
+        _serverBox.Margin = new Padding(0, 8, 0, 8);
+
         var retry = new Button
         {
-            Text = "تلاش دوباره",
+            Text = "اتصال",
             AutoSize = true,
             BackColor = Color.FromArgb(26, 92, 224),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
             Padding = new Padding(18, 6, 18, 6),
+            Margin = new Padding(0, 10, 0, 0),
         };
-        retry.Click += (_, _) =>
+        retry.Click += async (_, _) =>
         {
+            var value = Normalise(_serverBox.Text);
+            if (value.Length == 0) return;
+            _serverUrl = value;
+            try
+            {
+                Directory.CreateDirectory(SettingsDir);
+                File.WriteAllText(Path.Combine(SettingsDir, "server.txt"), value);
+            }
+            catch { /* نادیده */ }
+
             _error.Visible = false;
             _web.Visible = true;
-            _ = _web.EnsureCoreWebView2Async();
+            await InitAsync();
         };
 
         var host = new FlowLayoutPanel
@@ -84,6 +137,7 @@ public sealed class MainForm : Form
             Padding = new Padding(28),
         };
         host.Controls.Add(_status);
+        host.Controls.Add(_serverBox);
         host.Controls.Add(retry);
         _error.Controls.Add(host);
         Controls.Add(_error);
@@ -94,11 +148,14 @@ public sealed class MainForm : Form
     {
         try
         {
-            var dataDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Rayan", "WebView2");
-            Directory.CreateDirectory(dataDir);
+            if (_serverUrl.Length == 0 || _serverUrl.Contains("rayan.example", StringComparison.OrdinalIgnoreCase))
+            {
+                ShowError("برای شروع، نشانی سرور رایان را وارد کن.\nاین کلاینت به همان سرور وصل می‌شود؛ ورود و سهمیه همان‌جا بررسی می‌شود.");
+                return;
+            }
 
+            var dataDir = Path.Combine(SettingsDir, "WebView2");
+            Directory.CreateDirectory(dataDir);
             var env = await CoreWebView2Environment.CreateAsync(null, dataDir);
             await _web.EnsureCoreWebView2Async(env);
 
@@ -107,10 +164,10 @@ public sealed class MainForm : Form
             settings.AreDevToolsEnabled = false;
             settings.AreBrowserAcceleratorKeysEnabled = false;
             settings.IsStatusBarEnabled = false;
-            settings.AreDefaultScriptDialogsEnabled = true;
             settings.IsPasswordAutosaveEnabled = true;
             settings.UserAgent = settings.UserAgent + " RayanWin/6.0";
 
+            var serverHost = new Uri(_serverUrl).Host;
             core.NewWindowRequested += (_, e) =>
             {
                 e.Handled = true;
@@ -121,7 +178,7 @@ public sealed class MainForm : Form
             {
                 if (!Uri.TryCreate(e.Uri, UriKind.Absolute, out var target)) return;
                 if (target.Scheme is "https" or "http" &&
-                    !string.Equals(target.Host, ServerUri.Host, StringComparison.OrdinalIgnoreCase))
+                    !string.Equals(target.Host, serverHost, StringComparison.OrdinalIgnoreCase))
                 {
                     e.Cancel = true;
                     OpenExternal(e.Uri);
@@ -132,9 +189,7 @@ public sealed class MainForm : Form
             {
                 if (!e.IsSuccess)
                 {
-                    _web.Visible = false;
-                    _error.Visible = true;
-                    _error.BringToFront();
+                    ShowError("اتصال به سرور برقرار نشد.\nنشانی یا دسترس‌پذیری سرور را بررسی کن.");
                 }
                 else
                 {
@@ -143,17 +198,24 @@ public sealed class MainForm : Form
                 }
             };
 
-            core.Navigate(ServerUrl);
+            _error.Visible = false;
+            _web.Visible = true;
+            core.Navigate(_serverUrl);
         }
         catch (Exception ex)
         {
-            _status.Text = "WebView2 در دسترس نیست.\n" +
-                           "اجرای Microsoft Edge WebView2 Runtime لازم است (روی ویندوز ۱۱ از پیش نصب است).\n" +
-                           ex.Message;
-            _web.Visible = false;
-            _error.Visible = true;
-            _error.BringToFront();
+            ShowError("WebView2 در دسترس نیست.\n" +
+                      "اجرای Microsoft Edge WebView2 Runtime لازم است (روی ویندوز ۱۱ از پیش نصب است).\n" +
+                      ex.Message);
         }
+    }
+
+    private void ShowError(string message)
+    {
+        _status.Text = message;
+        _web.Visible = false;
+        _error.Visible = true;
+        _error.BringToFront();
     }
 
     private static void OpenExternal(string uri)
@@ -164,7 +226,7 @@ public sealed class MainForm : Form
         }
         catch
         {
-            // نادیده: باز نشدن مرورگر نباید برنامه را ببندد
+            // باز نشدن مرورگر نباید برنامه را ببندد
         }
     }
 }
