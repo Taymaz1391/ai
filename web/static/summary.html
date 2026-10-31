@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>خلاصهٔ پروژه · رایان</title>
+  <meta name="description" content="همه‌چیز دربارهٔ رایان در یک صفحه: مدل، امکانات، امنیت، محدودیت‌های واقعی و لینک‌ها.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
+  <link rel="canonical" href="/summary">
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/pages.css">
+  <script src="/static/theme-boot.js"></script>
+  <style>
+    .sum-hero { padding: 62px 0 26px; text-align: center; }
+    .sum-hero .lockup { width: min(150px, 44vw); margin: 0 auto 18px; }
+    .sum-hero h1 { font-size: clamp(28px, 4.6vw, 42px); letter-spacing: -0.03em; margin-bottom: 12px; }
+    .sum-hero p { max-width: 62ch; margin: 0 auto; color: var(--text-2); font-size: 15px; line-height: 2; }
+    .sum-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .sum-card { padding: 24px; border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--surface); }
+    .sum-card h3 { font-size: 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .sum-card ul { list-style: none; display: grid; gap: 8px; font-size: 13.5px; color: var(--text-2); line-height: 1.85; }
+    .sum-card li::before { content: "✓"; color: var(--mint); font-weight: 900; margin-inline-end: 8px; }
+    .sum-card.is-warn { border-style: dashed; }
+    .sum-card.is-warn li::before { content: "×"; color: var(--rose); }
+    .sum-numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 8px 0 4px; }
+    .sum-numbers div { text-align: center; padding: 18px 10px; border-radius: var(--r); background: var(--surface-2); border: 1px solid var(--line); }
+    .sum-numbers b { display: block; font-size: 24px; font-weight: 900; letter-spacing: -0.03em; }
+    .sum-numbers span { font-size: 11.5px; color: var(--text-3); }
+    .sum-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 18px; }
+    .sum-note { font-size: 12px; color: var(--text-3); text-align: center; margin-top: 10px; }
+    .sum-code { direction: ltr; text-align: left; font-family: var(--mono); font-size: 12.5px;
+      background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true"><div class="glow glow-a"></div><div class="glow glow-b"></div></div>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/" aria-label="رایان، خانه">
+        <img class="brand-wordmark wordmark-for-light" src="/static/assets/brand/wordmark-ink.png" alt="رایان" width="116" height="47">
+        <img class="brand-wordmark wordmark-for-dark" src="/static/assets/brand/wordmark-white.png" alt="رایان" width="116" height="47">
+      </a>
+      <nav class="nav-links" aria-label="پیمایش">
+        <a class="nav-link" href="/">خانه</a>
+        <a class="nav-link" href="/chat">گفتگو</a>
+        <a class="nav-link" href="/models">مدل‌ها</a>
+        <a class="nav-link" href="/docs">مستندات</a>
+        <a class="nav-link" href="/en" hreflang="en" lang="en">EN</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-ghost btn-sm" href="https://github.com/Taymaz1391/ai" rel="noopener">GitHub</a>
+        <a class="btn btn-primary btn-sm" href="/chat">شروع گفتگو</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="sum-hero">
+      <div class="wrap">
+        <img class="lockup lockup-for-light" src="/static/assets/brand/lockup-ink.png" alt="رایان">
+        <img class="lockup lockup-for-dark" src="/static/assets/brand/lockup-glow.png" alt="رایان">
+        <h1>همه‌چیز، در یک نگاه</h1>
+        <p>
+          رایان یک محصول کاملِ فارسی‌زبان است که از صفر ساخته شده: مدل زبانی با آموزش مستقل،
+          رابط گفتگو، ابزارها، استودیو تصویر، آکادمی، پنل مدیریت، تبلیغات و تعرفهٔ پویا.
+          هیچ API بیرونی‌ای در آن استفاده نمی‌شود.
+        </p>
+        <div class="sum-numbers">
+          <div><b>۶٫۵۷M</b><span>پارامتر مدل</span></div>
+          <div><b>۱۴٫۷M</b><span>توکن فارسی آموزش</span></div>
+          <div><b>۵٫۳۰</b><span>validation loss</span></div>
+          <div><b>۲۰۰</b><span>پرسش در روز (رایگان)</span></div>
+          <div><b>۰</b><span>API بیرونی</span></div>
+        </div>
+        <div class="sum-links">
+          <a class="btn btn-primary" href="/chat">آزمایش گفتگو</a>
+          <a class="btn" href="/en">English site</a>
+          <a class="btn" href="https://github.com/Taymaz1391/ai" rel="noopener">مخزن GitHub</a>
+        </div>
+        <p class="sum-note">لینک زندهٔ همین نسخه همیشه در بالای صفحهٔ پیش‌نمایش همین محیط است.</p>
+      </div>
+    </section>
+
+    <section class="section-sm">
+      <div class="wrap sum-grid">
+        <article class="sum-card">
+          <h3>هوش و مدل</h3>
+          <ul>
+            <li>ترنسفورمر دیکودر فقط با NumPy، بدون وزن آماده</li>
+            <li>توکنایزر BPE با واژگان ۱۰٬۰۰۰ فارسی</li>
+            <li>حالت‌های گفتگو، ادامهٔ متن و شعر</li>
+            <li>اندیشهٔ ژرف با چند کاندید و توضیح مسیر</li>
+            <li>نرمال‌سازی فارسی و پاک‌سازی خروجی</li>
+          </ul>
+        </article>
+        <article class="sum-card">
+          <h3>محصول</h3>
+          <ul>
+            <li>صفحهٔ خانه، گفتگو، مدل‌ها، تعرفه، آکادمی، مستندات</li>
+            <li>حساب کاربری، مهمان، اشتراک‌گذاری گفتگو</li>
+            <li>خروجی Markdown و استودیو تصویر (PNG/SVG)</li>
+            <li>ابزارهای تاریخ شمسی، ماشین‌حساب و تبدیل یکا</li>
+            <li>نسخهٔ انگلیسی سایت و دکمهٔ تغییر زبان</li>
+          </ul>
+        </article>
+        <article class="sum-card">
+          <h3>مدیریت و درآمد</h3>
+          <ul>
+            <li>پنل مدیریت با ورود جدا و CSRF</li>
+            <li>تبلیغات با جایگاه، وزن، نمایش و کلیک</li>
+            <li>تعرفهٔ پویا: قیمت، مدت و درگاه قابل تنظیم</li>
+            <li>پرچم‌های قابلیت، اعلان و حالت نگهداری</li>
+            <li>لاگ حسابرسی، بکاپ، VACUUM و خودآزمون</li>
+          </ul>
+        </article>
+        <article class="sum-card">
+          <h3>امنیت</h3>
+          <ul>
+            <li>CSP سخت‌گیرانه بدون اسکریپت درون‌خطی</li>
+            <li>کوکی HttpOnly، SameSite و CSRF ادمین</li>
+            <li>قفل ورود پس از تلاش‌های ناموفق</li>
+            <li>کنترل مبدأ درخواست‌های تغییردهنده</li>
+            <li>بدون منبع بیرونی؛ مقاوم در شبکهٔ محدود</li>
+          </ul>
+        </article>
+        <article class="sum-card is-warn">
+          <h3>آنچه واقعاً ممکن نیست</h3>
+          <ul>
+            <li>یک میلیارد کاربر همزمان روی یک پردازنده</li>
+            <li>آموزش مدل هزار‌میلیارد پارامتری روی CPU</li>
+            <li>آموزش روی «تمام گوگل» (غیرقانونی و ناممکن)</li>
+            <li>پاسخ انگلیسی در سطح ChatGPT با مدل فارسی</li>
+            <li>تصویر واقع‌گرا بدون مدل diffusion و GPU</li>
+          </ul>
+        </article>
+        <article class="sum-card">
+          <h3>مسیر بزرگ‌شدن</h3>
+          <ul>
+            <li>کپی‌های بی‌حالت پشت متعادل‌کنندهٔ بار</li>
+            <li>صف محدود و پاسخ ۵۰۳ هنگام اشباع</li>
+            <li>CDN برای دارایی‌های تغییرناپذیر</li>
+            <li>انتقال پایگاه‌داده به Postgres</li>
+            <li>استنتاج روی GPU با کوانتیزه‌سازی</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-sm">
+      <div class="wrap">
+        <div class="panel" style="padding:26px;border-radius:var(--r-lg);border:1px solid var(--line);background:var(--surface)">
+          <h2 style="font-size:18px;margin-bottom:12px">اجرای محلی در سه خط</h2>
+          <div class="sum-code">git clone https://github.com/Taymaz1391/ai.git<br>
+cd ai &amp;&amp; python -m venv .venv &amp;&amp; source .venv/bin/activate<br>
+pip install -r requirements.txt &amp;&amp; python -m web.server --port 8000</div>
+          <p class="sum-note">رمز مدیریت در اولین اجرا ساخته و چاپ می‌شود؛ با متغیر <code>RAYAN_ADMIN_PASSWORD</code> هم قابل تعیین است.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-bottom" style="border-top:0;margin-top:0">
+      <span>© ۱۴۰۵ رایان · ساخته‌شده از صفر</span>
+      <a href="/docs">مستندات</a>
+    </div>
+  </footer>
+
+  <script src="/static/config.js"></script>
+  <script src="/static/ui.js"></script>
+</body>
+</html>

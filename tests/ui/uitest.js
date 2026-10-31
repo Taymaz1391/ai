@@ -287,6 +287,29 @@ async function testThemeToggle() {
   }
 }
 
+async function testEnglishAndSummary() {
+  const en = await loadPage("/en");
+  const enDoc = en.window.document;
+  check("en: title", /Rayan/.test(enDoc.title), enDoc.title);
+  check("en: html lang", enDoc.documentElement.lang === "en", enDoc.documentElement.lang);
+  check("en: dir ltr", enDoc.documentElement.dir === "ltr", enDoc.documentElement.dir);
+  check("en: features", enDoc.querySelectorAll(".feature").length >= 4,
+    String(enDoc.querySelectorAll(".feature").length));
+  check("en: video", !!enDoc.querySelector("video.intro-video source"));
+  check("en: wordmark", enDoc.querySelectorAll(".brand-wordmark").length >= 2);
+
+  const docs = await loadPage("/en/docs");
+  check("en docs: sections", docs.window.document.querySelectorAll(".prose h2").length >= 5,
+    String(docs.window.document.querySelectorAll(".prose h2").length));
+
+  const sum = await loadPage("/summary");
+  const sumDoc = sum.window.document;
+  check("summary: title", /خلاصه/.test(sumDoc.title), sumDoc.title);
+  check("summary: cards", sumDoc.querySelectorAll(".sum-card").length >= 5,
+    String(sumDoc.querySelectorAll(".sum-card").length));
+  check("summary: limits mentioned", /یک میلیارد/.test(sumDoc.body.textContent));
+}
+
 (async () => {
   try {
     await testLanding();
@@ -298,6 +321,7 @@ async function testThemeToggle() {
     await testOfflinePage();
     await testToolChip();
     await testThemeToggle();
+    await testEnglishAndSummary();
   } catch (err) {
     errors.push(`FATAL: ${err.stack}`);
   }

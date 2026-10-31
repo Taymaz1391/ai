@@ -27,6 +27,9 @@ PAGES = {
     "docs.html": "docs.html",
     "academy.html": "academy.html",
     "offline.html": "offline.html",
+    "summary.html": "summary.html",
+    "en.html": "en.html",
+    "en-docs.html": "en-docs.html",
 }
 
 # مسیرهای سرور → فایل‌های استاتیک
@@ -41,6 +44,9 @@ ROUTES = {
     "/signup": "signup.html",
     "/academy": "academy.html",
     "/offline": "offline.html",
+    "/summary": "summary.html",
+    "/en": "en.html",
+    "/en/docs": "en-docs.html",
 }
 
 RUNTIME_CONFIG = """/* ساخته‌شده به‌صورت خودکار برای نسخهٔ استاتیک (GitHub Pages). */
@@ -138,6 +144,10 @@ def build(out: Path) -> dict:
     (out / "sw.js").write_text(sw, encoding="utf-8")
 
     # مانیفست با مسیرهای نسبی
+    en_css = STATIC / "en.css"
+    if en_css.exists():
+        (out / "static" / "en.css").write_text(read(en_css), encoding="utf-8")
+
     manifest = json.loads(read(STATIC / "manifest.webmanifest"))
     manifest["start_url"] = "chat.html"
     manifest["scope"] = "./"

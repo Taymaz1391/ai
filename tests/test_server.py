@@ -233,6 +233,19 @@ class V3Test(unittest.TestCase):
         data = self.client.get("/api/selftest").json()
         self.assertTrue(any(c["name"] == "database" and c["ok"] for c in data["checks"]))
 
+    def test_english_pages(self):
+        home = self.client.get("/en")
+        self.assertEqual(home.status_code, 200)
+        self.assertIn('lang="en"', home.text)
+        self.assertIn("Persian-first", home.text)
+        docs = self.client.get("/en/docs")
+        self.assertEqual(docs.status_code, 200)
+        self.assertIn("Quickstart", docs.text)
+        sitemap = self.client.get("/sitemap.xml").text
+        self.assertIn("/en/docs", sitemap)
+        # نسخهٔ فارسی هم پیوند انگلیسی دارد
+        self.assertIn('hreflang="en"', self.client.get("/").text)
+
     def test_new_pages(self):
         for path in ("/academy", "/admin", "/offline", "/privacy"):
             res = self.client.get(path)

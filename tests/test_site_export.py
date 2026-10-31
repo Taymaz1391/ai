@@ -24,7 +24,8 @@ class ExportSiteTest(unittest.TestCase):
     def test_pages_exist(self):
         for name in ("index.html", "chat.html", "login.html", "signup.html",
                      "pricing.html", "models.html", "about.html", "docs.html",
-                     "academy.html", "offline.html", "404.html"):
+                     "academy.html", "offline.html", "summary.html", "en.html", "en-docs.html",
+                     "404.html"):
             self.assertTrue((self.out / name).exists(), name)
 
     def test_assets_copied(self):
@@ -66,7 +67,7 @@ class ExportSiteTest(unittest.TestCase):
             self.assertFalse(icon["src"].startswith("/"), icon["src"])
 
     def test_deterministic_counts(self):
-        self.assertEqual(self.info["pages"], 10)
+        self.assertEqual(self.info["pages"], 13)
         self.assertGreater(self.info["files"], 30)
 
     @classmethod

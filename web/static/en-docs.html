@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Docs · Rayan</title>
+  <meta name="description" content="Run Rayan locally, understand the architecture, call the API, and read the honest scaling and security model.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
+  <link rel="canonical" href="https://taymaz1391.github.io/ai/en/docs">
+  <link rel="alternate" hreflang="fa" href="/docs">
+  <link rel="alternate" hreflang="en" href="/en/docs">
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/pages.css">
+  <link rel="stylesheet" href="/static/en.css">
+  <script src="/static/theme-boot.js"></script>
+</head>
+<body class="en">
+  <div class="backdrop" aria-hidden="true"><div class="glow glow-a"></div><div class="glow glow-b"></div></div>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/en" aria-label="Rayan home">
+        <img class="brand-wordmark wordmark-for-light" src="/static/assets/brand/wordmark-ink.png" alt="Rayan" width="116" height="47">
+        <img class="brand-wordmark wordmark-for-dark" src="/static/assets/brand/wordmark-white.png" alt="Rayan" width="116" height="47">
+      </a>
+      <nav class="nav-links" aria-label="Main">
+        <a class="nav-link" href="/en#features">Features</a>
+        <a class="nav-link" href="/en#how">How it works</a>
+        <a class="nav-link" href="/models">Models</a>
+        <a class="nav-link is-active" href="/en/docs">Docs</a>
+        <a class="nav-link" href="/en#limits">Limits</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-ghost btn-sm" href="/docs" hreflang="fa" lang="fa">فارسی</a>
+        <a class="btn btn-primary btn-sm" href="/chat">Open chat</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-hero">
+      <div class="wrap">
+        <span class="eyebrow">Documentation</span>
+        <h1>Run it, read it, extend it</h1>
+        <p>Rayan is a single Python service: NumPy inference, SQLite storage, static front-end and a small admin API.</p>
+      </div>
+    </section>
+
+    <div class="wrap docs-layout">
+      <aside class="docs-side">
+        <a href="#quickstart">Quickstart</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#api">API</a>
+        <a href="#security">Security</a>
+        <a href="#scaling">Scaling</a>
+        <a href="#limits">Limits</a>
+        <a href="#training">Training</a>
+      </aside>
+
+      <article class="prose docs-body">
+        <h2 id="quickstart">Quickstart</h2>
+        <pre><code>git clone https://github.com/Taymaz1391/ai.git
+cd ai
+python -m venv .venv &amp;&amp; source .venv/bin/activate
+pip install -r requirements.txt
+python -m web.server --host 0.0.0.0 --port 8000</code></pre>
+        <p>Open <code>http://localhost:8000</code>. The first boot prints a generated admin password and stores it in <code>data/admin.json</code>. Override it with <code>RAYAN_ADMIN_PASSWORD</code>.</p>
+        <p>Environment variables that matter: <code>RAYAN_DB</code> (SQLite path), <code>RAYAN_ADMIN_PASSWORD</code>, <code>RAYAN_ENV=prod</code> (enables HSTS and secure admin cookies), <code>RAYAN_ORIGINS</code> (extra allowed CORS origins).</p>
+
+        <h2 id="architecture">Architecture</h2>
+        <ul>
+          <li><b>Model</b> — <code>rayan/</code>: tokenizer, transformer in NumPy, sampling, training loop.</li>
+          <li><b>Server</b> — <code>web/server.py</code>: FastAPI app, chat and streaming, auth, tools, ads, plans.</li>
+          <li><b>Admin</b> — <code>web/admin.py</code>: scrypt passwords, CSRF tokens, audit log, scheduler.</li>
+          <li><b>Store</b> — <code>web/store.py</code>: SQLite with conversations, users, ads, settings, admin sessions.</li>
+          <li><b>Front-end</b> — <code>web/static/</code>: no build step, no CDN, modular vanilla JS.</li>
+        </ul>
+
+        <h2 id="api">API</h2>
+        <pre><code>curl -s localhost:8000/api/status
+curl -s localhost:8000/api/plans
+
+curl -s -X POST localhost:8000/api/chat \
+  -H 'content-type: application/json' \
+  -d '{"message":"سلام","max_new_tokens":48}'
+
+curl -s -X POST localhost:8000/api/tools/run \
+  -H 'content-type: application/json' \
+  -d '{"name":"calc","args":{"expression":"۲+۲"}}'</code></pre>
+        <p>Streaming lives at <code>/api/chat/stream</code> and returns newline-delimited JSON events: <code>start</code>, <code>token</code>, <code>done</code>, <code>error</code>. The <code>done</code> event also carries the tool result when one was detected.</p>
+        <p>Public endpoints: <code>/api/health</code>, <code>/api/status</code>, <code>/api/flags</code>, <code>/api/plans</code>, <code>/api/models</code>, <code>/api/samples</code>, <code>/api/tools</code>, <code>/api/ads</code>, <code>/api/selftest</code>. Admin endpoints require a session cookie and the <code>x-rayan-csrf</code> header on writes.</p>
+
+        <h2 id="security">Security</h2>
+        <ul>
+          <li>Strict CSP (<code>script-src 'self'</code>), COOP/CORP, <code>nosniff</code>, frame and referrer policies.</li>
+          <li>Session and guest cookies are HttpOnly, SameSite=Lax; admin cookie is SameSite=Strict.</li>
+          <li>Admin passwords use scrypt; login is rate-limited and locked for 15 minutes after repeated failures.</li>
+          <li>All mutating requests are checked against the request origin; the admin API additionally requires CSRF.</li>
+          <li>SQL is parameterised everywhere; ad URLs are validated and rendered escaped.</li>
+          <li>No third-party script, font or image is loaded — the site keeps working on restricted networks.</li>
+        </ul>
+        <p>“Unhackable” does not exist. These measures remove the common classes of failure (XSS injection points, CSRF, brute force, open redirects in ads), and <code>/api/selftest</code> verifies the deployment.</p>
+
+        <h2 id="scaling">Scaling</h2>
+        <p>The honest answer first: one CPU process cannot serve a billion concurrent users, and no amount of Python tuning changes that. What is realistic:</p>
+        <ol>
+          <li><b>Stateless web tier</b> — this service is already stateless apart from SQLite; move the database to Postgres and run N replicas behind a load balancer.</li>
+          <li><b>Model tier</b> — batch requests per replica, cache frequent prompts, and pin each replica to one checkpoint. For real traffic, replace NumPy inference with a quantised runtime on GPU.</li>
+          <li><b>Queue</b> — a bounded queue with 503 + <code>Retry-After</code> keeps latency honest under overload instead of collapsing.</li>
+          <li><b>Edge</b> — put static assets and the intro video on a CDN; they are immutable and cacheable for a year.</li>
+          <li><b>Shedding</b> — per-IP limits and the existing daily quotas protect the origin.</li>
+        </ol>
+        <p>These are the same primitives large providers use; the difference is hardware count. A capacity plan for 1B concurrent users is a datacentre project, not a code change.</p>
+
+        <h2 id="limits">Limits</h2>
+        <ul>
+          <li>The checkpoint is 6.57M parameters; it produces short Persian text with visible repetition.</li>
+          <li>It only knows Persian. English UI is available; English answers are not.</li>
+          <li>Image generation is procedural (SVG/PNG posters), not diffusion.</li>
+          <li>The sandbox has 2 vCPU and no GPU; throughput is roughly 80 tokens/second per process.</li>
+        </ul>
+
+        <h2 id="training">Training</h2>
+        <pre><code>python data/build_corpus.py
+python data/train_tokenizer.py
+python -m rayan.train --steps 2400 --batch 16 --ctx 512</code></pre>
+        <p>Corpora are public Persian datasets with recorded licences; <code>data/corpus_stats.json</code> keeps the counts. Metrics are appended to <code>logs/metrics.jsonl</code> and surfaced by <code>/api/stats</code>.</p>
+      </article>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-bottom" style="border-top:0;margin-top:0">
+      <span>© 2026 Rayan · self-hosted</span>
+      <a href="/en">Back to overview</a>
+    </div>
+  </footer>
+
+  <script src="/static/config.js"></script>
+  <script src="/static/ui.js"></script>
+</body>
+</html>

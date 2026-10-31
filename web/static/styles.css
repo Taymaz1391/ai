@@ -231,6 +231,10 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .nav.is-scrolled { border-bottom-color: var(--line); background: var(--nav-bg); box-shadow: var(--shadow-sm); }
 .nav-inner { display: flex; align-items: center; gap: 26px; width: min(1180px, 100% - 40px); margin-inline: auto; }
 .brand { display: inline-flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.brand-wordmark { height: 37px; width: auto; display: block; }
+.wordmark-for-dark { display: none; }
+[data-theme="dark"] .wordmark-for-dark { display: block; }
+[data-theme="dark"] .wordmark-for-light { display: none; }
 .brand-orb { width: 34px; height: 34px; border-radius: 50%; box-shadow: 0 0 18px rgba(46, 139, 255, 0.35); }
 .brand-name { display: flex; flex-direction: column; line-height: 1.1; }
 .brand-name b { font-size: 19px; font-weight: 900; letter-spacing: -0.02em; }
@@ -857,4 +861,39 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .video-chip-play::after {
   content: ""; width: 0; height: 0; margin-inline-start: 2px;
   border-block: 6px solid transparent; border-inline-start: 10px solid #fff;
+}
+
+/* ---------------------------------------------------------------- بافت و جلا */
+/* دانهٔ بسیار ملایم روی کل صفحه؛ جایگزین بافت‌های سنگین و بدون فایل بیرونی */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.028;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] body::before { opacity: 0.045; }
+
+.btn { position: relative; overflow: hidden; }
+.btn::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(120deg, transparent 20%, rgba(255, 255, 255, 0.22) 48%, transparent 72%);
+  transform: translateX(-120%);
+  transition: transform 0.55s var(--ease);
+  pointer-events: none;
+}
+.btn:hover::after { transform: translateX(120%); }
+.btn-primary { box-shadow: 0 12px 30px -16px color-mix(in srgb, var(--blue) 70%, transparent); }
+.btn-primary:hover { box-shadow: 0 16px 38px -14px color-mix(in srgb, var(--blue) 80%, transparent); }
+
+/* سطح شیشه‌ای ملایم برای کارت‌های شاخص */
+.card-glow, .hero-card, .preview-shell {
+  backdrop-filter: saturate(140%) blur(10px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn::after { display: none; }
 }

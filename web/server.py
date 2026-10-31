@@ -402,6 +402,30 @@ class RateLimiter:
 
 limiter = RateLimiter()
 
+# حداکثر تولید هم‌زمان؛ درخواست‌های بیشتر به‌جای صف بی‌پایان ۵۰۳ می‌گیرند.
+MAX_CONCURRENCY = max(1, int(os.environ.get("RAYAN_MAX_CONCURRENCY", "4")))
+_generation_slots = threading.BoundedSemaphore(MAX_CONCURRENCY)
+_queue_depth = {"value": 0}
+_queue_lock = threading.Lock()
+
+
+def _acquire_slot(wait: float = 6.0) -> bool:
+    """جای تولید می‌گیرد؛ اگر صف پر باشد False."""
+    with _queue_lock:
+        _queue_depth["value"] += 1
+    try:
+        return _generation_slots.acquire(timeout=wait)
+    finally:
+        with _queue_lock:
+            _queue_depth["value"] = max(0, _queue_depth["value"] - 1)
+
+
+def _release_slot() -> None:
+    try:
+        _generation_slots.release()
+    except ValueError:  # pragma: no cover - آزادسازی تکراری
+        pass
+
 
 def client_ip(request: Request) -> str:
     forwarded = request.headers.get("x-forwarded-for", "")
@@ -564,6 +588,21 @@ def docs_page() -> FileResponse:
     return _page("docs.html")
 
 
+@app.get("/summary", response_class=HTMLResponse)
+def summary_page() -> FileResponse:
+    return _page("summary.html")
+
+
+@app.get("/en", response_class=HTMLResponse)
+def english_home() -> FileResponse:
+    return _page("en.html")
+
+
+@app.get("/en/docs", response_class=HTMLResponse)
+def english_docs() -> FileResponse:
+    return _page("en-docs.html")
+
+
 @app.get("/academy", response_class=HTMLResponse)
 def academy_page() -> FileResponse:
     return _page("academy.html")
@@ -619,7 +658,7 @@ def robots() -> Response:
 @app.get("/sitemap.xml")
 def sitemap(request: Request) -> Response:
     base = os.environ.get("RAYAN_PUBLIC_URL", str(request.base_url).rstrip("/"))
-    pages = ["", "chat", "pricing", "models", "about", "docs", "academy"]
+    pages = ["", "chat", "pricing", "models", "about", "docs", "academy", "summary", "en", "en/docs"]
     urls = "".join(f"<url><loc>{base}/{p}</loc></url>" for p in pages)
     xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
     return Response(xml, media_type="application/xml")
@@ -978,19 +1017,24 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
     tool_result = None if req.mode != "chat" else tools_module.detect(message)
     started = time.time()
     kwargs = _generation_kwargs(req)
-    with model.lock:
-        if req.deep:
-            answer, generation, trace = deep_reply(
-                model, message, mode=req.mode, history=history,
-                n_candidates=req.candidates, **kwargs,
-            )
-            prompt_ids, _prompt = model.build_prompt(message, req.mode, history)
-        else:
-            answer, generation, _prompt = model.reply(
-                message, mode=req.mode, history=history, seed=req.seed, **kwargs,
-            )
-            prompt_ids = model.tokenizer.encode(_prompt)
-            trace = None
+    if not _acquire_slot():
+        raise HTTPException(503, "سرور شلوغ است؛ چند لحظه بعد دوباره تلاش کنید.")
+    try:
+        with model.lock:
+            if req.deep:
+                answer, generation, trace = deep_reply(
+                    model, message, mode=req.mode, history=history,
+                    n_candidates=req.candidates, **kwargs,
+                )
+                prompt_ids, _prompt = model.build_prompt(message, req.mode, history)
+            else:
+                answer, generation, _prompt = model.reply(
+                    message, mode=req.mode, history=history, seed=req.seed, **kwargs,
+                )
+                prompt_ids = model.tokenizer.encode(_prompt)
+                trace = None
+    finally:
+        _release_slot()
     stats = _stats(generation, prompt_ids)
     if req.mode == "chat":
         _remember(req.session_id, message, answer)
@@ -1030,35 +1074,42 @@ def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
 
     def generate_events():
         global request_count
-        with model.lock:
-            ids, _prompt = model.build_prompt(message, req.mode, history)
-            session = model.stream(ids, mode=req.mode, **kwargs)
-            yield json.dumps({"type": "start", "prompt_tokens": len(ids)}, ensure_ascii=False) + "\n"
-            try:
-                for piece in session:
-                    yield json.dumps({"type": "token", "text": piece}, ensure_ascii=False) + "\n"
-            except Exception as exc:
-                yield json.dumps({"type": "error", "error": str(exc)}, ensure_ascii=False) + "\n"
-                return
-            generation = session.result
-            answer = polish(model.tokenizer.decode(generation.tokens), req.mode)
-            if req.mode == "chat":
-                _remember(req.session_id, message, answer)
-            stats = _stats(generation, ids)
-            new_conv, msg_id = _persist_turn(owner, conv_id, message, answer, stats, None, False, tool_result)
-            _record_usage(owner, ip, "chat")
-            with stats_lock:
-                request_count += 1
-            used, limit = _quota(owner, ip, "chat")
-            yield json.dumps({
-                "type": "done",
-                "answer": answer,
-                "stats": stats,
-                "conversation_id": new_conv,
-                "message_id": msg_id,
-                "usage": {"used": used, "limit": limit},
-                "tool": tool_result,
-            }, ensure_ascii=False) + "\n"
+        if not _acquire_slot(wait=12.0):
+            yield json.dumps({"type": "error", "error": "سرور شلوغ است؛ چند لحظه بعد دوباره تلاش کنید."},
+                             ensure_ascii=False) + "\n"
+            return
+        try:
+            with model.lock:
+                ids, _prompt = model.build_prompt(message, req.mode, history)
+                session = model.stream(ids, mode=req.mode, **kwargs)
+                yield json.dumps({"type": "start", "prompt_tokens": len(ids)}, ensure_ascii=False) + "\n"
+                try:
+                    for piece in session:
+                        yield json.dumps({"type": "token", "text": piece}, ensure_ascii=False) + "\n"
+                except Exception as exc:
+                    yield json.dumps({"type": "error", "error": str(exc)}, ensure_ascii=False) + "\n"
+                    return
+                generation = session.result
+                answer = polish(model.tokenizer.decode(generation.tokens), req.mode)
+                if req.mode == "chat":
+                    _remember(req.session_id, message, answer)
+                stats = _stats(generation, ids)
+                new_conv, msg_id = _persist_turn(owner, conv_id, message, answer, stats, None, False, tool_result)
+                _record_usage(owner, ip, "chat")
+                with stats_lock:
+                    request_count += 1
+                used, limit = _quota(owner, ip, "chat")
+                yield json.dumps({
+                    "type": "done",
+                    "answer": answer,
+                    "stats": stats,
+                    "conversation_id": new_conv,
+                    "message_id": msg_id,
+                    "usage": {"used": used, "limit": limit},
+                    "tool": tool_result,
+                }, ensure_ascii=False) + "\n"
+        finally:
+            _release_slot()
 
     headers = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
     response = StreamingResponse(generate_events(), media_type="application/x-ndjson", headers=headers)
@@ -1225,6 +1276,8 @@ def status() -> dict:
         "announcement": flags["announcement"],
         "uptime_s": round(time.time() - STARTED, 1),
         "requests": request_count,
+        "max_concurrency": MAX_CONCURRENCY,
+        "queue": _queue_depth["value"],
         "db_bytes": os.path.getsize(os.environ.get("RAYAN_DB", "data/rayan.sqlite3"))
         if os.path.exists(os.environ.get("RAYAN_DB", "data/rayan.sqlite3")) else 0,
     }
