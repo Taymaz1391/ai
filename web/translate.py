@@ -86,6 +86,9 @@ _FA_EN: dict[str, tuple[str, str]] = {
     "شیشه": ("glass", "noun"), "ساعت": ("clock", "noun"), "بازار": ("market", "noun"),
     "غذا‌خوری": ("restaurant", "noun"), "بیمارستان": ("hospital", "noun"),
     "کتابخانه": ("library", "noun"), "خیابان": ("street", "noun"), "پل": ("bridge", "noun"),
+    "پارک": ("park", "noun"), "باغ": ("garden", "noun"), "ساحل": ("beach", "noun"),
+    "فرودگاه": ("airport", "noun"), "قطار": ("train", "noun"), "هواپیما": ("plane", "noun"),
+    "ورزشگاه": ("stadium", "noun"), "مسجد": ("mosque", "noun"), "دفتر": ("office", "noun"),
     # قید
     "امروز": ("today", "adv"), "دیروز": ("yesterday", "adv"), "فردا": ("tomorrow", "adv"),
     "الان": ("now", "adv"), "همیشه": ("always", "adv"), "هرگز": ("never", "adv"),

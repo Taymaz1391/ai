@@ -384,6 +384,9 @@ SETS["all"] = CASES + HOLDOUT + HARD + BLIND + BLIND2 + BLIND3 + BLIND4 + BLIND5
 # نشانه‌های پاسخِ ردشده (پیشنهاد به‌جای جواب)
 EVASIVE = ("نمی‌دانم", "نمی دانم", "نمی‌توانم", "پیشنهاد می‌کنم", "دکمهٔ وب", "دکمه وب",
            "کلید «وب»", "اطلاع ندارم", "به‌روز نیستم", "به روز نیستم")
+# پاسخِ «قالبی» که فقط نامِ موضوع را تکرار می‌کند جواب نیست، حتی اگر واژهٔ پرسش را داشته باشد
+SCAFFOLD = ("دربارهٔ **", "تعریفِ دقیقش", "در دانشنامه", "برای فهمِ علت",
+            "این نکته", "در پیکره", "شاهدی پیدا نشد", "موضوعِ نزدیک")
 
 
 def ask(base: str, question: str, cookie: str = "", timeout: float = 40.0,
@@ -422,6 +425,8 @@ def judge(case: dict, answer: str) -> tuple[bool, list[str], list[str]]:
                    for word in group):
             missing.append("/".join(group))
     evasive = [marker for marker in EVASIVE if marker in text][:2]
+    if any(marker in text for marker in SCAFFOLD):
+        evasive = evasive or ["قالب"]
     short_ok = ("گفتگو", "ریاضی", "ترجمه")
     min_len = 4 if case["cat"] in short_ok else (10 if missing == [] else 60)
     long_enough = len(text) >= min_len

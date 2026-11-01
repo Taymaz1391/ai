@@ -288,6 +288,41 @@ def _code_answer_python(text: str) -> str | None:
     programming = re.search(r"پایتون|python|(?<![\w\u200c])کد(?![\w\u200c])|برنامه|"
                             r"جاوااسکریپت|javascript|حلقه|\bsql\b|select\s|insert\s|جدول",
                             text, re.I)
+    # بازهٔ اعداد
+    if re.search(r"\brange\b|بازه|محدوده", low) and re.search(r"عدد|اعداد|شمار", low):
+        return ("ساختِ بازهٔ اعداد با `range()`:\n\n"
+                "```python\nprint(list(range(5)))        # [0, 1, 2, 3, 4]\n"
+                "print(list(range(1, 6)))     # [1, 2, 3, 4, 5]\n"
+                "print(list(range(0, 20, 5)))  # [0, 5, 10, 15]  گامِ ۵\n"
+                "for i in range(3):\n    print(i)\n```\n\n"
+                "`range` خودش فهرست نیست؛ برای دیدنش `list()` لازم است.")
+
+    # نزدیک‌کردنِ عدد
+    if re.search(r"گرد|round", low):
+        return ("گردکردنِ عدد در پایتون:\n\n"
+                "```python\nprint(round(3.7))       # 4\n"
+                "print(round(3.14159, 2))  # 3.14\n"
+                "print(round(2.5))         # 2  (گردِ بانکی: زوج نزدیک‌تر)\n```\n\n"
+                "برای همیشه دو رقم اعشار در نمایش: `f\"{x:.2f}\"`.")
+
+    # رشته → فهرست واژه‌ها
+    if re.search(r"split|فهرست|لیست", low) and re.search(r"واژه|کلمه|رشته|متن|جمله", low):
+        return ("بریدنِ رشته به فهرستِ واژه‌ها با `split()`:\n\n"
+                "```python\ntext = \"سلام دنیا\"\n"
+                "words = text.split()        # ['سلام', 'دنیا']\n"
+                "print(len(words))           # 2\n"
+                "print(\" \".join(words))      # سلام دنیا\n```\n\n"
+                "`split(\",\")` بر اساسِ نویسهٔ دلخواه می‌برد؛ `split()` با فاصله و خط تازه.")
+
+    # خواندنِ سطر‌به‌سطر
+    if re.search(r"سطر|خط‌به‌خط|خط به خط|line", low) and re.search(r"فایل|بخوان", low):
+        return ("خواندنِ فایل سطر‌به‌سطر:\n\n"
+                "```python\nwith open(\"data.txt\", encoding=\"utf-8\") as handle:\n"
+                "    for line in handle:\n"
+                "        print(line.strip())     # strip خطِ تازه را برمی‌دارد\n```\n\n"
+                "این روش حافظه را کم مصرف می‌کند؛ برای فایلِ بزرگ هم امن است.")
+
+    # نوشتنِ فایل (زودتر از خواندن، تا «بنویسم» گم نشود)
     # JSON
     if re.search(r"json", low, re.I):
         return ("خواندن و نوشتنِ JSON:\n\n"
@@ -670,6 +705,12 @@ def code_answer(question: str) -> dict | None:
     if re.search(r"\bsql\b|select\s|insert\s|پایگاه‌?داده", text, re.I):
         return {"answer": _sql_answer(text), "source": "کد", "engine": "code"}
     if re.search(r"جاوااسکریپت|javascript|\bjs\b", text, re.I):
+        if re.search(r"تصادفی|random", text):
+            return {"answer": ("عدد تصادفی در جاوااسکریپت:\n\n"
+                               "```javascript\n// عدد صحیح بین ۱ و ۶\n"
+                               "const dice = Math.floor(Math.random() * 6) + 1;\n\n"
+                               "// عدد اعشاری بین ۰ و ۱\nconsole.log(Math.random());\n```"),
+                    "source": "کد", "engine": "code"}
         return {"answer": _js_answer(text), "source": "کد", "engine": "code"}
     code = _code_answer_python(text)
     if code:

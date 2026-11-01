@@ -390,6 +390,23 @@ _SHAPES_WORD = {"مربع": "مربع", "مستطیل": "مستطیل", "مثل�
                 "دایره": "دایره", "دائره": "دایره"}
 
 
+def _triangle_perimeter(text: str) -> dict | None:
+    """محیطِ مثلث با سه ضلع؛ فرمولش جمعِ ساده است."""
+    if "مثلث" not in text or not re.search(r"محیط", text):
+        return None
+    nums = [float(n) for n in re.findall(r"\d+(?:\.\d+)?", text)]
+    if len(nums) < 3:
+        return None
+    a, b, c = nums[:3]
+    if a + b <= c or a + c <= b or b + c <= a:
+        return None                      # این سه ضلع مثلث نمی‌سازند
+    total = a + b + c
+    return {"engine": "mathword", "tool": "mathword",
+            "answer": (f"محیطِ مثلث = {_fa(a)} + {_fa(b)} + {_fa(c)} = **{_fa(total)}**.\n"
+                       "محیط یعنی جمعِ سه ضلع."),
+            "value": total}
+
+
 def _geometry(text: str) -> dict | None:
     """محیط و مساحتِ شکل‌های ساده، با فرمول و واحد."""
     shape = next((v for k, v in _SHAPES_WORD.items() if k in text), "")
@@ -603,7 +620,7 @@ def answer(question: str) -> dict | None:
         return None
     if not re.search(r"\d", text):
         return None
-    for handler in (_triangle, _shape, _geometry, _discount, _workers_inverse,
+    for handler in (_triangle, _triangle_perimeter, _shape, _geometry, _discount, _workers_inverse,
                     _rate, _work_days, _even_prime, _percent, _root,
                     _average, _fraction, _ratio,
                     _money_problem, _consecutive, _share, _primes, _age):
