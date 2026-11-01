@@ -721,6 +721,21 @@ _BAD_START = ("ویکی‌پدیا", "رده:", "الگو:", "پرونده:", "[
 _JUNK = ("http", "www.", ".ir/", ".com/", ".jpg", ".png", ".pdf", "فیلم +", "<<", ">>", "\\u")
 
 
+# نشانه‌های دیالوگِ داستانی: جملهٔ رواییِ رمان، نه گزارهٔ دانشی
+_DIALOGUE = re.compile(
+    r"(گفت\s*[:؛]|گفت:|پرسید|فریاد|زمزمه|آهسته\s*گفت|بلند\s*گفت|جواب\s*داد|لبخند\s*زد|"
+    r"نگاه\s*کرد|چشم‌هایش|صورتش|دستش\s*را|با\s*صدای\s*بلند)")
+# واژه‌های توهین‌آمیز: هیچ پاسخی نباید کاربر را بیازارد
+_HOSTILE = ("زشت", "احمق", "خفه", "نادان", "بی‌شعور", "کثافت", "لعنت", "بیشعور",
+            "نفرت", "دیوانه", "کودن", "احمقی")
+
+
+def _hostile(piece: str) -> bool:
+    """آیا جمله به کاربر توهین می‌کند یا از دیالوگِ داستانی آمده است؟"""
+    low = piece.casefold()
+    return any(word in low for word in _HOSTILE) or bool(_DIALOGUE.search(piece))
+
+
 def sentences(text: str) -> list[str]:
     out = []
     text = re.sub(r"\*\*|__", "", text or "")
@@ -731,6 +746,8 @@ def sentences(text: str) -> list[str]:
         if piece.startswith(_BAD_START) or piece.count("|") > 1:
             continue
         if any(junk in piece for junk in _JUNK):
+            continue
+        if _hostile(piece):
             continue
         digits = sum(ch.isdigit() for ch in piece)
         if digits > len(piece) * 0.12:
@@ -1027,7 +1044,7 @@ def compose(question: str, hits: list[Hit], max_sentences: int = 2,
 
 
 QUESTION_WORDS = ("چیست", "چیه", "کیست", "کیه", "کجاست", "کجا", "چرا", "چطور", "چگونه",
-                  "چند", "آیا", "یعنی", "تفاوت", "فرق", "چه", "کی", "چرا")
+                  "چند", "آیا", "یعنی", "تفاوت", "فرق", "چه", "کی", "کدام", "چقدر")
 
 
 _SOCIAL = ("خوبی", "چطوری", "چه خبر", "صبح بخیر", "شب بخیر", "روز بخیر", "حالت چطور",
@@ -1085,20 +1102,22 @@ def _direct_answer(question: str, path: str | None = None) -> dict | None:
     subject = [normalize(word) for word in (question_subject(question) or []) if len(word) > 2]
     if not subject:
         return None
+    # کلیدواژه‌های موضوعیِ پرسش (نه فقط سه واژهٔ نخست) — جلوگیری از تطبیقِ نادرست
+    wanted = {word for word in words(question) if len(word) > 2}
     for hit in hits[:3]:
         body = (hit.body or "").replace("*", "").strip()
         body = re.sub(r"\s+", " ", body)
         if not body or len(body) > 320:
             continue
-        norm_body = normalize(body)
-        if not all(word in norm_body for word in subject):
+        body_words = set(words(body))
+        if not wanted <= body_words:
             continue
         sentences = [piece.strip() for piece in re.split(r"(?<=[.!؟])\s+", body) if piece.strip()]
         for sentence in sentences:
             norm_sentence = normalize(sentence)
             if len(sentence) < 18 or len(sentence) > 240:
                 continue
-            if all(word in norm_sentence for word in subject):
+            if wanted <= set(words(sentence)):
                 return {"answer": sentence,
                         "source": {"title": (hit.title or "")[:90], "source": "پیکرهٔ فارسی",
                                    "snippet": sentence[:170], "score": 1.0}}
@@ -1144,6 +1163,21 @@ def think(question: str, limit: int = 10, path: str | None = None,
         return {"answer": taught["answer"], "sources": [],
                 "trace": trace, "confidence": 0.97, "coverage": 1.0,
                 "seconds": round(time.time() - started, 3), "engine": taught["engine"]}
+
+    # ۰٫۵۳) ترجمه و مسئلهٔ کلامی: پاسخِ قطعی و کوتاه، پیش از هر بازیابیِ متنی
+    for module_name in ("translate", "mathword"):
+        try:
+            module = __import__(f"web.{module_name}", fromlist=["answer"])
+            solved = module.answer(question)
+        except Exception:  # noqa: BLE001 - این لایه نباید مسیر را بشکند
+            solved = None
+        if solved:
+            trace.append({"step": "حلِ مستقیم", "detail": solved.get("source", module_name),
+                          "seconds": round(time.time() - started, 3)})
+            return {"answer": solved["answer"], "sources": [],
+                    "trace": trace, "confidence": 0.96, "coverage": 1.0,
+                    "seconds": round(time.time() - started, 3),
+                    "engine": solved.get("engine", module_name)}
 
     # ۰٫۶) راهنمای موضوعی: پرسش‌های «چطور...» پاسخِ گام‌به‌گام می‌گیرند
     try:

@@ -35,10 +35,13 @@ class SkillTest(unittest.TestCase):
         # نصب از مرورگر است؛ صفحهٔ دانلود حذف شده و لینک مرده نمی‌دهیم
         self.assertIn("مرورگر", skills.match("چطور نصب کنم؟")["answer"])
 
-    def test_code_request_is_honest(self):
-        hit = skills.match("یک تابع پایتون بنویس")
+    def test_code_request_gives_real_code(self):
+        """درخواستِ کد باید کدِ واقعی بگیرد، نه عذرخواهی و ارجاعِ دوباره."""
+        hit = skills.match("یک برنامه بنویس")
         self.assertEqual(hit["skill"], "code_request")
-        self.assertIn("قوی نیستم", hit["answer"])
+        self.assertIn("def ", hit["answer"])
+        self.assertNotIn("قوی نیستم", hit["answer"])
+        self.assertNotIn("کلید «وب»", hit["answer"])
 
     def test_answers_leak_no_internals(self):
         """هیچ پاسخ مهارتی نباید پارامتر، پیکره، مسیر فایل یا لینک مخزن را لو بدهد."""

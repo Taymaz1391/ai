@@ -27,6 +27,7 @@ _WRITE_KINDS = (
 )
 
 _WRITE_VERBS = r"بنویس|بنویسید|بگو|بساز|تحریر|درست کن|تهیه کن"
+_FA_DIGITS = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
 
 _STOP_TOPIC = ("دربارهٔ", "درباره", "راجع به", "در مورد", "از", "برای")
 
@@ -169,13 +170,34 @@ def _story(topic: str, facts: list[str]) -> str:
     return "\n\n".join(parts)
 
 
+_RECIPIENT = {"مدیر": "مدیرِ محترم", "رئیس": "ریاستِ محترم", "استاد": "استادِ محترم",
+              "همکار": "همکارِ گرامی", "مشتری": "مشتریِ گرامی", "شرکت": "همکارانِ گرامی",
+              "تیم": "همکارانِ گرامی", "پشتیبانی": "کارشناسِ پشتیبانی"}
+
+
 def _letter(topic: str) -> str:
-    return ("سلام،\n\n"
-            f"می‌خواستم چند خطی دربارهٔ {topic} بنویسم. مدتی است به آن فکر می‌کنم و هر بار "
-            f"به این نتیجه می‌رسم که بهتر است درباره‌اش حرف بزنیم، نه اینکه هر کدام "
-            f"در ذهن خودمان آن را بزرگ کنیم.\n\n"
-            f"اگر وقت داشتی، بنویس تو دربارهٔ {topic} چه فکر می‌کنی. همین چند خط را "
-            f"کافی نمی‌دانم، ولی برای شروع خوب است.\n\n"
+    """نامه/ایمیلِ رسمی با ساختارِ درست: سلام، موضوع، سه بند و امضا."""
+    recipient = ""
+    for key, label in _RECIPIENT.items():
+        if key in topic:
+            recipient = label
+            break
+    subject = re.sub(r"^(?:یک|یه)?\s*(?:ایمیل|نامه|پیام)?\s*(?:رسمی|کوتاه|اداری)?\s*"
+                     r"(?:به|برای)\s*", "", topic).strip()
+    for key in _RECIPIENT:
+        subject = re.sub(rf"(?:به|برای)?\s*{key}\s*", " ", subject).strip(" ،,")
+    subject = re.sub(r"\s+", " ", subject).strip()
+    subject = subject or "هماهنگی"
+    greeting = f"{recipient}،" if recipient else "سلام و احترام،"
+    return (f"**موضوع:** پیگیریِ {subject}\n\n"
+            f"{greeting}\n\n"
+            "امیدوارم حالتان خوب باشد. کوتاه می‌نویسم تا وقتتان گرفته نشود.\n\n"
+            f"دربارهٔ {subject} یک نکته را لازم دیدم حضوری مطرح کنم: پیش از تصمیمِ نهایی، "
+            "لطفاً همین چند خط را ببینید. اگر بخواهید، جمع‌بندیِ کامل را در یک صفحه "
+            "هم آماده می‌کنم تا در جلسه مرور کنیم؛ اگر ترجیح می‌دهید کوتاه‌تر باشد، "
+            "همان دو بندِ نخست کافی است.\n\n"
+            "خوشحال می‌شوم وقتِ کوتاهی بگیرم تا دقیق‌تر توضیح بدهم. اگر این هفته "
+            "ممکن نیست، هر روزی که برایتان بهتر است بگویید.\n\n"
             "با احترام")
 
 
@@ -294,24 +316,93 @@ _GUIDES: tuple[tuple[str, str], ...] = (
 
 
 def _guide(question: str) -> str | None:
+    """راهنمای کاربردی؛ موضوع‌های تخصصی به ماژول‌های خودشان واگذار می‌شوند."""
+    if re.search(r"عادت|روتین", question or ""):
+        return None
+    # برنامه‌نویسی، ترجمه و ریاضی راهنمای نوشتاری نیستند
+    if re.search(r"پایتون|python|(?<![\w\u200c])کد(?![\w\u200c])|برنامه‌نویسی|جاوااسکریپت|"
+                 r"فایل متنی|الگوریتم|تابع\s*(?:بنویس|بده)|ترجمه|درصد|جذر|میانگین",
+                 question or "", re.I):
+        return None
     text = (question or "").strip()
     if not text:
         return None
-    if not re.search(r"چطور|چگونه|چه کار|چی کار|چه کنم|چه کنم\?|راه|پیشنهاد|بگو|بده|برنامه", text):
+    if not re.search(r"چطور|چگونه|چه کار|چی کار|چه کنم|راه|پیشنهاد|بگو|بده|برنامه|"
+                     r"از کجا|شروع کنم|چی بخوانم|چه بخوانم", text):
         return None
     for pattern, answer in _GUIDES:
         if re.search(pattern, text):
-            return answer
+            return _number_steps(answer)
     return None
 
 
+_FA_DIGITS = "۰۱۲۳۴۵۶۷۸۹"
+
+
+def _number_steps(text: str) -> str:
+    """نکته‌های بولت‌دار را قدم‌به‌قدم شماره می‌گذارد؛ خواندن و ارجاع آسان‌تر می‌شود."""
+    step = 0
+    out: list[str] = []
+    for line in text.split("\n"):
+        stripped = line.lstrip()
+        if stripped.startswith("•"):
+            step += 1
+            number = "".join(_FA_DIGITS[int(d)] for d in str(step))
+            out.append(f"{number}. {stripped[1:].strip()}")
+        else:
+            out.append(line)
+    return "\n".join(out)
+
+
 # ══════════════════════════════════════════════════════ ۵) نقطهٔ ورود
+
+_SUMMARY_ASK = re.compile(r"(خلاصه|جمع‌بندی|جمع بندی|کوتاه‌تر|فشرده)\s*(?:کن|کنید|بده|بدهید|"
+                          r"بنویس|بنویسید)?")
+
+
+def _split_items(payload: str) -> list[str]:
+    """فهرستِ نکته‌ها را از متنِ خام بیرون می‌کشد."""
+    cleaned = re.sub(r"[\n•*\-]+", "،", payload)
+    parts = re.split(r"(?:،|,|؛|;|\s+و\s+)", cleaned)
+    items, seen = [], set()
+    for part in parts:
+        item = part.strip(" .،؛:«»\"'")
+        if 2 <= len(item) <= 80 and item not in seen:
+            seen.add(item)
+            items.append(item)
+    return items
+
+
+def summarize(question: str) -> str | None:
+    """«این سه نکته را خلاصه کن: …» → خلاصهٔ ساختاریافته از همان نکته‌ها."""
+    text = (question or "").strip()
+    if not _SUMMARY_ASK.search(text):
+        return None
+    payload = text.split(":", 1)[1] if ":" in text else ""
+    if not payload:
+        quoted = re.search(r"[«\"](.+?)[»\"]", text)
+        payload = quoted.group(1) if quoted else text
+    items = _split_items(payload)
+    if len(items) < 2:
+        return None
+    bullets = "\n".join(f"• {item}" for item in items)
+    takeaway = (f"جمع‌بندی: {items[0]} ستونِ کار است؛ {items[1]} آن را پایدار نگه می‌دارد"
+                + (f" و {items[2]} نتیجه را کامل می‌کند." if len(items) > 2 else "."))
+    count = str(len(items)).translate(_FA_DIGITS)
+    all_word = "هر دو" if len(items) == 2 else ("هر سه" if len(items) == 3 else "همهٔ این‌ها")
+    return (f"**خلاصهٔ {count} نکته**\n\n{bullets}\n\n"
+            f"**{takeaway}**\n\nتا وقتی {all_word} با هم رعایت شوند، نتیجه می‌ماند؛ "
+            "اگر یکی جا بیفتد، بقیه هم کمرنگ می‌شوند.")
+
 
 def answer(question: str) -> dict | None:
     """نوشتن یا راهنمای کاربردی؛ اگر هیچ‌کدام نبود، None تا مسیر عادی ادامه یابد."""
     text = (question or "").strip()
     if not text:
         return None
+    summary = summarize(text)
+    if summary:
+        return {"answer": summary, "source": "خلاصه", "engine": "write"}
     kind = _kind(text)
     if kind:
         topic = topic_of(text)

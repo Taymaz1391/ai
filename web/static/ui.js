@@ -498,7 +498,20 @@
     if ((window.RAYAN_CONFIG || {}).static) return;
     if (location.protocol !== "https:" && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") return;
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js").catch(() => { /* اختیاری */ });
+      navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" })
+        .then((reg) => {
+          reg.update().catch(() => {});
+          if (reg.waiting) reg.waiting.postMessage({ type: "skip-waiting" });
+        })
+        .catch(() => { /* اختیاری */ });
+      // اگر نسخهٔ تازه‌ای از کد آمد، یک‌بار خودکار تازه‌سازی می‌کنیم تا کدِ
+      // قدیمی در تبِ باز نماند (منبعِ خطاهای «ورود کار نمی‌کند»).
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (reloaded) return;
+        reloaded = true;
+        location.reload();
+      });
     });
   }
 

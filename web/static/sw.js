@@ -1,5 +1,5 @@
 /* رایان — سرویس‌ورکر: دارایی‌های ایستا کش، صفحه‌ها شبکه-اول، آفلاین‌پذیر */
-const VERSION = "rayan-v16";
+const VERSION = "rayan-v17";
 const SHELL = [
   "/static/styles.css",
   "/static/pages.css",
@@ -79,6 +79,10 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+self.addEventListener("message", (event) => {
+  if (event && event.data && event.data.type === "skip-waiting") self.skipWaiting();
+});
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
@@ -87,15 +91,17 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.startsWith("/api/")) return;
 
   if (url.pathname.startsWith("/static/")) {
-    // دارایی‌ها: کش-اول با به‌روزرسانی پس‌زمینه
+    // دارایی‌ها: شبکه-اول، کش فقط پشتیبانِ آفلاین. این‌طوری نسخهٔ تازهٔ کد
+    // هرگز پشتِ کشِ قدیمی نمی‌ماند (دلیلِ کلاسیکِ «سایت کار نمی‌کند»).
     event.respondWith((async () => {
       const cache = await caches.open(VERSION);
-      const hit = await cache.match(request);
-      const network = fetch(request).then((res) => {
-        if (res.ok) cache.put(request, res.clone());
+      try {
+        const res = await fetch(request, { cache: "no-cache" });
+        if (res && res.ok) cache.put(request, res.clone());
         return res;
-      }).catch(() => hit);
-      return hit || network;
+      } catch {
+        return (await cache.match(request)) || Response.error();
+      }
     })());
     return;
   }

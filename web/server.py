@@ -263,6 +263,10 @@ def boot() -> None:
     try:
         admin_module.admin_credentials()
         admin_module.start_scheduler()
+        # حساب مالک همیشه هست: بعد از هر به‌روزرسانی یا پایگاه‌دادهٔ تازه،
+        # ورودِ مدیر بی‌درنگ کار می‌کند و پنل مدیریت ۴۰۴ نمی‌شود.
+        owner_module.credentials()
+        admin_module._ensure_admin_user("owner@rayan.local")  # noqa: SLF001
     except Exception as exc:  # pragma: no cover
         print(f"[rayan] admin bootstrap skipped: {exc}", flush=True)
     if engine is None:
@@ -578,9 +582,15 @@ def watcher(stop: threading.Event) -> None:
 
 # ------------------------------------------------------- هویت و نشست‌ها
 class RateLimiter:
-    """پنجرهٔ لغزان در حافظه برای هر IP."""
+    """پنجرهٔ لغزان در حافظه برای هر IP.
 
-    def __init__(self, per_minute: int = 45):
+    سقفِ پیش‌فرض ۴۵ درخواست در دقیقه است و با ``RAYAN_RATE_PER_MINUTE`` برای
+    آزمونِ بار و سنجشِ کیفیت قابل تنظیم است (بدونِ دست‌زدن به سقفِ کاربرِ واقعی).
+    """
+
+    def __init__(self, per_minute: int | None = None):
+        if per_minute is None:
+            per_minute = int(os.environ.get("RAYAN_RATE_PER_MINUTE", "45") or 45)
         self.per_minute = per_minute
         self.hits: dict[str, deque] = {}
         self.lock = threading.Lock()
@@ -891,6 +901,12 @@ def chat_page() -> FileResponse:
 @app.get("/login", response_class=HTMLResponse)
 def login_page() -> FileResponse:
     return _page("auth.html")
+
+
+@app.get("/auth", include_in_schema=False)
+def auth_alias() -> RedirectResponse:
+    """نشانیِ کوتاهِ ورود: هر کس /auth را بزند به فرم ورود می‌رسد، نه ۴۰۴."""
+    return RedirectResponse("/login", status_code=307)
 
 
 @app.get("/signup", response_class=HTMLResponse)
@@ -1487,6 +1503,15 @@ def login(req: LoginRequest, request: Request, response: Response) -> dict:
         })
     user = store().verify_user(ident, req.password)
     if user is None:
+        if "@" not in ident:
+            # نام کاربریِ ناشناخته: بگو با چه چیزی می‌تواند وارد شود.
+            raise HTTPException(401, detail={
+                "code": "unknown_username",
+                "message": ("با این نام کاربری حسابی نیست. برای پنل مدیریت نام کاربریِ "
+                            f"«{owner_module.status().get('name')}» (یا admin) و برای حساب "
+                            "کاربری، ایمیلِ ثبت‌شده را وارد کن."),
+                "owner_username": owner_module.status().get("name"),
+            })
         raise HTTPException(401, "ایمیل یا رمز عبور نادرست است.")
     store().clear_attempts(key)
     token = store().create_session(user_id=user["id"], user_agent=request.headers.get("user-agent", ""), ip=ip)
@@ -1913,6 +1938,27 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
             if spoken:
                 return _instant_turn(owner, ip, req, response, conv_id, message, spoken,
                                      tool_result, started, "tool")
+        # ترجمه و مسائل کلامی پیش از مهارت‌های عمومی؛ پاسخِ مستقیم می‌دهند
+        for module_name in ("translate", "mathword"):
+            try:
+                module = __import__(f"web.{module_name}", fromlist=["answer"])
+                solved = module.answer(message)
+            except Exception:  # noqa: BLE001 - یک لایه نباید چت را بشکند
+                solved = None
+            if solved:
+                return _instant_turn(owner, ip, req, response, conv_id, message,
+                                     solved["answer"], tool_result, started,
+                                     solved.get("engine", module_name))
+        # دانشنامهٔ بررسی‌شده پیش از لایه‌های نوشتاری و آموزشی: اگر پاسخِ قطعی
+        # داریم، نباید لایهٔ دیگری موضوع را به خودش بگیرد.
+        knowledge_hit = knowledge_module.answer(message)
+        if knowledge_hit:
+            return _instant_turn(owner, ip, req, response, conv_id, message,
+                                 knowledge_hit["answer"], tool_result, started, "knowledge",
+                                 {"sources": [{"title": "پاسخ بررسی‌شده",
+                                               "source": "رایان", "score": 1.0}],
+                                  "curated": True})
+
         written = writer_module.answer(message)
         if written:
             return _instant_turn(owner, ip, req, response, conv_id, message, written["answer"],
@@ -2046,16 +2092,14 @@ def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     tool_answer = ""
     if tool_result and tool_result.get("ok"):
         tool_answer = tools_module.phrase(tool_result)
-    written = None if tool_answer or req.mode != "chat" else writer_module.answer(message)
-    taught = None if (tool_answer or written or req.mode != "chat") else tutor_module.answer(message)
-    skill = None if (tool_answer or taught or written) else (
+    kb = None if (tool_answer or req.mode != "chat" or req.web) else knowledge_module.answer(message)
+    written = None if tool_answer or kb or req.mode != "chat" else writer_module.answer(message)
+    taught = None if (tool_answer or kb or written or req.mode != "chat") else tutor_module.answer(message)
+    skill = None if (tool_answer or kb or taught or written) else (
         skills_module.match(message) if req.mode == "chat" else None)
     thought = None
-    if req.mode == "chat" and not skill and not taught:
+    if req.mode == "chat" and not skill and not taught and not kb:
         thought = _think(message, req, history)
-    kb = None
-    if req.mode == "chat" and not skill and not thought and not req.web:
-        kb = knowledge_module.answer(message)
     instant_answer = (tool_answer or (written or {}).get("answer") or (taught or {}).get("answer")
                       or (skill or {}).get("answer")
                       or (thought or {}).get("answer") or (kb or {}).get("answer") or "")
@@ -2287,6 +2331,20 @@ def selftest(request: Request) -> dict:
     add("tokenizer", os.path.exists(active_tokenizer), active_tokenizer)
     add("static_dir", os.path.isdir(STATIC_DIR), STATIC_DIR)
     add("admin", bool(admin_module.admin_credentials().get("pw_hash")), "credentials ready")
+    # سلامتِ ورود: مالک پیکربندی‌شده، گذرواژهٔ پیش‌فرض، و حسابِ مالک در پایگاه‌داده
+    owner_info = owner_module.status()
+    add("owner", bool(owner_info.get("configured")),
+        f"username={owner_info.get('name')} default_password={owner_info.get('default_password')}")
+    try:
+        owner_row = store()._one("SELECT id FROM users WHERE email=?", ("owner@rayan.local",))  # noqa: SLF001
+        add("owner_account", bool(owner_row), "admin user exists")
+    except Exception as exc:  # pragma: no cover
+        add("owner_account", False, str(exc))
+    mail_status = mailer_module.status()
+    add("mailer", bool(mail_status.get("configured") or mail_status.get("dev")),
+        "ایمیل پیکربندی نشده است؛ ثبت‌نام بی‌درنگ انجام می‌شود و کدِ تأیید فقط "
+        "وقتی SMTP تنظیم شود فرستاده می‌شود." if not mail_status.get("configured")
+        else f"{mail_status.get('mode')} · {mail_status.get('sender')}")
     free = -1
     try:
         import shutil

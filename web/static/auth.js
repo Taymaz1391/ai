@@ -307,6 +307,14 @@
       setTimeout(() => location.replace(safeNext || "/chat"), 420);
     } catch (err) {
       const detail = err && err.data && err.data.detail;
+      if (!isSignup && detail && typeof detail === "object" && detail.code === "unknown_username") {
+        // راهنمای ورودِ مدیر، سرِ همان فرم و بدون رفتن به صفحهٔ دیگر
+        fail(detail.message || "با این نام کاربری حسابی نیست.");
+        submit.disabled = false;
+        label.textContent = original;
+        if (humanWidget) humanWidget.reset();
+        return;
+      }
       if (!isSignup && detail && typeof detail === "object" && detail.code === "account_not_found") {
         // حساب ساخته نشده است؛ مستقیم به پنل ثبت‌نام می‌رویم و ایمیل را از پیش پر می‌کنیم.
         const target = new URLSearchParams({ email: detail.email || identifier, from: "login" });
