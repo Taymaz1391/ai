@@ -418,3 +418,25 @@ class IntroVideoTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SecrecyTest(unittest.TestCase):
+    """هیچ صفحهٔ عمومی نباید فایل، مخزن، پیکره یا عدد داخلی را لو بدهد."""
+
+    BANNED = ("github", "gitlab", "checkpoint", ".npz", "wiki.sqlite3", "index.sqlite3",
+              "merged.txt", "پارامتر", "میلیون پارامتری", "پیکره", "دیتاست", "dataset",
+              "MIT License", "مجوز MIT", "/docs", "/developer", "/download")
+
+    def test_public_pages_leak_nothing(self):
+        static = ROOT / "web" / "static"
+        for path in sorted(static.glob("*.html")):
+            text = path.read_text(encoding="utf-8").lower()
+            for word in self.BANNED:
+                self.assertNotIn(word.lower(), text, f"{path.name} → {word}")
+
+    def test_public_js_leak_nothing(self):
+        static = ROOT / "web" / "static"
+        for path in sorted(static.glob("*.js")):
+            text = path.read_text(encoding="utf-8").lower()
+            for word in ("github.com", "gitlab", "checkpoint", ".npz", "wiki.sqlite3"):
+                self.assertNotIn(word, text, f"{path.name} → {word}")

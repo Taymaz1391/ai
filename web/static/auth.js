@@ -233,10 +233,10 @@
   if (staticMode) {
     if (notice) {
       notice.hidden = false;
-      notice.textContent = "این نسخهٔ نمایشی روی GitHub Pages است؛ ورود و ساخت حساب فقط روی سرور فعال است.";
+      notice.textContent = "ارتباط با سرویس برقرار نیست؛ چند لحظه بعد دوباره تلاش کنید.";
     }
     submit.disabled = true;
-    label.textContent = "نسخهٔ نمایشی";
+    label.textContent = "در دسترس نیست";
     $("#password").disabled = true;
     identifierInput.disabled = true;
   }

@@ -11,12 +11,9 @@
 `۱۶٬۸۸۹٬۸۵۶ پارامتر` · `توکنایزر BPE فارسی ۱۶هزارتایی` · `ترنسفورمر ۶ لایه با پس‌انتشار دستی در NumPy` · `آموزش واقعی روی CPU`
 
 [![tests](https://github.com/Taymaz1391/ai/actions/workflows/tests.yml/badge.svg)](https://github.com/Taymaz1391/ai/actions/workflows/tests.yml)
-[![pages](https://github.com/Taymaz1391/ai/actions/workflows/pages.yml/badge.svg)](https://github.com/Taymaz1391/ai/actions/workflows/pages.yml)
 [![license](https://img.shields.io/badge/license-Proprietary-2e8bff)](LICENSE)
 
-[راه‌اندازی و انتشار عمومی](docs/DEPLOY_LIVE.md) · [دورهٔ ۵ ساعته](web/static/course.html) · [بستهٔ تبلیغات گوگل](docs/ADS.md) · [مستندات](docs/) · [کارت مدل](docs/MODEL_CARD.md) · [معماری](docs/ARCHITECTURE.md) · [استقرار رایگان](docs/DEPLOY_FREE.md)
-
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Taymaz1391/ai)
+[مستندات](docs/) · [کارت مدل](docs/MODEL_CARD.md) · [معماری](docs/ARCHITECTURE.md) · [ظرفیت](docs/CAPACITY.md)
 
 </div>
 
@@ -44,7 +41,6 @@
 | ورود / ثبت‌نام | `/login` · `/signup` | حساب با ایمیل و گذرواژه (scrypt)، نشست ۳۰ روزه |
 | تعرفه | `/pricing` | مقایسهٔ پلن‌ها و سهمیه‌ها |
 | مدل‌ها | `/models` | مشخصات مدل، سنجه‌های آموزش و سخت‌افزار |
-| دورهٔ ۵ ساعته | `/course` | ده درس کامل: پیکره، توکنایزر، ترنسفورمر، آموزش، استنتاج، امنیت و استقرار — با پیشرفت ذخیره‌شده و خواندن با صدای مرورگر |
 | مستندات | `/docs` | شروع سریع، جدول API، معماری، استقرار |
 | درباره | `/about` | چرا، چگونه، مجوز داده‌ها، حریم خصوصی و شرایط استفاده |
 | دانلود | `/download` | APK اندروید، EXE ویندوز و نسخهٔ وب — هر سه کلاینت نازکِ همان سرور |
@@ -84,18 +80,11 @@ RAYAN_SKIP_ORB=1 .venv/bin/python scripts/build_brand_motion.py  # فقط نشا
 
 فونت‌های سایت woff2 هستند؛ `scripts/fontcache.py` همان فایل‌ها را برای Pillow به TTF تبدیل می‌کند (بدون دانلود).
 
-### دانلود و کلاینت‌ها
+### دسترسی کاربر
 
-نسخهٔ اندروید (APK) و ویندوز (EXE) در صفحهٔ `/download` هستند و در GitHub Actions
-از همین مخزن ساخته و به انتشار `clients` پیوست می‌شوند:
-
-* `https://github.com/Taymaz1391/ai/releases/latest/download/rayan-android.apk`
-* `https://github.com/Taymaz1391/ai/releases/latest/download/rayan-windows.exe`
-
-این فایل‌ها هیچ مدل و هیچ سهمیه‌ای در خود ندارند؛ صفحهٔ همان سرور را نشان می‌دهند و
-نشست، نقش مدیر و مصرف روزانه سمت سرور بررسی می‌شود. پس دست‌کاری فایل نصب، کاربر را
-«آنلاین» یا «ویژه» نمی‌کند و آفلاین هیچ پاسخی از خودش نمی‌سازد. جزئیات ساخت در
-`clients/README.md` است.
+تنها راه رسیدن به هوش، همین سرویس است: سایت در مرورگر (قابل نصب به‌صورت PWA) و
+اپ نازک اندروید که خودش چیزی اجرا نمی‌کند. هیچ نسخهٔ مستقل و هیچ بستهٔ قابل نصب
+آفلاینی عرضه نمی‌شود؛ نشست، نقش و سهمیه سمت سرور بررسی می‌شود.
 
 ### ورود مالک با نام کاربری
 
@@ -452,19 +441,10 @@ RAYAN_INDEX_URL=…/index.sqlite3 RAYAN_WIKI_URL=…/wiki.sqlite3 python scripts
 نمی‌آیند، ولی لایهٔ **یادگیری آنلاین** پرسش‌ها را از وب می‌خواند و در همان دیسک موقت
 ذخیره می‌کند. برای ایندکس ۸۶۵ مگابایتی به دیسک پایدار نیاز است.
 
-| گزینه | چه می‌گیرید | فایل |
-|---|---|---|
-| **Hugging Face Spaces (Docker)** | سایت کامل + مدل، رایگان | `Dockerfile` |
-| **Render** | همان، با Blueprint آماده | `render.yaml` |
-| **GitHub Pages** | نسخهٔ استاتیک صفحهٔ اصلی، تعرفه، مدل‌ها، مستندات و درباره | `.github/workflows/pages.yml` |
-
-برای فعال‌کردن Pages یک‌بار در **Settings → Pages → Source** گزینهٔ **GitHub Actions** را انتخاب کن؛ پس از آن گردش‌کار `pages.yml` در هر push به `main` سایت را به‌روز می‌کند. راهنمای تغییرهای بعدی روی همان دامنه: [docs/GITHUB_PAGES.md](docs/GITHUB_PAGES.md).
-
-**انتشار یک‌کلیکی سرور:** [Deploy to Render](https://render.com/deploy?repo=https://github.com/Taymaz1391/ai) — Blueprint خودش پرسش گذرواژهٔ مالک را نشان می‌دهد.
-
-GitHub Pages فقط فایل‌های ایستا را سرو می‌کند و نمی‌تواند مدل را اجرا کند؛ نسخهٔ Pages به‌صورت خودکار با `python scripts/export_site.py` ساخته می‌شود، مسیرها را نسبی می‌کند و یک نوار «نسخهٔ نمایشی» نشان می‌دهد. برای گفتگوی واقعی، نسخهٔ سرور را روی Render یا HF Spaces بالا بیاور و `apiBase` را در `web/static/config.js` به آن آدرس بده.
-
-راهنمای گام‌به‌گام: [`docs/DEPLOY_FREE.md`](docs/DEPLOY_FREE.md).
+این پروژه عرضهٔ عمومی و میزبانی مستقل ندارد. اجرای نسخهٔ کامل فقط روی سرور
+خودِ پروژه انجام می‌شود؛ انتشار، بازنشر یا بالا آوردن آن روی سرویس دیگر بدون
+اجازهٔ کتبی ممنوع است (فایل `LICENSE`). برای راه‌اندازی روی سرور پروژه،
+`docs/DEPLOY_LIVE.md` را ببین.
 
 ---
 

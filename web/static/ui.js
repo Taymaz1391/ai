@@ -441,8 +441,7 @@
     const bar = document.createElement("div");
     bar.id = "static-banner";
     bar.className = "static-banner";
-    bar.innerHTML = 'نسخهٔ نمایشی روی GitHub Pages — گفتگو به سرور نیاز دارد. ' +
-      '<a href="https://github.com/Taymaz1391/ai#%D8%B4%D8%B1%D9%88%D8%B9-%D8%B3%D8%B1%DB%8C%D8%B9" rel="noopener">اجرا در چند دقیقه</a>';
+    bar.textContent = "ارتباط با سرویس برقرار نیست؛ چند لحظه بعد دوباره تلاش کنید.";
     document.body.prepend(bar);
   }
 

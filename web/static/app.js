@@ -662,8 +662,7 @@
     const head = document.createElement("div");
     head.className = "sources-head";
     const local = sources.every((item) => !item.url);
-    const fromWiki = sources.every((item) => (item.source || "").includes("ویکی"));
-    const badge = local ? (fromWiki ? "دانشنامه" : "پیکره") : "وب";
+    const badge = local ? "دانش رایان" : "برخط";
     head.innerHTML = `<span class="sources-badge">${badge}</span>` +
       `<span>${nf(sources.length)} منبع</span>`;
     const list = document.createElement("div");
@@ -678,7 +677,7 @@
       }
       card.innerHTML = `<span class="source-index">${nf(index + 1)}</span>
         <span class="source-body"><b>${escapeHtml(item.title || "منبع")}</b>
-        <em>${escapeHtml(item.domain || item.source || "")}</em></span>`;
+        <em>${item.url ? escapeHtml(item.domain || "") : "منبع داخلی"}</em></span>`;
       list.append(card);
     });
     box.append(head, list);
@@ -1422,7 +1421,7 @@
     }
     if (window.RAYAN.config.static) {
       el.prompt.disabled = true;
-      el.prompt.placeholder = "نسخهٔ نمایشی روی GitHub Pages — برای گفتگو سرور را اجرا کنید.";
+      el.prompt.placeholder = "ارتباط با سرویس برقرار نیست؛ چند لحظه بعد دوباره تلاش کنید.";
       const send = $("#send-btn");
       if (send) send.disabled = true;
       const hint = $("#composer-hint");

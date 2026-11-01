@@ -10,72 +10,12 @@
 """
 from __future__ import annotations
 
-import json
-import os
 import re
-
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 _LINK_DOWNLOAD = "/download"
 _LINK_PRICING = "/pricing"
 _LINK_DOCS = "/about"
 _LINK_COMPARE = "/compare"
-
-def _fa(value: float, digits: int = 1) -> str:
-    """عدد فارسی با جداکنندهٔ هزارگان؛ برای متن مهارت‌ها."""
-    text = f"{value:,.{digits}f}".replace(",", "٬").replace(".", "٫")
-    return text.translate(str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹"))
-
-
-def _active_checkpoint() -> tuple[dict, dict]:
-    """پیکربندی و متادیتای همان checkpointی که سرو می‌شود (همان ترتیب سرور)."""
-    import numpy as np
-
-    for name in ("last.npz", "rayan-2-base.npz", "rayan-1-small.npz"):
-        path = os.path.join(ROOT, "checkpoints", name)
-        if not os.path.exists(path):
-            continue
-        try:
-            with np.load(path, allow_pickle=False) as data:
-                cfg = json.loads(str(data["__config__"]))
-                meta = json.loads(str(data["__meta__"])) if "__meta__" in data else {}
-            return cfg, meta
-        except Exception:  # noqa: BLE001 — فایل نیمه‌کاره یا خراب
-            continue
-    return {}, {}
-
-
-def model_facts() -> dict:
-    """اعداد واقعی مدلِ فعال از متادیتای همان checkpoint؛ هیچ عددی دستی نوشته نمی‌شود."""
-    cfg, meta = _active_checkpoint()
-    params = int(meta.get("params") or 0)
-    tokens = int(meta.get("tokens_seen") or 0)
-    return {
-        "known": bool(params),
-        "params": _fa(params, 0),
-        "params_m": _fa(params / 1e6, 1),
-        "layers": _fa(cfg.get("n_layer") or 0, 0),
-        "tokens_m": _fa(tokens / 1e6, 1),
-        "stage": meta.get("stage") or "",
-    }
-
-
-_FACTS = model_facts()
-
-
-def _model_line() -> str:
-    if not _FACTS["known"]:
-        return "• مدل از صفر در همین مخزن آموزش دیده؛ مشخصات کامل در /models"
-    return (f"• {_FACTS['params']} پارامتر ({_FACTS['layers']} لایه)، آموزش‌دیده روی "
-            f"{_FACTS['tokens_m']} میلیون توکن فارسی")
-
-
-def _intro_line() -> str:
-    if not _FACTS["known"]:
-        return "یک مدل زبانی فارسی که با NumPy از صفر ساخته شده است"
-    return (f"یک ترنسفورمر {_FACTS['params_m']} میلیون پارامتری که با NumPy از صفر ساخته و روی "
-            f"{_FACTS['tokens_m']} میلیون توکن فارسی آموزش دیده است")
-
 
 _RULES: list[tuple[str, str, str]] = [
     # (نام، الگو، پاسخ) — همه با لحن محصول؛ هیچ جزئیات فنیِ داخلی در متن نیست.

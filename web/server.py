@@ -49,7 +49,9 @@ from web import admin as admin_module  # noqa: E402
 from web import lang as locale_module  # noqa: E402
 from web import owner as owner_module  # noqa: E402
 from web import search as search_module  # noqa: E402
-from web import skills as skills_module  # noqa: E402
+from web import skills as skills_module
+from web import tutor as tutor_module  # noqa: E402
+from web import writer as writer_module  # noqa: E402
 from web import knowledge as knowledge_module  # noqa: E402
 from web import tools as tools_module  # noqa: E402
 from web import security as security_module  # noqa: E402
@@ -98,6 +100,7 @@ stats_lock = threading.Lock()
 # تأخیر واقعیِ همین سرویس برای صفحهٔ «میزان»؛ پنجرهٔ لغزان تا حافظه رشد نکند.
 _LATENCY_WINDOW = int(os.environ.get("RAYAN_LATENCY_WINDOW", "500"))
 _recent_latencies: deque = deque(maxlen=_LATENCY_WINDOW)
+_recent_times: deque = deque(maxlen=_LATENCY_WINDOW)
 _latency_lock = threading.Lock()
 
 
@@ -107,6 +110,7 @@ def _note_latency(seconds: float | None) -> None:
         return
     with _latency_lock:
         _recent_latencies.append(round(float(seconds), 3))
+        _recent_times.append(time.time())
 
 # --------------------------------------------------------------- محدودیت‌ها
 LIMITS = {
@@ -916,6 +920,7 @@ def english_removed() -> RedirectResponse:
 @app.get("/download")
 @app.get("/summary")
 @app.get("/developer")
+@app.get("/install")
 def closed_pages() -> RedirectResponse:
     """این بخش‌ها عمداً وجود ندارند؛ بازدیدکنندهٔ قدیمی به خانه برمی‌گردد."""
     return RedirectResponse("/", status_code=302)
@@ -1210,16 +1215,19 @@ def api_compare() -> dict:
 
 
 def _speed_summary() -> dict:
+    now = time.time()
     with _latency_lock:
         samples = list(_recent_latencies)
+        times = list(_recent_times)
     if not samples:
         return {"median_s": None, "p95_s": None, "per_minute": None, "samples": 0}
     ordered = sorted(samples)
     median = ordered[len(ordered) // 2]
     p95 = ordered[min(len(ordered) - 1, int(round(0.95 * (len(ordered) - 1))))]
+    # نرخ واقعی: چند پاسخ در ۶۰ ثانیهٔ گذشته — نه تقسیم بر میانه که عدد بی‌معنا می‌داد
+    per_minute = sum(1 for moment in times if now - moment <= 60)
     return {"median_s": round(median, 3), "p95_s": round(p95, 3),
-            "per_minute": round(60 / median, 0) if median else None,
-            "samples": len(samples)}
+            "per_minute": per_minute, "samples": len(samples)}
 
 
 def _uptime_percent() -> float | None:
@@ -1750,6 +1758,14 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
             if spoken:
                 return _instant_turn(owner, ip, req, response, conv_id, message, spoken,
                                      tool_result, started, "tool")
+        written = writer_module.answer(message)
+        if written:
+            return _instant_turn(owner, ip, req, response, conv_id, message, written["answer"],
+                                 tool_result, started, written["engine"])
+        taught = tutor_module.answer(message)
+        if taught:
+            return _instant_turn(owner, ip, req, response, conv_id, message, taught["answer"],
+                                 tool_result, started, taught["engine"])
         skill = skills_module.match(message)
         if skill:
             skill = answer_module.personalize(skill, owner)
@@ -1872,16 +1888,22 @@ def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     tool_answer = ""
     if tool_result and tool_result.get("ok"):
         tool_answer = tools_module.phrase(tool_result)
-    skill = None if tool_answer else (skills_module.match(message) if req.mode == "chat" else None)
+    written = None if tool_answer or req.mode != "chat" else writer_module.answer(message)
+    taught = None if (tool_answer or written or req.mode != "chat") else tutor_module.answer(message)
+    skill = None if (tool_answer or taught or written) else (
+        skills_module.match(message) if req.mode == "chat" else None)
     thought = None
-    if req.mode == "chat" and not skill:
+    if req.mode == "chat" and not skill and not taught:
         thought = _think(message, req, history)
     kb = None
     if req.mode == "chat" and not skill and not thought and not req.web:
         kb = knowledge_module.answer(message)
-    instant_answer = (tool_answer or (skill or {}).get("answer") or (thought or {}).get("answer")
-                      or (kb or {}).get("answer") or "")
-    instant_engine = ("tool" if tool_answer else "skill" if skill else "think" if thought else
+    instant_answer = (tool_answer or (written or {}).get("answer") or (taught or {}).get("answer")
+                      or (skill or {}).get("answer")
+                      or (thought or {}).get("answer") or (kb or {}).get("answer") or "")
+    instant_engine = ("tool" if tool_answer else (written or {}).get("engine") or
+                      (taught or {}).get("engine") or
+                      "skill" if skill else "think" if thought else
                       "knowledge" if kb else "")
     kwargs = _generation_kwargs(req)
     kwargs["seed"] = req.seed

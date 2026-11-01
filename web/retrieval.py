@@ -1078,6 +1078,25 @@ def think(question: str, limit: int = 10, path: str | None = None,
                 "trace": trace, "confidence": 0.95, "coverage": 1.0,
                 "seconds": round(time.time() - started, 3), "engine": "corpus"}
 
+    # ۰٫۴) درخواست نوشتن (یادداشت/داستان/نامه) پاسخ دانشنامه‌ای نمی‌خواهد
+    try:
+        from web import writer as writer_module
+        if writer_module._kind(question):
+            return {"answer": None, "sources": [], "trace": trace, "confidence": 0.0,
+                    "reason": "writing"}
+    except Exception:  # noqa: BLE001 - این نگهبان نباید مسیر را بشکند
+        pass
+
+    # ۰٫۵) دستیار موضوعی: دستور زبان، دانش پایه و کد — قطعی، نه حدسی
+    from web import tutor as tutor_module
+    taught = tutor_module.answer(question)
+    if taught:
+        trace.append({"step": "دستیار موضوعی", "detail": taught["source"],
+                      "seconds": round(time.time() - started, 3)})
+        return {"answer": taught["answer"], "sources": [],
+                "trace": trace, "confidence": 0.97, "coverage": 1.0,
+                "seconds": round(time.time() - started, 3), "engine": taught["engine"]}
+
     # ۱) دانشنامه: فقط برای پرسش‌های تعریفی؛ «چطور/چگونه» مقالهٔ دانشنامه نمی‌خواهد
     how_to = re.search(r"(چطور|چگونه|چی\s*کار|چه\s*کار|راهنمایی|پیشنهاد)", normalize(question))
     # «پایتون» در پرسش برنامه‌نویسی یعنی زبان، نه مار

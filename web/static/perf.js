@@ -43,7 +43,7 @@
   const warm = () => {
     const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1200));
     idle(() => {
-      ["/chat", "/pricing", "/docs"].forEach(prefetch);
+      ["/chat", "/pricing", "/compare"].forEach(prefetch);
     });
   };
 

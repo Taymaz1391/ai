@@ -35,7 +35,7 @@
         cta.rel = "noopener";
       } else if (pro.price > 0) {
         cta.textContent = "پرداخت به‌زودی";
-        cta.href = "/docs";
+        cta.href = "/support";
       }
     }
     const note = document.querySelector("[data-payments-note]");
