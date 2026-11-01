@@ -377,61 +377,6 @@ class IntroVideoTest(unittest.TestCase):
             self.assertTrue(FA.search(scene["caption"]), scene["id"])
 
 
-class IntroVideoTest(unittest.TestCase):
-    """آموزش استفاده باید ویدیوی واقعی با گوینده باشد و بعد از ثبت‌نام پخش شود."""
-
-    VIDEO = STATIC / "assets" / "video" / "intro.mp4"
-    POSTER = STATIC / "assets" / "video" / "intro-poster.jpg"
-
-    def test_video_file_exists_and_is_mp4(self):
-        self.assertTrue(self.VIDEO.exists(), "ویدیوی آموزش ساخته نشده؛ scripts/make_intro_video.py")
-        with open(self.VIDEO, "rb") as fh:
-            head = fh.read(12)
-        self.assertEqual(head[4:8], b"ftyp", "فایل MP4 معتبر نیست")
-        self.assertGreater(self.VIDEO.stat().st_size, 200_000)
-        self.assertTrue(self.POSTER.exists())
-
-    def test_video_has_audio_and_video_streams(self):
-        """بدون باند صوتی، «گوینده» ادعای توخالی است."""
-        import subprocess
-        import imageio_ffmpeg
-
-        ff = imageio_ffmpeg.get_ffmpeg_exe()
-        out = subprocess.run([ff, "-hide_banner", "-i", str(self.VIDEO)], capture_output=True,
-                             text=True).stderr
-        self.assertIn("Audio:", out)
-        self.assertIn("Video:", out)
-        self.assertIn("1280x720", out)
-
-    def test_post_signup_plays_video_not_logo_reel(self):
-        html = (STATIC / "auth.html").read_text(encoding="utf-8")
-        self.assertIn('id="welcome-video"', html)
-        self.assertIn("/static/assets/video/intro.mp4", html)
-        js = (STATIC / "auth.js").read_text(encoding="utf-8")
-        self.assertIn("playWelcomeReel", js)
-        self.assertIn("video.play()", js)
-
-    def test_rewatch_entry_exists_in_chat(self):
-        html = (STATIC / "app.html").read_text(encoding="utf-8")
-        self.assertIn('id="rewatch-intro"', html)
-        self.assertIn('id="intro-video"', html)
-
-    def test_script_and_narration_are_persian(self):
-        import json
-
-        script = ROOT / "data" / "intro" / "script.json"
-        self.assertTrue(script.exists())
-        scenes = json.loads(script.read_text(encoding="utf-8"))["scenes"]
-        self.assertGreaterEqual(len(scenes), 4)
-        for scene in scenes:
-            self.assertTrue(FA.search(scene["narration"]), scene["id"])
-            self.assertTrue(FA.search(scene["caption"]), scene["id"])
-
-
-if __name__ == "__main__":
-    unittest.main()
-
-
 class SecrecyTest(unittest.TestCase):
     """هیچ صفحهٔ عمومی نباید فایل، مخزن، پیکره یا عدد داخلی را لو بدهد."""
 
