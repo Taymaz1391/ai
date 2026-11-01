@@ -46,6 +46,9 @@
       <nav class="admin-nav" id="admin-nav">
         <button class="is-active" data-tab="overview"><span data-icon="chart" data-size="18"></span> نمای کلی</button>
         <button data-tab="users"><span data-icon="users" data-size="18"></span> کاربران</button>
+        <button data-tab="knowledge"><span data-icon="book" data-size="18"></span> دانشنامه</button>
+        <button data-tab="quality"><span data-icon="target" data-size="18"></span> کیفیت</button>
+        <button data-tab="chats"><span data-icon="chat" data-size="18"></span> گفتگوها</button>
         <button data-tab="ads"><span data-icon="megaphone" data-size="18"></span> تبلیغات</button>
         <button data-tab="settings"><span data-icon="settings" data-size="18"></span> تنظیمات</button>
         <button data-tab="guard"><span data-icon="shield" data-size="18"></span> سد تهاجم</button>
@@ -140,6 +143,91 @@
       </section>
 
       <!-- تبلیغات -->
+      <!-- دانشنامهٔ بررسی‌شده -->
+      <section class="admin-tab" data-panel="knowledge">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>دانشنامهٔ پاسخ‌های قطعی</h3>
+            <span class="pill" id="kb-total">—</span>
+          </div>
+          <p class="hint">هر ردیف یک پاسخِ بررسی‌شده است. «کلیدها» جمله‌هایی‌اند که کاربر ممکن است بپرسد؛ هر چه بیشتر، پیدا شدن آسان‌تر. تغییرها بی‌درنگ در گفتگو اثر می‌کند.</p>
+          <div class="inline-form">
+            <input id="kb-search" type="search" placeholder="جست‌وجو در دانش…">
+            <button class="btn btn-sm" id="kb-refresh" type="button">جست‌وجو</button>
+            <button class="btn btn-sm btn-primary" id="kb-new" type="button">ردیف تازه</button>
+          </div>
+          <form id="kb-form" hidden>
+            <label class="field"><span>شناسه</span>
+              <input id="kb-id" maxlength="80" placeholder="مثلاً sci-water">
+            </label>
+            <label class="field"><span>پرسشِ نمونه</span>
+              <input id="kb-q" maxlength="300" placeholder="آب از چه چیزی ساخته شده است؟">
+            </label>
+            <label class="field"><span>کلیدها (با ویرگول جدا کن)</span>
+              <input id="kb-keys" placeholder="فرمول آب، آب از چه، H2O">
+            </label>
+            <label class="field"><span>پاسخ</span>
+              <textarea id="kb-answer" rows="5" maxlength="2000"></textarea>
+            </label>
+            <div class="inline-form">
+              <button class="btn btn-primary" type="submit" id="kb-save">ذخیره</button>
+              <button class="btn btn-sm" type="button" id="kb-cancel">انصراف</button>
+              <button class="btn btn-sm" type="button" id="kb-delete" hidden>حذف</button>
+            </div>
+            <p class="form-ok" id="kb-ok" hidden></p>
+          </form>
+          <div class="table-wrap"><table class="table" id="kb-table">
+            <thead><tr><th>شناسه</th><th>پرسش</th><th>کلیدها</th><th>پاسخ</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- کیفیت -->
+      <section class="admin-tab" data-panel="quality">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>سنجشِ کیفیت</h3>
+            <span class="hint">آخرین اجرای مجموعه‌های آزمون روی همین موتور</span>
+          </div>
+          <div class="kpi-grid" id="quality-grid"></div>
+          <div class="table-wrap"><table class="table" id="quality-table">
+            <thead><tr><th>مجموعه</th><th>درصد</th><th>موفق</th><th>کل</th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>سنجشِ زنده</h3><span class="hint">چند پرسش از مجموعهٔ انتخابی، همین حالا</span></div>
+          <div class="inline-form">
+            <select id="quality-set">
+              <option value="probe">پایه</option>
+              <option value="holdout">کنارگذاشته</option>
+              <option value="hard">سخت</option>
+              <option value="blind">دیده‌نشده ۱</option>
+              <option value="blind2">دیده‌نشده ۲</option>
+              <option value="all">همه</option>
+            </select>
+            <button class="btn btn-sm" type="button" id="quality-run">اجرای سنجش</button>
+          </div>
+          <pre class="hint" id="quality-out" style="white-space:pre-wrap"></pre>
+        </div>
+      </section>
+
+      <!-- گفتگوها -->
+      <section class="admin-tab" data-panel="chats">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>گفتگوهای تازه</h3>
+            <button class="btn btn-sm" id="chats-refresh" type="button">به‌روزرسانی</button>
+          </div>
+          <div class="table-wrap"><table class="table" id="chats-table">
+            <thead><tr><th>عنوان</th><th>کاربر</th><th>پیام</th><th>آخرین</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+          <div id="chat-view" class="hint"></div>
+        </div>
+      </section>
+
       <section class="admin-tab" data-panel="ads">
         <div class="panel">
           <div class="panel-head"><h3>تبلیغ تازه</h3><span class="hint">جایگاه‌ها: home-top · home-mid · chat-empty · chat-inline · share-bottom · docs-top</span></div>
@@ -330,6 +418,7 @@
 
   <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
 
+  <script src="/static/session.js"></script>
   <script src="/static/config.js"></script>
   <script src="/static/ui.js"></script>
   <script src="/static/admin.js"></script>

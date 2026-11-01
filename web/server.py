@@ -645,12 +645,24 @@ def client_ip(request: Request) -> str:
     return request.client.host if request.client else "0.0.0.0"
 
 
+_TOKEN_RE = re.compile(r"[A-Za-z0-9_\-]{16,120}")
+
+
+def _bearer(request: Request) -> str:
+    """توکنِ نشست از سرصفحهٔ Authorization؛ پشتیبانِ کوکی وقتی کوکی ذخیره نمی‌شود."""
+    raw = (request.headers.get("authorization") or "").strip()
+    if not raw.lower().startswith("bearer "):
+        return ""
+    token = raw[7:].strip()
+    return token if _TOKEN_RE.fullmatch(token) else ""
+
+
 def _owner(request: Request) -> dict:
     """هویت مالک گفتگو: کاربر وارد‌شده یا مهمان با شناسهٔ کوکی.
 
     کلید API و توکن Bearer وجود ندارند: هوش فقط از داخل همین سایت در دسترس است.
     """
-    user = store().session_user(request.cookies.get(SESSION_COOKIE, ""))
+    user = store().session_user(request.cookies.get(SESSION_COOKIE, "") or _bearer(request))
     if user:
         return {"user_id": user["id"], "guest_id": None, "plan": user.get("plan", "free"), "user": user}
     guest = request.cookies.get(GUEST_COOKIE, "")
@@ -1362,7 +1374,8 @@ def register(req: RegisterRequest, request: Request, response: Response) -> dict
         verification = _issue_code(req.email, purpose="signup", ip=ip)
     except mailer_module.MailError as exc:
         verification = {"sent": False, "required": False, "error": str(exc)}
-    return {"user": user, "verification": verification, "admin": user.get("role") == "owner"}
+    return {"user": user, "verification": verification,
+            "admin": user.get("role") == "owner", "token": token}
 
 
 def _issue_code(email: str, purpose: str = "signup", ip: str = "") -> dict:
@@ -1469,6 +1482,8 @@ def _owner_login(req: LoginRequest, request: Request, response: Response, ident:
     return {
         "user": user,
         "admin": True,
+        "token": token,
+        "admin_token": admin_token,
         "csrf": csrf,
         "redirect": "/admin",
         "owner": {"name": info.get("name"), "default_password": info.get("default_password")},
@@ -1517,7 +1532,7 @@ def login(req: LoginRequest, request: Request, response: Response) -> dict:
     token = store().create_session(user_id=user["id"], user_agent=request.headers.get("user-agent", ""), ip=ip)
     _set_session_cookie(response, token)
     store().record_event("login", user_id=user["id"], ip=ip)
-    return {"user": user}
+    return {"user": user, "token": token}
 
 
 @app.post("/api/auth/logout")

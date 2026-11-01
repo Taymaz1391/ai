@@ -129,8 +129,14 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "0.0.0.0"
 
 
+ADMIN_HEADER = "x-rayyan-admin"
+
+
 def current_admin(request: Request) -> dict | None:
-    token = request.cookies.get(ADMIN_COOKIE, "")
+    """نشستِ مدیر از کوکی یا سرصفحهٔ اختصاصی؛ دومی وقتی کوکی مسدود است."""
+    token = request.cookies.get(ADMIN_COOKIE, "") or (request.headers.get(ADMIN_HEADER) or "").strip()
+    if not token:
+        return None
     return store().admin_session(token)
 
 
@@ -142,7 +148,8 @@ def require_admin(request: Request, csrf: bool = False) -> dict:
     if (user.get("plan") != "admin" and user.get("role") != "owner"
             and str(user.get("id")) not in admin_ids()):
         raise HTTPException(403, "این حساب دسترسی مدیریت ندارد.")
-    if csrf:
+    # با احرازِ سرصفحه‌ای، CSRF معنا ندارد (مرورگر آن سرصفحه را خودبه‌خود نمی‌فرستد)
+    if csrf and not (request.headers.get(ADMIN_HEADER) or "").strip():
         sent = request.headers.get(CSRF_HEADER, "")
         if not sent or not hmac.compare_digest(sent, session["csrf"]):
             raise HTTPException(403, "توکن امنیتی نامعتبر است؛ صفحه را دوباره بارگذاری کنید.")
@@ -246,6 +253,10 @@ def elevate(request: Request, response: Response) -> dict:
     دور زدن گذرواژهٔ مدیریت وجود ندارد.
     """
     cookie = request.cookies.get(os.environ.get("RAYAN_SESSION_COOKIE", "rayan_session"), "")
+    if not cookie:
+        raw = (request.headers.get("authorization") or "").strip()
+        if raw.lower().startswith("bearer "):
+            cookie = raw[7:].strip()
     user = store().session_user(cookie)
     if not user:
         raise HTTPException(401, "برای ورود به پنل، اول با حساب مالک وارد سایت شو.")
@@ -259,7 +270,7 @@ def elevate(request: Request, response: Response) -> dict:
                         samesite="strict", secure=os.environ.get("RAYAN_ENV") == "prod", path="/")
     store().record_event("admin_elevate", user_id=int(user["id"]), ip=_client_ip(request))
     audit("admin_elevate", request, target=str(user["id"]))
-    return {"authenticated": True, "csrf": csrf}
+    return {"authenticated": True, "csrf": csrf, "admin_token": token}
 
 
 @router.post("/login")
@@ -289,7 +300,7 @@ def admin_login(req: AdminLogin, request: Request, response: Response) -> dict:
     response.set_cookie(ADMIN_COOKIE, token, max_age=2 * 3600, httponly=True, samesite="strict",
                         secure=os.environ.get("RAYAN_ENV") == "prod", path="/")
     audit("login", request, target=str(admin_id))
-    return {"ok": True, "csrf": csrf, "expires_in": 7200}
+    return {"ok": True, "csrf": csrf, "admin_token": token, "expires_in": 7200}
 
 
 @router.post("/logout")
@@ -736,3 +747,205 @@ def capacity(request: Request) -> dict:
     require_admin(request)
     from web import server as server_module
     return {"ok": True, **server_module.capacity_report()}
+
+
+# ═══════════════════════════════════════════════ دانشنامهٔ بررسی‌شده (ویرایش)
+KNOWLEDGE_FILE = os.environ.get("RAYAN_KNOWLEDGE_FILE") or os.path.join(ROOT, "data", "knowledge.jsonl")
+
+
+def _read_knowledge() -> list[dict]:
+    rows: list[dict] = []
+    try:
+        with open(KNOWLEDGE_FILE, encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if line:
+                    try:
+                        rows.append(json.loads(line))
+                    except ValueError:
+                        continue
+    except OSError:
+        return []
+    return rows
+
+
+def _write_knowledge(rows: list[dict]) -> None:
+    tmp = KNOWLEDGE_FILE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as handle:
+        for row in rows:
+            handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+    os.replace(tmp, KNOWLEDGE_FILE)
+    # حافظهٔ ماژول دانش پاک شود تا ویرایش‌ها بی‌درنگ دیده شوند
+    try:
+        from web import knowledge as knowledge_module
+        knowledge_module._ENTRIES = None  # noqa: SLF001 - همان ماژول داخلی
+    except Exception:  # noqa: BLE001 - نباید پنل را بشکند
+        pass
+
+
+class KnowledgeRow(BaseModel):
+    id: str = Field(default="", max_length=80)
+    q: str = Field(default="", max_length=300)
+    keys: list[str] = Field(default_factory=list)
+    a: str = Field(min_length=1, max_length=2000)
+
+
+class KnowledgeDelete(BaseModel):
+    id: str = Field(min_length=1, max_length=80)
+
+
+@router.get("/knowledge/entries")
+def knowledge_entries(request: Request, q: str = "", limit: int = 100) -> dict:
+    require_admin(request)
+    rows = _read_knowledge()
+    needle = (q or "").strip().lower()
+    if needle:
+        rows = [r for r in rows if needle in json.dumps(r, ensure_ascii=False).lower()]
+    total = len(_read_knowledge())
+    return {"total": total, "rows": rows[: max(1, min(int(limit), 400))]}
+
+
+@router.post("/knowledge/entries")
+def knowledge_upsert(req: KnowledgeRow, request: Request) -> dict:
+    """افزودن یا ویرایشِ یک ردیفِ دانش؛ پاسخ بی‌درنگ در گفتگو دیده می‌شود."""
+    require_admin(request, csrf=True)
+    rows = _read_knowledge()
+    rid = (req.id or "").strip() or "kb-" + secrets.token_hex(4)
+    entry = {"id": rid, "q": req.q.strip(), "keys": [k.strip() for k in req.keys if k.strip()],
+             "a": req.a.strip(), "source": None}
+    replaced = False
+    for index, row in enumerate(rows):
+        if row.get("id") == rid:
+            rows[index] = entry
+            replaced = True
+            break
+    if not replaced:
+        rows.append(entry)
+    _write_knowledge(rows)
+    audit("knowledge_upsert", request, target=rid)
+    try:
+        from web import retrieval as retrieval_module
+        retrieval_module.reload_knowledge()  # type: ignore[attr-defined]
+    except Exception:  # noqa: BLE001
+        pass
+    return {"ok": True, "entry": entry, "total": len(rows)}
+
+
+@router.delete("/knowledge/entries/{entry_id}")
+def knowledge_delete(entry_id: str, request: Request) -> dict:
+    require_admin(request, csrf=True)
+    rows = _read_knowledge()
+    kept = [row for row in rows if row.get("id") != entry_id]
+    if len(kept) == len(rows):
+        raise HTTPException(404, "چنین ردیفی نیست.")
+    _write_knowledge(kept)
+    audit("knowledge_delete", request, target=entry_id)
+    return {"ok": True, "total": len(kept)}
+
+
+@router.get("/quality")
+def quality(request: Request) -> dict:
+    """آخرین نتیجهٔ سنجشِ کیفیت بر اساس گزارش‌های ذخیره‌شده."""
+    require_admin(request)
+    report_dir = os.path.join(ROOT, "reports")
+    sets: dict[str, dict] = {}
+    try:
+        for name in sorted(os.listdir(report_dir)):
+            if not (name.startswith("quality-") and name.endswith(".json")):
+                continue
+            key = name[len("quality-"):-len(".json")]
+            try:
+                with open(os.path.join(report_dir, name), encoding="utf-8") as handle:
+                    data = json.load(handle)
+            except (OSError, ValueError):
+                continue
+            sets[key] = {"score": data.get("score"), "passed": data.get("passed"),
+                         "cases": data.get("cases"), "set": data.get("set", key)}
+    except OSError:
+        sets = {}
+    return {"sets": sets, "reports": sorted(sets)}
+
+
+@router.get("/conversations")
+def conversations(request: Request, limit: int = 40) -> dict:
+    """گفتگوهای تازهٔ همهٔ کاربران برای بازبینی (بدون دادهٔ حساس)."""
+    require_admin(request)
+    rows = store()._all(  # noqa: SLF001 - گزارشِ داخلی پنل
+        "SELECT c.id, c.title, c.updated_at, u.email, c.guest_id,"
+        " (SELECT COUNT(*) FROM messages m WHERE m.conv_id = c.id) AS messages"
+        " FROM conversations c LEFT JOIN users u ON u.id = c.user_id"
+        " ORDER BY c.updated_at DESC LIMIT ?",
+        (max(1, min(int(limit), 200)),))
+    return {"conversations": [dict(row) for row in rows]}
+
+
+@router.get("/conversations/{conv_id}")
+def conversation_detail(conv_id: str, request: Request) -> dict:
+    require_admin(request)
+    meta = store().get_conversation_meta(conv_id)
+    if not meta:
+        raise HTTPException(404, "گفتگو پیدا نشد.")
+    return {"conversation": meta, "messages": store().get_messages(conv_id, limit=100)}
+
+
+@router.get("/backup")
+def backup(request: Request) -> dict:
+    """نسخهٔ پشتیبانِ خوانا (بدون هشِ گذرواژه) برای گرفتنِ فایل."""
+    require_admin(request)
+    users = [{"id": u["id"], "email": u["email"], "name": u["name"], "plan": u["plan"],
+              "created_at": u["created_at"]} for u in store().list_users(limit=500)]
+    return {"exported_at": time.time(), "users": users,
+            "knowledge": _read_knowledge(),
+            "settings": store().all_settings()}
+
+
+@router.post("/quality/run")
+def quality_run(request: Request, set: str = "probe") -> dict:
+    """اجرای واقعیِ سنجش روی همین سرور: پرسش‌ها از API خودمان پرسیده می‌شوند."""
+    session = require_admin(request, csrf=True)
+    allowed = {"probe", "holdout", "hard", "blind", "blind2", "blind3", "blind4", "blind5",
+               "blind6", "all"}
+    if set not in allowed:
+        raise HTTPException(400, "مجموعهٔ نامعتبر است.")
+    script = os.path.join(ROOT, "scripts", "quality_probe.py")
+    if not os.path.exists(script):
+        raise HTTPException(404, "سنجش نصب نیست.")
+    import subprocess
+    import sys
+
+    # حسابِ مخصوصِ سنجش: سهمیهٔ روزانهٔ کاربرِ واقعی را مصرف نمی‌کند
+    probe_email = "quality@rayan.local"
+    probe_user = store().user_by_email(probe_email)
+    if probe_user is None:
+        probe_user = store().create_user(probe_email, secrets.token_urlsafe(24), "سنجش کیفیت")
+    probe_id = int(probe_user["id"])
+    store().set_plan(probe_id, "pro")
+    store()._exec("DELETE FROM events WHERE user_id=? AND kind='chat'", (probe_id,))  # noqa: SLF001
+    token = store().create_session(user_id=probe_id, user_agent="quality-run", ip="127.0.0.1")
+    port = request.url.port or 8000
+    base = f"http://127.0.0.1:{port}"
+    report = os.path.join(ROOT, "reports", f"quality-live-{int(time.time())}.json")
+    try:
+        subprocess.run(
+            [sys.executable, script, "--api", base, "--cookie", f"rayan_session={token}",
+             "--set", set, "--json", "--delay", "0", "--write", "--out", report],
+            capture_output=True, text=True, timeout=600, cwd=ROOT)
+    except subprocess.TimeoutExpired:
+        raise HTTPException(504, "سنجش بیش از حد طول کشید.")
+    finally:
+        store().delete_session(token)
+    try:
+        with open(report, encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, ValueError):
+        raise HTTPException(500, "گزارشِ سنجش ساخته نشد؛ یک بار دیگر اجرا کن.")
+    finally:
+        try:
+            os.remove(report)
+        except OSError:
+            pass
+    audit("quality_run", request, target=set,
+          detail=f"{data.get('score')}% ({data.get('passed')}/{data.get('cases')})")
+    return {"set": set, "score": data.get("score"), "passed": data.get("passed"),
+            "cases": data.get("cases"),
+            "missed": [row.get("q") for row in data.get("rows", []) if not row.get("ok")][:20]}

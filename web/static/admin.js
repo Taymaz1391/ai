@@ -8,6 +8,14 @@
   const state = { csrf: "", user: null, tab: "orders", overview: null, users: [], ads: [],
                   audit: [], orders: [] };
 
+  // نشستِ مدیر را جدا از کوکی نگه می‌داریم؛ در iframe یا مرورگرِ سخت‌گیر،
+  // کوکیِ SameSite=strict ذخیره نمی‌شود و پنل بی‌دلیل بسته می‌ماند.
+  const SK = window.RAYAN_SESSION || null;
+  function remember(data) {
+    if (!SK || !data) return;
+    if (data.admin_token && SK.save) SK.save({ admin_token: data.admin_token, csrf: data.csrf });
+  }
+
   async function api(path, options = {}) {
     const opts = Object.assign({ credentials: "include", headers: {} }, options);
     if (opts.body && typeof opts.body !== "string") {
@@ -41,7 +49,7 @@
     try {
       const info = await api("/api/admin/session");
       if (info.authenticated) {
-        state.csrf = info.csrf;
+        state.csrf = info.csrf || (SK && SK.csrf ? SK.csrf() : "");
         state.user = info.user;
         state.sessionInfo = info;
         enterPanel();
@@ -53,6 +61,7 @@
       const me = await api("/api/auth/me");
       if (me && me.user && me.user.role === "owner") {
         const lifted = await api("/api/admin/elevate", { method: "POST" });
+        remember(lifted);
         state.csrf = lifted.csrf;
         const info = await api("/api/admin/session");
         state.user = info.user;
@@ -76,6 +85,7 @@
   }
 
   function enterPanel() {
+    bindKnowledge();
     $("#admin-login").hidden = true;
     $("#admin-shell").hidden = false;
     applyOwner(state.sessionInfo || { owner: state.owner });
@@ -96,6 +106,7 @@
       const data = await api("/api/admin/login", {
         method: "POST", body: { password: $("#admin-password").value },
       });
+      remember(data);
       state.csrf = data.csrf;
       const info = await api("/api/admin/session");
       state.user = info.user;
@@ -142,11 +153,36 @@
     location.reload();
   });
 
+  document.addEventListener("click", (event) => {
+    const chat = event.target.closest("[data-chat-open]");
+    if (chat) openChat(chat.dataset.chatOpen);
+  });
+
+  const qualityRun = document.getElementById("quality-run");
+  if (qualityRun) qualityRun.addEventListener("click", async () => {
+    const set = document.getElementById("quality-set").value;
+    const out = document.getElementById("quality-out");
+    out.textContent = "در حال اجرا…";
+    try {
+      const data = await api(`/api/admin/quality/run?set=${encodeURIComponent(set)}`, { method: "POST" });
+      out.textContent = `درصد: ${data.score}٪  ·  موفق ${data.passed} از ${data.cases}`;
+      loadQuality();
+    } catch (err) {
+      out.textContent = err.message;
+    }
+  });
+
+  const chatsRefresh = document.getElementById("chats-refresh");
+  if (chatsRefresh) chatsRefresh.addEventListener("click", loadChats);
+
   // ------------------------------------------------------------- تب‌ها
   const TITLES = {
     orders: ["اتاق فرمان", "دستور بده؛ سازنده اجرا می‌کند و همین‌جا پاسخ می‌دهد"],
     overview: ["نمای کلی", "وضعیت زندهٔ سایت، بدون نیاز به کار روزمره"],
     users: ["کاربران", "جست‌وجو، تغییر پلن، مسدودسازی"],
+    knowledge: ["دانشنامه", "پاسخ‌های قطعی را بی‌واسطه ویرایش کن"],
+    quality: ["کیفیت", "سنجشِ مجموعه‌های آزمون روی همین موتور"],
+    chats: ["گفتگوها", "آنچه کاربران می‌پرسند، برای بهبودِ پاسخ‌ها"],
     ads: ["تبلیغات", "جایگاه، نمایش، کلیک و وزن"],
     settings: ["تنظیمات", "پرچم‌های قابلیت، اعلان و گذرواژه"],
     guard: ["سد تهاجم", "فیلتر درخواست‌های ناامن و بستن موقت مهاجم"],
@@ -174,6 +210,154 @@
     if (tab === "guard") loadGuard();
     if (tab === "settings") { loadSettings(); loadMail(); }
     if (tab === "system") { loadSystem(); loadNetwork(); loadCapacity(); }
+    if (tab === "knowledge") loadKnowledge();
+    if (tab === "quality") loadQuality();
+    if (tab === "chats") loadChats();
+  }
+
+
+  function escapeHtml(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  function kpi(label, value) {
+    return `<div class="kpi"><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b></div>`;
+  }
+
+  // ------------------------------------------------------- دانشنامه
+  const kb = { rows: [], editing: null };
+
+  async function loadKnowledge(query = "") {
+    const body = $("#kb-table tbody");
+    try {
+      const data = await api(`/api/admin/knowledge/entries?limit=200&q=${encodeURIComponent(query)}`);
+      kb.rows = data.rows || [];
+      $("#kb-total").textContent = nf(data.total || 0) + " ردیف";
+      body.innerHTML = kb.rows.map((row) => `
+        <tr>
+          <td class="mono">${escapeHtml(row.id || "")}</td>
+          <td>${escapeHtml(row.q || "")}</td>
+          <td class="hint">${escapeHtml((row.keys || []).join("، "))}</td>
+          <td>${escapeHtml((row.a || "").slice(0, 90))}${(row.a || "").length > 90 ? "…" : ""}</td>
+          <td><button class="btn btn-sm" data-kb-edit="${escapeHtml(row.id || "")}">ویرایش</button></td>
+        </tr>`).join("") || `<tr><td colspan="5" class="hint">ردیفی نیست.</td></tr>`;
+    } catch (err) {
+      body.innerHTML = `<tr><td colspan="5" class="hint">${escapeHtml(err.message)}</td></tr>`;
+    }
+  }
+
+  function openKbForm(row) {
+    kb.editing = row || null;
+    $("#kb-form").hidden = false;
+    $("#kb-id").value = (row && row.id) || "";
+    $("#kb-q").value = (row && row.q) || "";
+    $("#kb-keys").value = ((row && row.keys) || []).join("، ");
+    $("#kb-answer").value = (row && row.a) || "";
+    $("#kb-delete").hidden = !row;
+    $("#kb-ok").hidden = true;
+    $("#kb-id").focus();
+  }
+
+  function bindKnowledge() {
+    const search = $("#kb-search");
+    if (!search) return;
+    $("#kb-refresh").addEventListener("click", () => loadKnowledge(search.value));
+    search.addEventListener("keydown", (e) => { if (e.key === "Enter") loadKnowledge(search.value); });
+    $("#kb-new").addEventListener("click", () => openKbForm(null));
+    $("#kb-cancel").addEventListener("click", () => { $("#kb-form").hidden = true; });
+    $("#kb-table").addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-kb-edit]");
+      if (!btn) return;
+      const row = kb.rows.find((item) => item.id === btn.dataset.kbEdit);
+      if (row) openKbForm(row);
+    });
+    $("#kb-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const keys = $("#kb-keys").value.split(/[،,]/).map((k) => k.trim()).filter(Boolean);
+      try {
+        const res = await api("/api/admin/knowledge/entries", {
+          method: "POST",
+          body: { id: $("#kb-id").value.trim(), q: $("#kb-q").value.trim(),
+                  keys, a: $("#kb-answer").value.trim() },
+        });
+        $("#kb-ok").hidden = false;
+        $("#kb-ok").textContent = `ذخیره شد؛ ${nf(res.total)} ردیف در دانشنامه.`;
+        loadKnowledge($("#kb-search").value);
+      } catch (err) {
+        toast(err.message, "error");
+      }
+    });
+    $("#kb-delete").addEventListener("click", async () => {
+      const id = $("#kb-id").value.trim();
+      if (!id || !confirm("این ردیف حذف شود؟")) return;
+      try {
+        await api(`/api/admin/knowledge/entries/${encodeURIComponent(id)}`, { method: "DELETE" });
+        $("#kb-form").hidden = true;
+        loadKnowledge($("#kb-search").value);
+        toast("حذف شد.", "ok");
+      } catch (err) {
+        toast(err.message, "error");
+      }
+    });
+  }
+
+  // --------------------------------------------------------- گفتگوها
+  async function loadChats() {
+    const body = $("#chats-table tbody");
+    try {
+      const data = await api("/api/admin/conversations?limit=40");
+      const rows = data.conversations || [];
+      body.innerHTML = rows.map((row) => `
+        <tr>
+          <td>${escapeHtml(row.title || "بی‌عنوان")}</td>
+          <td class="hint">${escapeHtml(row.email || "مهمان")}</td>
+          <td>${nf(row.messages || 0)}</td>
+          <td class="hint">${row.updated_at ? timeAgo(row.updated_at) : "—"}</td>
+          <td><button class="btn btn-sm" data-chat-open="${escapeHtml(row.id)}">بازکردن</button></td>
+        </tr>`).join("") || `<tr><td colspan="5" class="hint">گفتگویی نیست.</td></tr>`;
+    } catch (err) {
+      body.innerHTML = `<tr><td colspan="5" class="hint">${escapeHtml(err.message)}</td></tr>`;
+    }
+  }
+
+  async function openChat(convId) {
+    const view = $("#chat-view");
+    view.textContent = "در حال خواندن…";
+    try {
+      const data = await api(`/api/admin/conversations/${encodeURIComponent(convId)}`);
+      const lines = (data.messages || []).slice(-24).map((msg) => {
+        const who = msg.role === "user" ? "کاربر" : "رایان";
+        return `<div class="chat-line"><b>${who}:</b> ${escapeHtml((msg.content || "").slice(0, 400))}</div>`;
+      });
+      view.innerHTML = lines.join("") || "پیامی نیست.";
+    } catch (err) {
+      view.textContent = err.message;
+    }
+  }
+
+  // --------------------------------------------------------- کیفیت
+  async function loadQuality() {
+    try {
+      const data = await api("/api/admin/quality");
+      const sets = data.sets || {};
+      const names = Object.keys(sets);
+      const grid = $("#quality-grid");
+      const best = names.reduce((acc, key) => Math.max(acc, sets[key].score || 0), 0);
+      grid.innerHTML = [
+        kpi("مجموعه‌ها", nf(names.length)),
+        kpi("بهترین درصد", `${nf(Math.round(best * 10) / 10)}٪`),
+        kpi("موارد سنجیده", nf(names.reduce((sum, key) => sum + (sets[key].cases || 0), 0))),
+      ].join("");
+      $("#quality-table tbody").innerHTML = names.map((key) => {
+        const row = sets[key];
+        return `<tr><td>${escapeHtml(key)}</td><td>${nf(row.score)}٪</td>`
+          + `<td>${nf(row.passed)}</td><td>${nf(row.cases)}</td></tr>`;
+      }).join("") || `<tr><td colspan="4" class="hint">گزارشی نیست.</td></tr>`;
+    } catch (err) {
+      toast(err.message, "error");
+    }
   }
 
   // ------------------------------------------------------- اتاق فرمان

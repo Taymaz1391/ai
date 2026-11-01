@@ -284,6 +284,8 @@
         ? { name, email: identifier, password, captcha: proof }
         : { identifier, password, captcha: proof };
       const data = await request(path, { method: "POST", body });
+      // توکن در حافظهٔ محلی هم ذخیره می‌شود تا اگر کوکی ذخیره نشد، نشست بماند
+      if (window.RAYAN_SESSION) window.RAYAN_SESSION.save(data);
       toast(isSignup ? "حسابت ساخته شد. خوش آمدی!" : `خوش برگشتی ${data.user.name || ""}!`, "ok");
       const next = new URLSearchParams(location.search).get("next");
       const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
