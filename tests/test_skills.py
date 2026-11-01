@@ -161,3 +161,14 @@ class SkillApiTest(unittest.TestCase):
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
+
+
+class GreetingTest(unittest.TestCase):
+    def test_greeting_with_followup(self):
+        for probe in ("سلام، خوبی؟", "درود، چطوری؟", "سلام", "شب بخیر"):
+            hit = skills.match(probe)
+            self.assertIsNotNone(hit, probe)
+            self.assertEqual(hit["skill"], "greeting", probe)
+
+    def test_greeting_does_not_swallow_questions(self):
+        self.assertIsNone(skills.match("سلام، یک سؤال دربارهٔ تاریخ دارم"))

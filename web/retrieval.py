@@ -538,6 +538,19 @@ _GENERIC_HEADS = {"علایم", "علائم", "نشانه", "نشانه‌ها",
                   "گیاه", "مصنوعی", "ساده", "معمولی", "مهم", "بزرگ", "کوچک", "جدید", "قدیمی"}
 
 
+def _strip_generic(question: str) -> str:
+    """واژه‌های عمومی («علائم»، «استان»، «نویسنده») را از پرسش حذف می‌کند."""
+    parts = []
+    for part in re.split(r"\s+", (question or "").strip()):
+        word = normalize(part).strip("؟?،,.!")
+        if not word:
+            continue
+        if any(word == head or word.startswith(head) for head in _GENERIC_HEADS):
+            continue
+        parts.append(part)
+    return " ".join(parts).strip(" ؟?،,.!")
+
+
 def _enough_overlap(answer: str, question: str, match: str = "") -> bool:
     """آیا پاسخ دست‌کم با پرسش هم‌موضوع است؟ (جلوگیری از پاسخ بی‌ربط)"""
     asked = set(words(question))
@@ -545,11 +558,9 @@ def _enough_overlap(answer: str, question: str, match: str = "") -> bool:
     if not asked:
         return True
     overlap = len(asked & body)
-    if overlap == 0:
-        return False
-    if match and match != "عنوان دقیق" and overlap < max(1, len(asked) // 2):
-        return False
-    return True
+    # پاسخ باید با بخش قابل‌توجهی از پرسش هم‌موضوع باشد، نه فقط یک واژهٔ عمومی
+    needed = 1 if len(asked) <= 2 else max(2, round(len(asked) * 0.4))
+    return overlap >= needed
 
 
 def _off_topic(answer: str, question: str, phrase: str) -> bool:
@@ -1167,9 +1178,20 @@ def think(question: str, limit: int = 10, path: str | None = None,
                       "seconds": round(time.time() - started, 3)})
         if answer and (_off_topic(answer, question, entry["phrase"])
                        or not _enough_overlap(answer, question, entry.get("match", ""))):
-            trace.append({"step": "دانشنامه", "detail": "پاسخ دربارهٔ موضوع دیگری بود",
-                          "seconds": round(time.time() - started, 3)})
-            answer = None
+            # سرِواژهٔ عمومی بود («علائم»)؛ همان پرسش را بدون آن واژه یک‌بار دیگر بپرس
+            stripped = _strip_generic(question)
+            if stripped and stripped != question:
+                retry = wiki_lookup(stripped)
+                if retry:
+                    retry_answer = _wiki_lead_answer(retry["lead"], retry["phrase"], question)
+                    asked = set(words(question))
+                    if retry_answer and not _junk(retry_answer) and \
+                            len(asked & set(words(retry_answer))) >= 2:
+                        entry, answer = retry, retry_answer
+            if entry.get("phrase") and _strip_generic(question) == question:
+                trace.append({"step": "دانشنامه", "detail": "پاسخ دربارهٔ موضوع دیگری بود",
+                              "seconds": round(time.time() - started, 3)})
+                answer = None
         if answer and not _junk(answer):
             return {
                 "answer": answer,

@@ -18,7 +18,7 @@
         set("m-rate", nf(speed.per_minute, 0));
         set("c-latency", `${nf(speed.median_s, 1)} ثانیه`);
       }
-      if (data.uptime_pct) set("m-uptime", `${nf(data.uptime_pct, 1)}٪`);
+      if (data.uptime_pct) set("m-score", `${nf(data.uptime_pct, 1)}٪`);
 
       const arena = data.arena || {};
       const table = $("#arena-table tbody");
@@ -26,6 +26,7 @@
         table.innerHTML = Object.entries(arena.by_category).map(([cat, score]) =>
           `<tr><td>${cat}</td><td><b>${nf(score, 0)}٪</b></td></tr>`).join("");
       }
+      if (arena.score) set("m-score", `${nf(arena.score, 0)}٪`);
       if (arena.score) set("suite-note", `${nf(arena.tasks, 0)} پرسش فارسی در شش دسته — امتیاز کل: ${nf(arena.score, 0)}٪`);
       const note = $("#arena-note");
       if (note) note.textContent = arena.note || "";

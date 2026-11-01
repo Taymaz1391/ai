@@ -1705,7 +1705,8 @@ def api_search(request: Request, q: str = "", limit: int = 5) -> dict:
     return search_module.search(query, limit=max(1, min(int(limit), 8)))
 
 
-def _ground_if_weak(message: str, answer: str, history, owner: dict, req) -> tuple[str, list[dict]]:
+def _ground_if_weak(message: str, answer: str, history, owner: dict, req,
+                    tried_local: bool = False) -> tuple[str, list[dict]]:
     """اگر پاسخ مدل بی‌ربط بود: جست‌وجوی وب، و اگر نشد پاسخ صادقانهٔ مخصوص سؤال.
 
     این‌کار پاسخ‌های درهم مدل کوچک را با منبع واقعی جایگزین می‌کند؛ چیزی از پیش
@@ -1717,8 +1718,10 @@ def _ground_if_weak(message: str, answer: str, history, owner: dict, req) -> tup
     found: list[dict] = []
 
     def resolver(query: str) -> str | None:
-        # ۱) شاهد از پیکرهٔ محلی (بدون شبکه و بدون هزینه)
-        if reason_module.retrieval.index_exists() and reason_module.retrieval.looks_factual(query):
+        # ۱) شاهد از پیکرهٔ محلی (بدون شبکه و بدون هزینه) — اگر همین حالا
+        #    برای همین پیام آزموده شده، دوباره انجام نشود (پاسخ کند می‌شد).
+        if (not tried_local and reason_module.retrieval.index_exists()
+                and reason_module.retrieval.looks_factual(query)):
             thought = reason_module.retrieval.think(query)
             if thought.get("answer"):
                 found.extend(thought.get("sources") or [])
@@ -1849,7 +1852,10 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
     stats = _stats(generation, prompt_ids)
     auto_sources: list[dict] = []
     if req.mode == "chat":
-        answer, auto_sources = _ground_if_weak(message, answer, history, owner, req)
+        tried = bool(req.mode == "chat" and reason_module.retrieval.index_exists()
+                     and reason_module.retrieval.looks_factual(message))
+        answer, auto_sources = _ground_if_weak(message, answer, history, owner, req,
+                                               tried_local=tried)
         _remember(req.session_id, message, answer)
     conv_id, msg_id = _persist_turn(owner, conv_id, message, answer, stats, trace, req.deep,
                                     tool_result, auto_sources or None)
