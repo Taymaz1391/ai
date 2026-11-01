@@ -230,3 +230,4 @@
 {"step": 900, "val_loss": 6.753, "ppl": 856.66, "bits_per_char": 2.6315, "kind": "eval", "tokens": 1843200, "elapsed_s": 2784.5}
 {"step": 900, "loss": 6.524, "lr": 0.0007340808867271031, "grad_norm": 0.697, "tokens": 1845248, "elapsed_s": 2791.2, "tok_s": 661.1, "kind": "train"}
 {"step": 925, "loss": 6.7146, "lr": 0.000718217682328346, "grad_norm": 0.79, "tokens": 1896448, "elapsed_s": 2840.7, "tok_s": 667.6, "kind": "train"}
+{"step": 950, "loss": 6.5117, "lr": 0.0007021075952838262, "grad_norm": 0.737, "tokens": 1947648, "elapsed_s": 2910.0, "tok_s": 669.3, "kind": "train"}
