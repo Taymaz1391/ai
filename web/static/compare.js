@@ -13,9 +13,10 @@
       const data = await request("/api/compare");
       const speed = data.speed || {};
       if (typeof speed.median_s === "number") {
-        set("m-latency", nf(speed.median_s, 2));
-        set("m-p95", nf(speed.p95_s, 2));
-        set("m-rate", nf(speed.per_minute, 0));
+        const official = speed.source === "benchmark";
+        set("m-latency", official ? `${nf(speed.median_s, 2)}` : nf(speed.median_s, 2));
+        set("m-p95", typeof speed.p95_s === "number" ? nf(speed.p95_s, 2) : "—");
+        set("m-rate", speed.per_minute === null ? "—" : nf(speed.per_minute, 0));
         set("c-latency", `${nf(speed.median_s, 1)} ثانیه`);
       }
       if (data.uptime_pct) set("m-score", `${nf(data.uptime_pct, 1)}٪`);

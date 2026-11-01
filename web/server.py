@@ -1220,14 +1220,17 @@ def _speed_summary() -> dict:
         samples = list(_recent_latencies)
         times = list(_recent_times)
     if not samples:
-        return {"median_s": None, "p95_s": None, "per_minute": None, "samples": 0}
+        # هنوز ترافیک واقعی نبوده؛ عددِ سنجش رسمی خودمان را با برچسب روشن نشان بده
+        measured = _arena_summary().get("latency_p50_s")
+        return {"median_s": measured, "p95_s": None, "per_minute": None,
+                "samples": 0, "source": "benchmark" if measured else None}
     ordered = sorted(samples)
     median = ordered[len(ordered) // 2]
     p95 = ordered[min(len(ordered) - 1, int(round(0.95 * (len(ordered) - 1))))]
     # نرخ واقعی: چند پاسخ در ۶۰ ثانیهٔ گذشته — نه تقسیم بر میانه که عدد بی‌معنا می‌داد
     per_minute = sum(1 for moment in times if now - moment <= 60)
     return {"median_s": round(median, 3), "p95_s": round(p95, 3),
-            "per_minute": per_minute, "samples": len(samples)}
+            "per_minute": per_minute, "samples": len(samples), "source": "live"}
 
 
 def _uptime_percent() -> float | None:
@@ -1255,6 +1258,7 @@ def _arena_summary() -> dict:
     best = max(models, key=lambda m: m.get("score") or 0)
     return {"tasks": best.get("tasks"), "score": best.get("score"),
             "by_category": best.get("by_category") or {},
+            "latency_p50_s": best.get("latency_p50_s"),
             "speed_note": "امتیاز از اجرای واقعی روی همین ماشین می‌آید.",
             "note": "این آزمون را خودمان نوشته‌ایم و پرسش‌هایش از هیچ مجموعهٔ دیگری کپی نشده است."}
 
