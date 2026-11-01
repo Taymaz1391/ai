@@ -532,6 +532,43 @@ def _junk(answer: str | None) -> bool:
     return any(marker in text for marker in _JUNK_LEADS)
 
 
+_GENERIC_HEADS = {"علایم", "علائم", "نشانه", "نشانه‌ها", "استان", "نویسنده", "واحد",
+                  "یکا", "داستان", "جمله", "واژه", "کلمه", "مفهوم", "تعریف", "تاریخ",
+                  "شهر", "کشور", "کتاب", "فیلم", "بازی", "ورزش", "غذا", "میوه", "حیوان",
+                  "گیاه", "مصنوعی", "ساده", "معمولی", "مهم", "بزرگ", "کوچک", "جدید", "قدیمی"}
+
+
+def _enough_overlap(answer: str, question: str, match: str = "") -> bool:
+    """آیا پاسخ دست‌کم با پرسش هم‌موضوع است؟ (جلوگیری از پاسخ بی‌ربط)"""
+    asked = set(words(question))
+    body = set(words(answer))
+    if not asked:
+        return True
+    overlap = len(asked & body)
+    if overlap == 0:
+        return False
+    if match and match != "عنوان دقیق" and overlap < max(1, len(asked) // 2):
+        return False
+    return True
+
+
+def _off_topic(answer: str, question: str, phrase: str) -> bool:
+    """پاسخ دربارهٔ موضوع دیگری است؟ برای سرِواژه‌های عمومی سخت‌گیرتریم.
+
+    مثال واقعی: «علائم کم‌آبی بدن چیست؟» با مقالهٔ «علایم» (نشانه‌گذاری نسبیت عام)
+    جواب داده می‌شد. اگر سرِواژه عمومی باشد و هیچ واژهٔ دیگرِ پرسش در پاسخ نباشد،
+    این پاسخ به کار نمی‌آید.
+    """
+    head = normalize(phrase).strip()
+    if head not in _GENERIC_HEADS:
+        return False
+    extra = [word for word in words(question) if word not in words(phrase)]
+    if not extra:
+        return False
+    body = normalize(answer)
+    return not any(word in body for word in extra)
+
+
 _RELATIONS = {
     "پایتخت": ("پایتخت",),
     "زادگاه": ("زاده", "متولد", "به دنیا آمد", "زادگاه"),
@@ -1098,7 +1135,13 @@ def think(question: str, limit: int = 10, path: str | None = None,
                 "seconds": round(time.time() - started, 3), "engine": taught["engine"]}
 
     # ۱) دانشنامه: فقط برای پرسش‌های تعریفی؛ «چطور/چگونه» مقالهٔ دانشنامه نمی‌خواهد
-    how_to = re.search(r"(چطور|چگونه|چی\s*کار|چه\s*کار|راهنمایی|پیشنهاد)", normalize(question))
+    # «چگونه به وجود می‌آید» پرسش تبیینی است و مقالهٔ دانشنامه می‌خواهد؛
+    # «چطور بخوابم» درخواست کار است و نباید مقالهٔ «خواب» را برگرداند.
+    how_to = re.search(
+        r"(چطور|چگونه|چی\s*کار|چه\s*کار)\s+.{0,40}?"
+        r"(کنم|کنیم|کنید|بخوابم|بپزم|بنویسم|بسازم|بخرم|بروم|بیام|شروع کنم|یاد بگیرم|"
+        r"استفاده کنم|حل کنم|درست کنم|پیدا کنم)"
+        r"|راهنمایی|پیشنهاد|چه کار کنم", normalize(question))
     # «پایتون» در پرسش برنامه‌نویسی یعنی زبان، نه مار
     if re.search(r"(پایتون|python)", normalize(question)) and \
             re.search(r"(کد|برنامه|تابع|حلقه|متغیر|فهرست|لیست|کلاس|کتابخانه)", normalize(question)):
@@ -1122,6 +1165,11 @@ def think(question: str, limit: int = 10, path: str | None = None,
             answer = (relation if not answer else f"{answer} {relation}")[:700]
         trace.append({"step": "دانشنامه", "detail": f"مقالهٔ «{entry['title']}» ({entry['match']})",
                       "seconds": round(time.time() - started, 3)})
+        if answer and (_off_topic(answer, question, entry["phrase"])
+                       or not _enough_overlap(answer, question, entry.get("match", ""))):
+            trace.append({"step": "دانشنامه", "detail": "پاسخ دربارهٔ موضوع دیگری بود",
+                          "seconds": round(time.time() - started, 3)})
+            answer = None
         if answer and not _junk(answer):
             return {
                 "answer": answer,
