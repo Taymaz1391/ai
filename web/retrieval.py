@@ -448,6 +448,10 @@ def wiki_lookup(question: str, path: str | None = None) -> dict | None:
     return None
 
 
+_CAPTION_WORDS = ("تصویری", "تصویر", "عکس", "نگاره", "نمایی", "نقشه", "نشان", "پوستر",
+                  "جلد", "چپ", "راست", "بالا", "پایین", "پرونده:")
+
+
 def _cut_to_phrase(piece: str, phrase: str) -> str:
     """اگر پیش از موضوع متنی مثل عنوان تصویر/جدول آمده، از موضوع شروع کن."""
     parts = [re.escape(word) for word in phrase.split() if word]
@@ -455,9 +459,9 @@ def _cut_to_phrase(piece: str, phrase: str) -> str:
         return piece
     pattern = re.compile(r"\s*".join(parts), re.I)
     match = pattern.search(piece)
-    if match and 0 < match.start() < 30:
-        prefix = piece[:match.start()]
-        if not re.search(r"(است|بود|هست|که)\b", prefix):
+    if match and 0 < match.start() < 60:
+        prefix = piece[:match.start()].strip()
+        if any(prefix.startswith(word) for word in _CAPTION_WORDS):
             return piece[match.start():].strip()
     return piece
 
@@ -931,7 +935,19 @@ def looks_factual(question: str) -> bool:
     return text.endswith(("؟", "?")) and len(text.split()) >= 3
 
 
-def think(question: str, limit: int = 10, path: str | None = None) -> dict:
+def _online_allowed() -> bool:
+    """آیا یادگیری آنلاین از تنظیمات مدیر و متغیر محیطی اجازه دارد؟"""
+    if os.environ.get("RAYAN_ONLINE", "1") == "0":
+        return False
+    try:
+        from web import admin as admin_module
+        return bool(admin_module.flags().get("auto_learn", True))
+    except Exception:  # noqa: BLE001 - تنظیمات نباید پاسخ را بشکند
+        return True
+
+
+def think(question: str, limit: int = 10, path: str | None = None,
+          online: bool | None = None) -> dict:
     """مسیر کاملِ فکر: کلیدواژه → جست‌وجو → انتخاب شاهد → پاسخ + ردپا."""
     started = time.time()
     trace: list[dict] = []
@@ -987,11 +1003,40 @@ def think(question: str, limit: int = 10, path: str | None = None) -> dict:
     composed = compose(question, hits)
     elapsed = round(time.time() - started, 3)
     if not composed:
+        # ۵) اگر در پیکره و دانشنامه شاهدی نبود، از وب یاد بگیر (دانشِ آنلاین)
+        if online is None:
+            online = path is None and _online_allowed()
+        if online:
+            try:
+                from web import learn as learn_module
+                learned = learn_module.answer(question)
+            except Exception:  # noqa: BLE001 - شبکه نباید پاسخ را بشکند
+                learned = None
+            if learned:
+                trace.append({"step": "خواندن از وب",
+                              "detail": ("صفحه تازه خوانده و ذخیره شد" if learned.get("learned")
+                                         else "از دانشِ پیشین وب"),
+                              "seconds": round(time.time() - started, 3)})
+                trace.append({"step": "انتخاب شاهد",
+                              "detail": f"منبع: {learned['sources'][0]['domain']}",
+                              "seconds": round(time.time() - started, 3)})
+                return {"answer": learned["answer"], "sources": learned["sources"],
+                        "trace": trace, "confidence": learned.get("confidence", 0.7),
+                        "coverage": 1.0, "seconds": round(time.time() - started, 3),
+                        "engine": "learn", "learned": learned.get("learned", False)}
         near = []
         for hit in hits[:3]:
             title = (hit.title or "").strip()
             if title and title not in near:
                 near.append(title[:70])
+        if path is None:
+            # صف کنجکاوی: بعداً کارگر پس‌زمینه این موضوع را یاد می‌گیرد
+            try:
+                from web import learn as learn_module
+                if online:
+                    learn_module.remember(question)
+            except Exception:  # noqa: BLE001
+                pass
         return {"answer": None, "sources": [], "trace": trace, "confidence": 0.0,
                 "near": near, "seconds": elapsed, "reason": "no_evidence"}
 

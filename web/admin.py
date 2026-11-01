@@ -374,6 +374,66 @@ def settings_set(req: SettingsPayload, request: Request) -> dict:
     return {"settings": store().all_settings()}
 
 
+class LearnPayload(BaseModel):
+    url: str = Field(default="", max_length=2000)
+    query: str = Field(default="", max_length=200)
+    pages: int = Field(default=2, ge=1, le=5)
+
+
+@router.get("/knowledge")
+def knowledge(request: Request) -> dict:
+    """وضعیت دانشِ آنلاین: چند صفحه خوانده شده و چند پرسش در انتظار است."""
+    from web import learn as learn_module
+    require_admin(request)
+    stats = learn_module.stats()
+    rows: list[dict] = []
+    try:
+        with learn_module._connect() as db:  # noqa: SLF001 - همان ماژول داخلی
+            rows = [
+                {"title": title, "url": url, "chars": len(body or ""), "learned_at": stamp}
+                for title, url, body, stamp in db.execute(
+                    "SELECT title, url, body, learned_at FROM pages ORDER BY learned_at DESC "
+                    "LIMIT 25").fetchall()
+            ]
+    except Exception:  # noqa: BLE001 - فهرست نباید صفحه را بشکند
+        rows = []
+    return {"stats": stats, "recent": rows,
+            "waiting": learn_module.pending(20)}
+
+
+@router.post("/knowledge/learn")
+def knowledge_learn(req: LearnPayload, request: Request) -> dict:
+    """آموختن از یک نشانی یا گشتن دربارهٔ یک موضوع و خواندن نتیجه‌ها."""
+    from web import learn as learn_module
+    require_admin(request, csrf=True)
+    if req.url:
+        page = learn_module.learn_url(req.url)
+        if not page:
+            raise HTTPException(422, "خواندن این نشانی ممکن نشد.")
+        audit("knowledge_learn_url", request, detail=req.url[:160])
+        return {"ok": True, "page": {"title": page["title"], "url": page["url"],
+                                     "chars": len(page["body"]),
+                                     "stored": page["stored"]}}
+    if not req.query:
+        raise HTTPException(422, "نشانی یا موضوع لازم است.")
+    pages = learn_module.learn_query(req.query, pages=req.pages)
+    audit("knowledge_learn_query", request, detail=req.query[:160])
+    return {"ok": bool(pages), "learned": [
+        {"title": page["title"], "url": page["url"], "chars": len(page["body"])}
+        for page in pages
+    ]}
+
+
+@router.post("/knowledge/grow")
+def knowledge_grow(request: Request, limit: int = 3) -> dict:
+    """اجرای دستی کارگر تقویت تدریجی روی صف کنجکاوی."""
+    from web import learn as learn_module
+    require_admin(request, csrf=True)
+    result = learn_module.grow(max(1, min(int(limit), 10)))
+    audit("knowledge_grow", request, detail=str(result))
+    return result
+
+
 @router.post("/maintenance")
 def maintenance(request: Request, task: str = "vacuum") -> dict:
     require_admin(request, csrf=True)
@@ -429,6 +489,7 @@ def flags() -> dict:
         "studio_enabled": raw.get("studio_enabled", "1") == "1",
         "maintenance": raw.get("maintenance", "0") == "1",
         "web_search": raw.get("web_search", "1") == "1",
+        "auto_learn": raw.get("auto_learn", "1") == "1",
         "announcement": raw.get("announcement", ""),
     }
 

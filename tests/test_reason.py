@@ -15,6 +15,7 @@ import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
+os.environ.setdefault("RAYAN_ONLINE", "0")  # آزمون‌ها نباید به شبکه بروند
 
 from web import reason, retrieval  # noqa: E402
 

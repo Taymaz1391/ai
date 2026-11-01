@@ -223,6 +223,12 @@ def boot() -> None:
         threading.Thread(target=_load, name="rayan-loader", daemon=True).start()
     if os.environ.get("RAYAN_WATCH", "1") != "0":
         threading.Thread(target=watcher, args=(_SHUTDOWN,), name="rayan-watch", daemon=True).start()
+    # کارگر تقویت تدریجی: پرسش‌های بی‌جواب را از وب یاد می‌گیرد و دانش را می‌گستراند
+    try:
+        from web import learn as learn_module
+        learn_module.start_worker(interval=float(os.environ.get("RAYAN_GROW_INTERVAL", "240")))
+    except Exception as exc:  # pragma: no cover
+        print(f"[rayan] learn worker skipped: {exc}", flush=True)
 
 
 @asynccontextmanager
@@ -967,7 +973,36 @@ def health() -> dict:
         "latest_eval": dict(_public_eval(metrics["latest_eval"]) or {}, scope="training_subset"),
         "final_eval": _final_eval(),
         "index": retrieval_module.stats(),
+        "learned": _learn_stats(),
+        "qa": _qa_report(),
         "latest_train": _public_train(metrics["latest_train"]),
+    }
+
+
+def _learn_stats() -> dict:
+    """آمار دانشِ خوانده‌شده از وب (لایهٔ آنلاین)."""
+    try:
+        from web import learn as learn_module
+        return learn_module.stats()
+    except Exception as exc:  # noqa: BLE001
+        return {"ready": False, "error": str(exc)}
+
+
+def _qa_report() -> dict | None:
+    """نتیجهٔ سنجش صادقانهٔ پرسش‌های دانشی (scripts/eval_qa.py) — بدون دست‌کاری."""
+    path = os.path.join(ROOT, "reports", "qa.json")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, ValueError):
+        return None
+    return {
+        "run_at": data.get("run_at"),
+        "total": data.get("total"),
+        "correct": data.get("correct"),
+        "answered": data.get("answered"),
+        "accuracy_on_all": data.get("accuracy_on_all"),
+        "accuracy_on_answered": data.get("accuracy_on_answered"),
     }
 
 

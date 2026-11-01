@@ -57,15 +57,42 @@
     });
   }
 
+  function valuesFromHealth(data) {
+    const index = (data && data.index) || {};
+    const wiki = index.wiki || {};
+    const qa = (data && data.qa) || {};
+    const chars = Number(index.chars || 0);
+    return {
+      "corpus-chars": chars ? `${numerify(chars / 1e6, 1)} میلیون` : "—",
+      passages: numerify(index.passages, 0),
+      "wiki-articles": numerify(wiki.articles, 0),
+      "wiki-chars": wiki.chars ? `${numerify(wiki.chars / 1e6, 1)} میلیون` : "—",
+      "qa-accuracy": qa.accuracy_on_all != null ? `${numerify(qa.accuracy_on_all * 100, 1)}٪` : "—",
+      "qa-correct": qa.total ? `${numerify(qa.correct, 0)} از ${numerify(qa.total, 0)}` : "—",
+      "index-ready": index.ready ? "آماده" : "در حال ساخت",
+    };
+  }
+
   async function load() {
     try {
       const response = await fetch("/api/model", { headers: { accept: "application/json" } });
-      if (!response.ok) return;
-      const data = await response.json();
-      apply(valuesFrom(data));
-      window.RAYAN_MODEL = data;
+      if (response.ok) {
+        const data = await response.json();
+        apply(valuesFrom(data));
+        window.RAYAN_MODEL = data;
+      }
     } catch {
       /* بدون شبکه، متن پیش‌فرض می‌ماند */
+    }
+    try {
+      const health = await fetch("/api/health", { headers: { accept: "application/json" } });
+      if (health.ok) {
+        const data = await health.json();
+        apply(valuesFromHealth(data));
+        window.RAYAN_HEALTH = data;
+      }
+    } catch {
+      /* آمار ایندکس اختیاری است */
     }
   }
 
@@ -74,5 +101,5 @@
   } else {
     load();
   }
-  window.RAYAN_MODEL_SLOTS = { apply, valuesFrom };
+  window.RAYAN_MODEL_SLOTS = { apply, valuesFrom, valuesFromHealth };
 })();

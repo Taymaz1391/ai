@@ -99,9 +99,21 @@
         <div class="section-head"><h2 class="section-title" style="font-size:26px">مشخصات فنی</h2></div>
         <div class="spec-grid" id="spec-grid">
           <div class="spec"><span>پارامترها</span><b data-model-slot="params-long">—</b></div>
-          <div class="spec"><span>آموزش</span><b>۱۶٫۹ میلیون نویسه</b></div>
-          <div class="spec"><span>زمینه</span><b>۲۵۶ توکن</b></div>
+          <div class="spec"><span>پیکرهٔ آموزش</span><b><span data-model-slot="corpus-chars">—</span> نویسه</b></div>
+          <div class="spec"><span>زمینه</span><b data-model-slot="context">—</b></div>
           <div class="spec"><span>اجرا</span><b>پردازندهٔ معمولی · بدون کارت گرافیک</b></div>
+          <div class="spec"><span>قطعه‌های قابل بازیابی</span><b data-model-slot="passages">—</b></div>
+          <div class="spec"><span>مقالهٔ دانشنامه</span><b data-model-slot="wiki-articles">—</b></div>
+          <div class="spec"><span>سنجش پرسش‌های دانشی</span><b data-model-slot="qa-correct">—</b></div>
+          <div class="spec"><span>پاسخ با شاهد</span><b>پیکرهٔ فارسی + دانشنامه</b></div>
+        </div>
+
+        <div class="card card-pad" style="margin-top:22px">
+          <span class="tag tag-blue">چطور فکر می‌کند</span>
+          <p style="margin-top:10px">برای هر پرسش دانشی، رایان پاسخِ آماده ندارد: نخست موضوع را از جمله
+            بیرون می‌کشد، در دانشنامه و پیکرهٔ فارسی جست‌وجو می‌کند، جملهٔ تعریف را اعتبارسنجی می‌کند
+            (موضوع نزدیک آغاز + فعل اسنادی + هم‌خوانی با نوع پرسش)، و اگر شاهدی پیدا نشد صریح می‌گوید.
+            مراحل و منبع هر پاسخ در همان گفتگو نشان داده می‌شود.</p>
         </div>
       </div>
     </section>
@@ -113,8 +125,11 @@
             <span class="tag tag-blue">مسیر مقیاس</span>
             <h2>آمادهٔ آموزش روی ۱ میلیارد نویسه</h2>
             <p>پیکره‌ساز و توکنایزر جریانی آماده‌اند: با یک فرمان می‌شود ۱ میلیارد نویسه را نرمال کرد،
-              تکراری‌ها را حذف کرد و توکنایزر را روی ۱۰۰ میلیون نویسه آموزش داد. مدلی که همین حالا
-              گفتگو می‌کند روی ۱۶٫۹ میلیون نویسه آموزش دیده و ما عدد بزرگ‌تر را به آن نسبت نمی‌دهیم.</p>
+              تکراری‌ها را حذف کرد و توکنایزر را روی ۱۰۰ میلیون نویسه آموزش داد. اکنون مدل روی
+              <span data-model-slot="corpus-chars">—</span> نویسه آموزش می‌بیند و لایهٔ بازیابی روی
+              <span data-model-slot="wiki-articles">—</span> مقالهٔ دانشنامه و
+              <span data-model-slot="passages">—</span> قطعهٔ پیکره کار می‌کند؛ هیچ عددی بزرگ‌تر از
+              واقعیت گزارش نمی‌شود.</p>
           </div>
           <pre class="code-block" dir="ltr">python scripts/scale_corpus.py --sources corpora \
   --target-chars 1000000000 --out data/train.txt
