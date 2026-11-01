@@ -1,12 +1,12 @@
 {
-  "run_at": "2026-11-01T03:53:38",
+  "run_at": "2026-11-01T04:40:52",
   "total": 30,
   "answered": 29,
   "correct": 29,
   "answered_rate": 0.967,
   "accuracy_on_all": 0.967,
   "accuracy_on_answered": 1.0,
-  "seconds": 7.6,
+  "seconds": 7.55,
   "rows": [
     {
       "question": "پایتخت ایران کجاست؟",
@@ -17,7 +17,7 @@
       "engine": "retrieval",
       "confidence": 0.97,
       "verdict": "درست",
-      "seconds": 0.967
+      "seconds": 0.924
     },
     {
       "question": "پایتخت فرانسه کجاست؟",
@@ -28,7 +28,7 @@
       "engine": "retrieval",
       "confidence": 0.97,
       "verdict": "درست",
-      "seconds": 0.973
+      "seconds": 0.831
     },
     {
       "question": "پایتخت ژاپن کجاست؟",
@@ -39,18 +39,18 @@
       "engine": "retrieval",
       "confidence": 0.97,
       "verdict": "درست",
-      "seconds": 0.924
+      "seconds": 0.882
     },
     {
       "question": "بلندترین قلهٔ ایران کجاست؟",
-      "answer": "بلندترین قلهٔ ایران دماوند است؛ ارتفاعش حدود 5٬610 متر و در رشته کوه البرز جای دارد.",
+      "answer": "بلندترین قله ایران دماوند است؛ ارتفاعش حدود 5٬610 متر و در رشته کوه البرز جای دارد.",
       "expected": [
         "دماوند"
       ],
       "engine": "retrieval",
       "confidence": 0.97,
       "verdict": "درست",
-      "seconds": 1.256
+      "seconds": 1.076
     },
     {
       "question": "بلندترین قلهٔ جهان کجاست؟",
@@ -61,7 +61,7 @@
       "engine": null,
       "confidence": 0.0,
       "verdict": "بدون پاسخ",
-      "seconds": 1.197
+      "seconds": 1.744
     },
     {
       "question": "زبان فارسی چیست؟",
@@ -74,7 +74,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.029
+      "seconds": 0.031
     },
     {
       "question": "فتوسنتز چیست؟",
@@ -87,7 +87,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.13
+      "seconds": 0.108
     },
     {
       "question": "اینترنت چیست؟",
@@ -100,7 +100,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.034
+      "seconds": 0.04
     },
     {
       "question": "جنگ جهانی دوم چه بود؟",
@@ -140,7 +140,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.283
+      "seconds": 0.416
     },
     {
       "question": "حافظ کیست؟",
@@ -153,7 +153,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.007
+      "seconds": 0.008
     },
     {
       "question": "مولانا کیست؟",
@@ -166,7 +166,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.315
+      "seconds": 0.27
     },
     {
       "question": "فردوسی کیست؟",
@@ -178,7 +178,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.027
+      "seconds": 0.03
     },
     {
       "question": "سعدی کیست؟",
@@ -217,7 +217,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.314
+      "seconds": 0.26
     },
     {
       "question": "تهران کجاست؟",
@@ -267,7 +267,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.383
+      "seconds": 0.268
     },
     {
       "question": "آب چیست؟",
@@ -280,7 +280,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.013
+      "seconds": 0.008
     },
     {
       "question": "سیب چیست؟",
@@ -293,7 +293,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.08
+      "seconds": 0.073
     },
     {
       "question": "خون چیست؟",
@@ -306,7 +306,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.028
+      "seconds": 0.033
     },
     {
       "question": "مغز چیست؟",
@@ -345,7 +345,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.283
+      "seconds": 0.261
     },
     {
       "question": "سازمان ملل متحد چه کاری می‌کند؟",
@@ -358,7 +358,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.018
+      "seconds": 0.004
     },
     {
       "question": "نفت چیست؟",
@@ -371,7 +371,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.309
+      "seconds": 0.264
     },
     {
       "question": "برج میلاد کجاست؟",
@@ -383,7 +383,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.014
+      "seconds": 0.007
     }
   ]
 }

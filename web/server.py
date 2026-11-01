@@ -138,10 +138,33 @@ def _fa_number(value: float, digits: int = 1) -> str:
     return text.translate(str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹"))
 
 
+def _active_params() -> int:
+    """شمار پارامترهای مدلِ بارگذاری‌شده (۰ اگر هنوز نیامده)."""
+    info = engine.info() if engine is not None else {}
+    return int(info.get("params") or 0)
+
+
+def _run_config_for_active() -> dict:
+    """تنظیمات اجرا فقط اگر به همان مدلی تعلق داشته باشد که در حال گفتگوست.
+
+    گزارش‌های آموزشِ یک اجرای دیگر (مثلاً پایهٔ بزرگ‌تر) نباید روی کارت مدلِ
+    فعال بنشینند؛ عدد بی‌ربط، عدد نادرست است.
+    """
+    run = _run_config()
+    if not run:
+        return {}
+    owned = int(run.get("params") or 0)
+    active = _active_params()
+    if owned and active and owned != active:
+        return {}
+    return run
+
+
 def active_model_card() -> dict:
     """کارت مدل فعال، مستقیم از checkpoint و تنظیمات اجرای همان مدل."""
-    run = _run_config()
+    run = _run_config_for_active()
     info = engine.info() if engine is not None else {}
+    meta = info.get("meta") or {}
     cfg = (info.get("config") or {})
     params = info.get("params") or run.get("params") or 0
     layers = cfg.get("n_layer") or run.get("layers")
@@ -151,7 +174,11 @@ def active_model_card() -> dict:
     tokens_seen = run.get("tokens_seen")
     val_loss = run.get("val_loss") or (info.get("meta") or {}).get("val_loss")
     bpc = run.get("bits_per_char") or (info.get("meta") or {}).get("bits_per_char")
+    stage_labels = {"sft": "تنظیم دستورمحور", "dpo": "بهینه‌سازی ترجیح",
+                    "base": "پیش‌آموزش"}
     parts = []
+    if meta.get("stage"):
+        parts.append(f"مرحلهٔ {stage_labels.get(meta['stage'], meta['stage'])}")
     if layers and heads and embed:
         parts.append(f"{_fa_number(layers, 0)} لایه، {_fa_number(heads, 0)} سر، بُعد {_fa_number(embed, 0)}")
     if params:
@@ -172,7 +199,10 @@ def active_model_card() -> dict:
         "status": "ready" if engine is not None else "loading",
         "badge": "فعال" if engine is not None else "در حال بارگذاری",
         "desc": desc,
-        "metrics": {"val_loss": val_loss, "bits_per_char": bpc, "ppl": run.get("ppl")},
+        "checkpoint": os.path.relpath(engine.checkpoint, ROOT) if engine is not None else None,
+        "metrics": {"val_loss": val_loss, "bits_per_char": bpc, "ppl": run.get("ppl"),
+                    "chat_ppl": meta.get("chat_ppl"),
+                    "rubric_mean": meta.get("rubric_mean")},
         "latency": (f"~{_fa_number(run['inference_tokens_per_second'], 0)} توکن/ثانیه"
                     if run.get("inference_tokens_per_second") else "—"),
         "strengths": ["گفتگوی کوتاه فارسی", "ادامهٔ متن", "بیت کلاسیک"],
@@ -348,10 +378,16 @@ def checkpoint_vocab(path: str) -> int:
 
 
 def active_pair() -> tuple[str, str]:
-    """اولین جفت (checkpoint، توکنایزر) موجود؛ توکنایزر همیشه با checkpoint هم‌واژگان است."""
+    """اولین جفت (checkpoint، توکنایزر) موجود؛ توکنایزر همیشه با checkpoint هم‌واژگان است.
+
+    مدل منتشرشده با انتخاب مرحلهٔ هم‌ترازسازی عوض می‌شود و ممکن است واژگان
+    متفاوتی داشته باشد؛ پس توکنایزر از روی واژگان خودِ checkpoint برداشته
+    می‌شود، نه از ترتیب ثابت فهرست.
+    """
     for path, tokenizer in CHECKPOINT_CANDIDATES:
         if os.path.exists(path):
-            return path, tokenizer
+            vocab = checkpoint_vocab(path)
+            return path, TOKENIZER_BY_VOCAB.get(vocab, tokenizer)
     return "", TOKENIZER_PATH
 
 
@@ -962,15 +998,22 @@ def api_support(req: SupportRequest, request: Request) -> dict:
 @app.get("/api/health")
 def health() -> dict:
     info = engine.info() if engine is not None else {}
+    meta = info.get("meta") or {}
     metrics = _read_metrics(limit=1)
+    owns_run = bool(_run_config_for_active())
     return {
         "ok": engine is not None,
         "error": engine_error,
         "uptime_s": round(time.time() - STARTED, 1),
-        "model": {"params": info.get("params")},
-        "training_active": metrics["active"],
+        "model": {"params": info.get("params"),
+                  "checkpoint": os.path.relpath(engine.checkpoint, ROOT) if engine is not None else None,
+                  "stage": meta.get("stage"), "step": meta.get("step"),
+                  "chat_ppl": meta.get("chat_ppl"),
+                  "rubric_mean": meta.get("rubric_mean")},
+        "training_active": metrics["active"] and owns_run,
         # ارزیابی جریان آموزش روی چند batch ثابت است؛ ارزیابی کامل در کارت اجرا می‌آید
-        "latest_eval": dict(_public_eval(metrics["latest_eval"]) or {}, scope="training_subset"),
+        "latest_eval": (dict(_public_eval(metrics["latest_eval"]) or {}, scope="training_subset")
+                        if owns_run else None),
         "final_eval": _final_eval(),
         "index": retrieval_module.stats(),
         "learned": _learn_stats(),
@@ -1008,7 +1051,7 @@ def _qa_report() -> dict | None:
 
 def _final_eval() -> dict | None:
     """سنجه‌های کاملِ اعتبارسنجی از اجرای منتشرشده (finalize_run)."""
-    run = _run_config()
+    run = _run_config_for_active()
     if not run or run.get("val_loss") is None:
         return None
     return {
@@ -1076,11 +1119,11 @@ def model_info() -> dict:
         "corpus": _corpus_stats(),
         "metrics": {
             "final_eval": _final_eval(),
-            "latest_eval": _public_eval(metrics["latest_eval"]),
-            "best_eval": _public_eval(metrics["best_eval"]),
+            "latest_eval": _public_eval(metrics["latest_eval"]) if _run_config_for_active() else None,
+            "best_eval": _public_eval(metrics["best_eval"]) if _run_config_for_active() else None,
         },
         "sources": _source_cards(),
-        "run": _run_config(),
+        "run": _run_config_for_active(),
         "limitations": _limitations(info.get("params") or 0),
     }
 

@@ -23,28 +23,22 @@
       "docs": 6234,
       "chars": 12534317,
       "cap": 25000000
-    },
-    "miras-sample.txt": {
-      "files": 1,
-      "docs": 716,
-      "chars": 3898099,
-      "cap": 6600000
     }
   },
   "seed": 20261101,
   "val_ratio": 0.01,
   "chunk_chars": 2000,
   "min_chars": 200,
-  "docs_total": 58827,
+  "docs_total": 58111,
   "train.txt": {
-    "docs": 58239,
-    "chars": 97312334,
-    "bytes": 173419816
+    "docs": 57530,
+    "chars": 93410543,
+    "bytes": 166568714
   },
   "val.txt": {
-    "docs": 588,
-    "chars": 966331,
-    "bytes": 1717518
+    "docs": 581,
+    "chars": 970023,
+    "bytes": 1728158
   },
   "seconds": 2.4
 }
