@@ -1977,7 +1977,10 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
                                                "source": "رایان", "score": 1.0}],
                                   "curated": True})
 
-        written = writer_module.answer(message)
+        # پرسشِ برنامه‌نویسی متن نمی‌خواهد؛ «چطور فایل بنویسم» کد می‌خواهد
+        programming = re.search(r"پایتون|python|جاوااسکریپت|javascript|"
+                                r"(?<![\w\u200c])کد(?![\w\u200c])|\bsql\b", message, re.I)
+        written = None if programming else writer_module.answer(message)
         if written:
             return _instant_turn(owner, ip, req, response, conv_id, message, written["answer"],
                                  tool_result, started, written["engine"])

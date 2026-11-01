@@ -26,7 +26,7 @@ FOLLOWUP = ("بیشتر", "ادامه", "توضیح بده", "مثال", "چرا
 
 _GREETING_OPEN = (
     "سلام{name}! خوشحالم که برگشتی.",
-    "درود{name}! چه خبر؟",
+    "سلام و درود{name}! چه خبر؟",
     "سلام{name}! آماده‌ام.",
 )
 _GREETING_NIGHT = (
@@ -35,7 +35,7 @@ _GREETING_NIGHT = (
 )
 _THANKS = (
     "خواهش می‌کنم{name}!",
-    "قابل‌نداشت{name}.",
+    "قابلی نداشت{name}.",
     "خوشحالم که به کار آمد{name}.",
 )
 _BYE = (
@@ -89,7 +89,9 @@ def personalize(hit: dict, owner: dict | None = None, now: _dt.datetime | None =
         pool = _GREETING_NIGHT if night else _GREETING_OPEN
         out["answer"] = random.choice(pool).format(name=name) + "\n" + hit["answer"].split("\n", 1)[-1]
     elif skill == "thanks":
-        out["answer"] = random.choice(_THANKS).format(name=name) + " " + hit["answer"].split("!", 1)[-1].strip()
+        # فقط تکیه‌کلامِ آغازین برداشته می‌شود، نه کلِجمله («سلامت باشی!» باید بماند)
+        rest = re.sub(r"^\s*خواهش\s*می\u200cکنم[،,!.\s]*", "", hit["answer"]).strip()
+        out["answer"] = random.choice(_THANKS).format(name=name) + " " + rest
     elif skill == "bye":
         out["answer"] = random.choice(_BYE).format(name=name)
     return out

@@ -288,6 +288,32 @@ def _code_answer_python(text: str) -> str | None:
     programming = re.search(r"پایتون|python|(?<![\w\u200c])کد(?![\w\u200c])|برنامه|"
                             r"جاوااسکریپت|javascript|حلقه|\bsql\b|select\s|insert\s|جدول",
                             text, re.I)
+    # توان
+    if re.search(r"توان|به قوه|power", low):
+        return ("توان در پایتون:\n\n"
+                "```python\nprint(2 ** 10)      # 1024\n"
+                "print(pow(2, 10))   # 1024\n"
+                "print(pow(2, 10, 7))  # 2  (باقیماندهٔ تقسیم بر ۷)\n"
+                "import math\nprint(math.sqrt(16))  # جذر: 4.0\n```")
+
+    # بزرگ/کوچک‌کردنِ حروف
+    if re.search(r"upper|lower|بزرگ|کوچک|حروف", low) and re.search(r"رشته|متن|حرف|string", low):
+        return ("بزرگ و کوچک‌کردنِ حروفِ رشته:\n\n"
+                "```python\ntext = \"salam donya\"\n"
+                "print(text.upper())      # SALAM DONYA\n"
+                "print(text.lower())      # salam donya\n"
+                "print(text.title())      # Salam Donya\n"
+                "print(text.capitalize())  # Salam donya\n```")
+
+    # حذف از دیکشنری
+    if re.search(r"دیکشنری|dict", low) and re.search(r"حذف|پاک|بردار", low):
+        return ("حذفِ کلید از دیکشنری:\n\n"
+                "```python\nuser = {\"name\": \"سارا\", \"age\": 30}\n"
+                "del user[\"age\"]        # حذفِ مستقیم؛ اگر کلید نباشد KeyError\n"
+                "value = user.pop(\"name\", None)  # حذف + گرفتنِ مقدار، امن\n"
+                "print(user)            # {}\n```\n\n"
+                "`pop` امن‌تر است؛ `del` سرعتِ بیشتری دارد.")
+
     # بازهٔ اعداد
     if re.search(r"\brange\b|بازه|محدوده", low) and re.search(r"عدد|اعداد|شمار", low):
         return ("ساختِ بازهٔ اعداد با `range()`:\n\n"
@@ -313,6 +339,16 @@ def _code_answer_python(text: str) -> str | None:
                 "print(len(words))           # 2\n"
                 "print(\" \".join(words))      # سلام دنیا\n```\n\n"
                 "`split(\",\")` بر اساسِ نویسهٔ دلخواه می‌برد؛ `split()` با فاصله و خط تازه.")
+
+    # نوشتنِ فایل متنی
+    if "فایل" in low and re.search(r"بنویسم|نوشتن|write|ذخیره|بسازم", low):
+        return ("نوشتنِ فایل متنی با `with` و حالت `w`:\n\n"
+                "```python\nwith open(\"out.txt\", \"w\", encoding=\"utf-8\") as handle:\n"
+                "    handle.write(\"سلام\\n\")\n\n"
+                "with open(\"out.txt\", \"a\", encoding=\"utf-8\") as handle:\n"
+                "    handle.write(\"خطِ دوم\\n\")   # a = افزودن به انتهای فایل\n```\n\n"
+                "`w` فایل را از نو می‌نویسد، `a` به انتهایش اضافه می‌کند؛ همیشه "
+                "`encoding=\"utf-8\"` بگذار تا فارسی سالم بماند.")
 
     # خواندنِ سطر‌به‌سطر
     if re.search(r"سطر|خط‌به‌خط|خط به خط|line", low) and re.search(r"فایل|بخوان", low):
