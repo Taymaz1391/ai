@@ -51,15 +51,31 @@ def domain(url: str) -> str:
     return host[4:] if host.startswith("www.") else host
 
 
+def _network_ok() -> bool:
+    """در حالت ملی هیچ درخواست بیرونی زده نمی‌شود؛ پاسخ از دانش محلی می‌آید."""
+    from web import network
+    return network.allow_outbound()
+
+
 def _get(url: str, accept: str = "text/html") -> str:
+    if not _network_ok():
+        return ""
     req = urllib.request.Request(url, headers={
         "User-Agent": UA,
         "Accept": accept,
         "Accept-Language": "fa,en;q=0.8",
     })
-    with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:  # noqa: S310 - دامنه‌های ثابت
+    try:
+        resp = urllib.request.urlopen(req, timeout=TIMEOUT)  # noqa: S310 - دامنه‌های ثابت
+    except Exception as exc:  # noqa: BLE001 - شبکه نباید صفحه را بشکند
+        from web import network
+        network.report_failure(f"search: {exc}")
+        return ""
+    with resp:
         raw = resp.read(1_500_000)
         charset = resp.headers.get_content_charset() or "utf-8"
+        from web import network
+        network.report_success()
     return raw.decode(charset, "replace")
 
 

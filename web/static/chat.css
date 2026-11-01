@@ -831,3 +831,23 @@
 .think-steps li { display: flex; gap: 8px; align-items: baseline; color: var(--text-3); }
 .think-steps b { color: var(--text-2); font-weight: 600; flex: 0 0 auto; }
 .think-steps li::before { content: "←"; color: var(--accent-solid); font-size: 11px; }
+
+/* ------------------------------------------ پردهٔ ثبت‌نام در صفحهٔ گفتگو */
+.signup-gate {
+  position: sticky; inset-block-end: 12px; z-index: 6;
+  margin: 12px auto; width: min(560px, 100%);
+  padding: 0; animation: gateIn .28s var(--ease) both;
+}
+@keyframes gateIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.signup-gate-card {
+  border-radius: 20px; padding: 22px 22px 18px;
+  background: linear-gradient(180deg, #ffffff, #eff5ff);
+  border: 1px solid rgba(26, 99, 240, .18);
+  box-shadow: 0 22px 48px rgba(20, 44, 92, .16);
+  display: grid; gap: 10px; justify-items: center; text-align: center;
+}
+.signup-gate-orb img { width: 56px; height: 56px; border-radius: 50%; filter: drop-shadow(0 10px 22px rgba(26, 99, 240, .35)); }
+.signup-gate-card h2 { margin: 0; font-size: 18px; }
+.signup-gate-text { margin: 0; color: var(--muted); line-height: 1.9; font-size: 13.5px; }
+.signup-gate-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+.signup-gate-hint { margin: 2px 0 0; font-size: 12px; color: var(--muted); }

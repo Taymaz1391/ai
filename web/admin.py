@@ -185,6 +185,11 @@ class AdPatch(BaseModel):
     ends_at: float | None = None
 
 
+class OpsOrder(BaseModel):
+    text: str = Field(min_length=2, max_length=2000)
+    kind: str = Field(default="order", pattern="^(order|note)$")
+
+
 class SettingsPayload(BaseModel):
     values: dict[str, str] = Field(default_factory=dict)
 
@@ -225,11 +230,18 @@ def admin_login(req: AdminLogin, request: Request, response: Response) -> dict:
     if attempts > MAX_ATTEMPTS:
         audit("login_locked", request, detail=f"attempts={attempts}")
         raise HTTPException(429, "تلاش‌های ناموفق زیاد؛ ۱۵ دقیقه بعد دوباره امتحان کنید.")
+    # یک گذرواژه برای همه‌چیز: گذرواژهٔ مالک (همان که در /login وارد می‌شود)
+    # هم در این‌جا پذیرفته است، تا مالک هیچ‌وقت دو رمز جدا نداشته باشد.
     creds = admin_credentials()
-    candidate = _hash(req.password, creds["pw_salt"])
-    if not hmac.compare_digest(candidate, creds["pw_hash"]):
+    ok = hmac.compare_digest(_hash(req.password, creds["pw_salt"]), creds["pw_hash"])
+    if not ok:
+        from web import owner as owner_module
+        if owner_module.verify(req.password):
+            ok = True
+            creds = {**creds, "email": owner_module.credentials().get("name", creds.get("email"))}
+    if not ok:
         audit("login_failed", request, detail=f"attempt={attempts}")
-        raise HTTPException(401, "گذرواژهٔ مدیریت نادرست است.")
+        raise HTTPException(401, "گذرواژه نادرست است. همان گذرواژهٔ ورود به سایت را بزنید.")
 
     store().clear_attempts(f"admin:{ip}")
     admin_id = _ensure_admin_user(creds.get("email", "admin@rayan.local"))
@@ -559,3 +571,81 @@ def start_scheduler(interval: int = 3600) -> None:
             time.sleep(interval)
 
     threading.Thread(target=loop, name="rayan-scheduler", daemon=True).start()
+
+
+# --------------------------------------------------------------- اتاق فرمان
+@router.get("/ops")
+def ops_list(request: Request, limit: int = 40) -> dict:
+    """دستورها و پیام‌های مالک به عاملِ سازنده (فقط خواندن)."""
+    require_admin(request)
+    from web import ops as ops_module
+    return {"orders": ops_module.listing(limit), "stats": ops_module.stats()}
+
+
+@router.post("/ops")
+def ops_add(req: OpsOrder, request: Request) -> dict:
+    """ثبت دستور تازه؛ اجرای واقعی در نشست بعدی عامل انجام و پاسخ ثبت می‌شود."""
+    session = require_admin(request, csrf=True)
+    from web import ops as ops_module
+    row = ops_module.add(req.text, kind=req.kind,
+                         author=(session.get("user") or {}).get("name", "owner"))
+    audit("ops_order", request, target=row["id"], detail=req.kind)
+    return {"ok": True, "order": row}
+
+
+@router.get("/ops/pending")
+def ops_pending(request: Request) -> dict:
+    require_admin(request)
+    from web import ops as ops_module
+    rows = ops_module.pending()
+    return {"pending": len(rows), "orders": rows[:20]}
+
+
+@router.post("/reload")
+def reload_runtime(request: Request) -> dict:
+    """بارگذاری دوبارهٔ مدل و پاک‌سازی حافظه‌های میانگیر — بدون قطع سرویس."""
+    require_admin(request, csrf=True)
+    from web import server as server_module
+    info = server_module.soft_reload()
+    audit("reload", request, detail=json.dumps(info, ensure_ascii=False)[:180])
+    return {"ok": True, **info}
+
+
+@router.post("/restart")
+def restart_workers(request: Request) -> dict:
+    """راه‌اندازی دوبارهٔ کارگرها با SIGHUP؛ درخواست‌های جاری کامل می‌شوند."""
+    require_admin(request, csrf=True)
+    from web import server as server_module
+    info = server_module.restart_workers()
+    audit("restart", request, detail=json.dumps(info, ensure_ascii=False)[:180])
+    return {"ok": bool(info.get("signalled")), **info}
+
+
+# ------------------------------------------------------------ شبکه و ظرفیت
+class NetworkMode(BaseModel):
+    mode: str = Field(pattern="^(auto|national|global)$")
+
+
+@router.get("/network")
+def network_state(request: Request) -> dict:
+    """وضعیت خروج به اینترنت و ساختن امنیت در حالت ملی."""
+    require_admin(request)
+    from web import network
+    return {"ok": True, **network.stats()}
+
+
+@router.post("/network")
+def network_set(req: NetworkMode, request: Request) -> dict:
+    require_admin(request, csrf=True)
+    from web import network
+    value = network.set_mode(req.mode)
+    audit("network_mode", request, detail=value)
+    return {"ok": True, **network.stats()}
+
+
+@router.get("/capacity")
+def capacity(request: Request) -> dict:
+    """ظرفیت واقعی همین ماشین: کارگرها، صف، کش و میانگین پاسخ‌گویی."""
+    require_admin(request)
+    from web import server as server_module
+    return {"ok": True, **server_module.capacity_report()}

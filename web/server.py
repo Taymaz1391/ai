@@ -8,11 +8,14 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import platform
 import re
 import secrets
+import signal
+from collections import OrderedDict
 import sys
 import threading
 import time
@@ -76,6 +79,10 @@ CORPUS_STATS_PATH = os.path.join(ROOT, "data", "corpus_stats.json")
 
 SESSION_COOKIE = "rayan_session"
 GUEST_COOKIE = "rayan_guest"
+# هوش فقط با حساب کاربری: هر درخواست گفتگو باید نشست ثبت‌نام‌شده داشته باشد.
+REQUIRE_SIGNUP = os.environ.get("RAYAN_REQUIRE_SIGNUP", "1") != "0"
+SIGNUP_GATE = ("برای استفاده از هوش رایان باید حساب بسازی. ثبت‌نام رایگان است و "
+               "چند ثانیه طول می‌کشد؛ بعد از ثبت‌نام ویدیوی کوتاه آموزش را می‌بینی.")
 SESSION_DAYS = 30
 IS_PROD = os.environ.get("RAYAN_ENV", "dev").strip().lower() in ("prod", "production")
 
@@ -643,6 +650,15 @@ def _flag(name: str, default: str = "1") -> bool:
     return store().setting(name, default) == "1"
 
 
+def _require_account(owner: dict) -> None:
+    """هیچ درخواست هوشی بدون حساب کاربری پاسخ نمی‌گیرد (بدون کلید و بدون مهمان)."""
+    if owner.get("user_id") is not None:
+        return
+    if not REQUIRE_SIGNUP:
+        return
+    raise HTTPException(401, detail=SIGNUP_GATE, headers={"X-Rayan-Need": "signup"})
+
+
 def _guard_flags(kind: str | None = None, signup: bool = False, deep: bool = False) -> None:
     if _flag("maintenance", "0"):
         raise HTTPException(503, "سرویس در حال به‌روزرسانی است؛ چند دقیقهٔ دیگر برگردید.")
@@ -1018,6 +1034,7 @@ def health() -> dict:
         "index": retrieval_module.stats(),
         "learned": _learn_stats(),
         "qa": _qa_report(),
+        "signup_required": REQUIRE_SIGNUP,
         "latest_train": _public_train(metrics["latest_train"]),
     }
 
@@ -1316,6 +1333,9 @@ def me(request: Request) -> dict:
     return {
         "user": owner.get("user"),
         "plan": owner.get("plan", "guest"),
+        "signed_in": owner.get("user_id") is not None,
+        # رابط کاربری با این پرچم می‌داند باید پردهٔ ثبت‌نام را نشان دهد
+        "signup_required": REQUIRE_SIGNUP and owner.get("user_id") is None,
         "usage": {
             "chat": {"used": used_chat, "limit": limit_chat},
             "deep": {"used": used_deep, "limit": limit_deep},
@@ -1466,13 +1486,24 @@ def _generation_kwargs(req: ChatRequest) -> dict:
     return {k: v for k, v in kwargs.items() if v is not None}
 
 
+CACHE_SIZE = int(os.environ.get("RAYAN_CACHE_SIZE", "512") or 0)
+
+
+def _cache_key(message: str) -> str:
+    """کلید کش: پرسش نرمال‌شده + اثرانگشت مدلِ فعال (نسخهٔ مدل بخشی از کلید است)."""
+    if CACHE_SIZE <= 0 or engine is None:
+        return ""
+    text = " ".join((message or "").split()).strip(" ؟?.!")
+    if not text or len(text) > 160:
+        return ""
+    stamp = f"{engine.checkpoint}:{engine.meta.get('step')}"
+    return hashlib.sha1(f"{stamp}|{text}".encode("utf-8")).hexdigest()
+
+
 def _prepare(req: ChatRequest, owner: dict, ip: str) -> tuple[Engine, str, list[tuple[str, str]], str | None]:
     _guard_flags(deep=req.deep)
-    # دسترسی به مدل فقط از خودِ سایت (کوکی نشست/مهمان)؛ هیچ کلید یا توکنی نیست.
-    if not (owner.get("user_id") or owner.get("guest_cookie")):
-        raise HTTPException(401, "دسترسی به مدل فقط از داخل سایت ممکن است.")
-    if owner.get("user_id") is None and not _flag("guest_chat"):
-        raise HTTPException(403, "گفتگوی مهمان موقتاً بسته است؛ برای ادامه وارد شوید.")
+    # دسترسی به هوش فقط از داخل سایت و فقط با حساب ثبت‌نام‌شده؛ هیچ کلید API نیست.
+    _require_account(owner)
     if not limiter.allow(f"chat:{ip}"):
         raise HTTPException(429, "درخواست‌های پیاپی زیاد است؛ چند لحظه صبر کنید.")
     model = _engine()
@@ -1659,8 +1690,29 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
                                  tool_result, started, "skill", {"skill": skill["skill"]})
 
         if not req.web:
+            # کش پاسخ دانشی: پرسش‌های تکراری (سهم بزرگی از ترافیک واقعی) بدون
+            # جست‌وجو و بدون هزینهٔ مدل پاسخ می‌گیرند. کلید شامل مدلِ فعال است،
+            # پس بعد از هر به‌روزرسانی مدل خودبه‌خود بی‌اعتبار می‌شود.
+            key = _cache_key(message)
+            hit = _PROMPT_CACHE.get(key) if key else None
+            if hit:
+                _PROMPT_CACHE.move_to_end(key)
+                return _instant_turn(owner, ip, req, response, conv_id, message,
+                                     hit["answer"], tool_result, started, "think",
+                                     {"thought": {"steps": hit["trace"],
+                                                  "confidence": hit.get("confidence", 0.9),
+                                                  "cached": True},
+                                      "sources": hit["sources"]})
             thought = _think(message, req, history)
             if thought and thought.get("answer"):
+                if key:
+                    _PROMPT_CACHE[key] = {"answer": thought["answer"],
+                                          "trace": thought["trace"],
+                                          "sources": thought["sources"],
+                                          "confidence": thought["confidence"]}
+                    _PROMPT_CACHE.move_to_end(key)
+                    while len(_PROMPT_CACHE) > CACHE_SIZE:
+                        _PROMPT_CACHE.popitem(last=False)
                 return _instant_turn(owner, ip, req, response, conv_id, message,
                                      thought["answer"], tool_result, started, "think",
                                      {"thought": {"steps": thought["trace"],
@@ -2012,6 +2064,132 @@ def status() -> dict:
 
 
 
+# ------------------------------------------------------- به‌روزرسانی بی‌وقفه
+_MASTER_PID = {"value": 0}
+# کش پاسخ‌های تکراری (پرسش یکسان، پاسخ یکسان) — با هر به‌روزرسانی خالی می‌شود
+_PROMPT_CACHE: "OrderedDict[str, dict]" = OrderedDict()
+
+
+def soft_reload() -> dict:
+    """مدل را از نو بار می‌کند و میان‌برها را پاک می‌کند؛ سرویس قطع نمی‌شود.
+
+    ابتدا مدل تازه ساخته می‌شود و فقط اگر سالم بود جای مدل قبلی می‌نشیند؛ در
+    صورت خطا، مدل قبلی سر جایش می‌ماند. کش‌های وابسته به مدل هم خالی می‌شوند.
+    """
+    global engine, engine_error
+    started = time.time()
+    try:
+        fresh = load_engine()
+    except Exception as exc:  # noqa: BLE001
+        engine_error = str(exc)
+        return {"reloaded": False, "error": str(exc), "seconds": round(time.time() - started, 3)}
+    previous = engine.checkpoint if engine is not None else None
+    engine, engine_error = fresh, None
+    cleared = 0
+    for cache in (sessions, _PROMPT_CACHE):
+        try:
+            cleared += len(cache)
+            cache.clear()
+        except Exception:  # noqa: BLE001
+            continue
+    return {"reloaded": True, "checkpoint": os.path.relpath(fresh.checkpoint, ROOT),
+            "previous": os.path.relpath(previous, ROOT) if previous else None,
+            "step": fresh.meta.get("step"), "caches_cleared": cleared,
+            "seconds": round(time.time() - started, 3)}
+
+
+def restart_workers() -> dict:
+    """SIGHUP به سرورِ مادر: uvicorn کارگرها را یکی‌یکی و بی‌قطع سرویس نو می‌کند.
+
+    فقط pid ثبت‌شده در ``data/server.pid`` (که در حالت ``--workers`` نوشته می‌شود)
+    سیگنال می‌گیرد؛ در حالت تک‌کارگری سیگنال دادن به والد می‌تواند خودِ سرویس را
+    بکشد، پس به‌جایش «بارگذاری دوباره» را پیشنهاد می‌دهیم.
+    """
+    pid_file = os.path.join(ROOT, "data", "server.pid")
+    pid = _MASTER_PID["value"]
+    if not pid and os.path.exists(pid_file):
+        try:
+            with open(pid_file, encoding="utf-8") as fh:
+                pid = int(fh.read().strip() or 0)
+        except (OSError, ValueError):
+            pid = 0
+    if not pid or pid <= 1:
+        return {"signalled": False, "mode": "single",
+                "reason": "در حالت تک‌کارگری کافی است «بارگذاری دوبارهٔ مدل» را بزنی؛ "
+                          "برای راه‌اندازی دوبارهٔ کامل، سرور را با --workers ۲ یا بیشتر اجرا کن."}
+    try:
+        os.kill(pid, signal.SIGHUP)
+    except OSError as exc:
+        return {"signalled": False, "reason": str(exc), "pid": pid}
+    return {"signalled": True, "pid": pid, "mode": "workers",
+            "note": "کارگرها یکی‌یکی نو می‌شوند؛ درخواست‌های جاری نیمه‌کاره نمی‌مانند."}
+
+
+def _worker_count() -> int:
+    """چند کارگر همین حالا سرو می‌کنند — از خط فرمان خودِ فرایند، نه از یک عدد ثابت."""
+    try:
+        declared = int(os.environ.get("RAYAN_WORKERS", "") or -1)
+    except ValueError:
+        declared = -1
+    if declared > 0:
+        return declared
+    for pid in (os.getppid(), os.getpid()):
+        try:
+            with open(f"/proc/{pid}/cmdline", "rb") as fh:
+                parts = fh.read().decode("utf-8", "replace").split("\x00")
+        except OSError:
+            continue
+        for index, part in enumerate(parts):
+            if part == "--workers" and index + 1 < len(parts):
+                try:
+                    return max(1, int(parts[index + 1]))
+                except ValueError:
+                    pass
+            if part.startswith("--workers="):
+                try:
+                    return max(1, int(part.split("=", 1)[1]))
+                except ValueError:
+                    pass
+    return 1
+
+
+def capacity_report() -> dict:
+    """ظرفیت سنجیده‌شدهٔ همین ماشین — بدون عدد آرمانی و بدون ادعا.
+
+    عددها از خود سرور می‌آیند: چند کارگر، چند درخواست در صف، اندازهٔ کش و
+    میانگین تأخیر واقعیِ ثبت‌شده در نشست جاری.
+    """
+    from web import network
+    stats = _stats_snapshot() if "_stats_snapshot" in globals() else {}
+    return {
+        "workers": _worker_count(),
+        "queue_depth": _queue_depth["value"],
+        "concurrency_limit": MAX_CONCURRENCY,
+        "cache_size": CACHE_SIZE,
+        "cache_used": len(_PROMPT_CACHE),
+        "requests_served": request_count,
+        "hardware": _hardware(),
+        "network": network.stats(),
+        "database": _db_info(),
+        "honest_note": ("ظرفیت واقعی به یک میلیون کاربر با یک ماشین و یک لایهٔ SQLite "
+                        "نمی‌رسد؛ برای آن مقیاس چند سرور + پایگاه‌دادهٔ شبکه‌ای لازم است. "
+                        "عددهای همین گزارش، اندازه‌گیری همین ماشین است."),
+        **stats,
+    }
+
+
+def _db_info() -> dict:
+    path = os.environ.get("RAYAN_DB", os.path.join(ROOT, "data", "rayan.sqlite3"))
+    size = os.path.getsize(path) if os.path.exists(path) else 0
+    index = os.path.join(ROOT, "data", "index.sqlite3")
+    wiki = os.path.join(ROOT, "data", "wiki.sqlite3")
+    return {
+        "users_db_bytes": size,
+        "index_bytes": os.path.getsize(index) if os.path.exists(index) else 0,
+        "wiki_bytes": os.path.getsize(wiki) if os.path.exists(wiki) else 0,
+    }
+
+
 def main() -> None:
     global engine, engine_error
     parser = argparse.ArgumentParser()
@@ -2019,6 +2197,7 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--checkpoint", default="")
     parser.add_argument("--no-reload", action="store_true")
+    parser.add_argument("--workers", type=int, default=int(os.environ.get("RAYAN_WORKERS", "1") or 1))
     args = parser.parse_args()
     if args.checkpoint:
         try:
@@ -2030,6 +2209,17 @@ def main() -> None:
             print(f"[rayan] model not loaded: {exc}", flush=True)
     boot()
     import uvicorn
+    if args.workers > 1:
+        # حالت چندکارگری: فرمان «راه‌اندازی دوباره» با SIGHUP بی‌وقفه اعمال می‌شود.
+        _MASTER_PID["value"] = os.getpid()
+        try:
+            with open(os.path.join(ROOT, "data", "server.pid"), "w", encoding="utf-8") as fh:
+                fh.write(str(os.getpid()))
+        except OSError:
+            pass
+        uvicorn.run("web.server:app", host=args.host, port=args.port, log_level="info",
+                    workers=args.workers)
+        return
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
 
 

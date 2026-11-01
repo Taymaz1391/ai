@@ -17,46 +17,56 @@
   const identifierInput = $("#email");
 
 
-  // ------------------------------------------------ نمایش نشان پس از ثبت‌نام
+  // --------------------------------------- آموزش با گوینده پس از ثبت‌نام
   function playWelcomeReel(next) {
-    const reel = $("#welcome-reel");
-    const skip = $("#welcome-skip");
-    const close = $("#welcome-close");
-    const full = $("#welcome-full");
-    const progress = $("#welcome-progress");
-    const hooks = [...document.querySelectorAll(".reel-hook")];
-    if (!reel || !isSignup) {
+    const reel = $("\#welcome-reel");
+    const video = $("\#welcome-video");
+    const skip = $("\#welcome-skip");
+    const close = $("\#welcome-close");
+    const full = $("\#welcome-full");
+    const progress = $("\#welcome-progress");
+    if (!reel || !isSignup || !video) {
       location.replace(next);
       return;
     }
-    // ثانیه؛ همان ریتمی که نشان و کره حرکت می‌کنند (قابل تنظیم برای آزمون)
-    const TOTAL = Number(window.RAYAN_REEL_MS || 8200) / 1000;
     let done = false;
-    let started = 0;
-    let raf = 0;
     const go = () => {
       if (done) return;
       done = true;
-      cancelAnimationFrame(raf);
+      try { video.pause(); } catch { /* نادیده */ }
       try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch { /* نادیده */ }
+      // یک‌بار دیده شد؛ دفعهٔ بعد مستقیم می‌رود سر گفتگو
+      try { localStorage.setItem("rayan.introSeen", "1"); } catch { /* حالت خصوصی */ }
       location.replace(next);
     };
 
     reel.hidden = false;
     document.body.classList.add("reel-open");
     reel.classList.add("is-playing");
-    started = performance.now();
-    const tick = () => {
-      const t = (performance.now() - started) / 1000;
-      if (progress) progress.style.width = `${Math.min(100, (t / TOTAL) * 100).toFixed(1)}%`;
-      hooks.forEach((hook) => {
-        const at = Number(hook.dataset.at || 0);
-        hook.classList.toggle("is-on", t >= at && t < at + 2.6);
+    // صدای گوینده: پخش خودکار با صدا ممکن است مسدود شود؛ آن‌وقت دکمهٔ شروع می‌ماند
+    const attempt = video.play();
+    if (attempt && attempt.catch) {
+      attempt.catch(() => {
+        video.muted = true;
+        video.play().catch(() => {});
+        const hint = document.createElement("button");
+        hint.type = "button";
+        hint.className = "btn btn-sm welcome-sound";
+        hint.textContent = "روشن‌کردن صدا";
+        hint.addEventListener("click", () => {
+          video.muted = false;
+          video.volume = 1;
+          hint.remove();
+        });
+        reel.append(hint);
       });
-      if (t >= TOTAL) { go(); return; }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
+    }
+    video.addEventListener("timeupdate", () => {
+      if (progress && video.duration) {
+        progress.style.width = `${Math.min(100, (video.currentTime / video.duration) * 100).toFixed(1)}%`;
+      }
+    });
+    video.addEventListener("ended", go);
 
     if (skip) {
       skip.setAttribute("href", next);

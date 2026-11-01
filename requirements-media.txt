@@ -1,0 +1,6 @@
+# فقط برای ساخت ویدیوی آموزش استفاده می‌شود، نه برای اجرای سایت.
+#   pip install -r requirements-media.txt && python scripts/make_intro_video.py
+matplotlib>=3.8,<4
+fonttools>=4.50,<5
+brotli>=1.1,<2
+imageio-ffmpeg>=0.5,<1

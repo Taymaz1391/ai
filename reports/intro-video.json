@@ -1,0 +1,12 @@
+{
+  "video": "web/static/assets/video/intro.mp4",
+  "poster": "web/static/assets/video/intro-poster.jpg",
+  "seconds": 57.03,
+  "frames": 1426,
+  "fps": 25,
+  "resolution": "1280x720",
+  "scenes": 6,
+  "bytes": 1764512,
+  "size_mb": 1.76,
+  "narrated": true
+}

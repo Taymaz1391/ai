@@ -5,7 +5,8 @@
   const { $, $$, nf, faDigits, timeAgo, toast } = R;
   const CSRF_KEY = "x-rayan-csrf";
 
-  const state = { csrf: "", user: null, tab: "overview", overview: null, users: [], ads: [], audit: [] };
+  const state = { csrf: "", user: null, tab: "orders", overview: null, users: [], ads: [],
+                  audit: [], orders: [] };
 
   async function api(path, options = {}) {
     const opts = Object.assign({ credentials: "include", headers: {} }, options);
@@ -64,6 +65,7 @@
     $("#admin-login").hidden = true;
     $("#admin-shell").hidden = false;
     applyOwner(state.sessionInfo || { owner: state.owner });
+    loadOrders();
     loadOverview();
     loadSelfTest();
     healthLoop();
@@ -128,6 +130,7 @@
 
   // ------------------------------------------------------------- تب‌ها
   const TITLES = {
+    orders: ["اتاق فرمان", "دستور بده؛ سازنده اجرا می‌کند و همین‌جا پاسخ می‌دهد"],
     overview: ["نمای کلی", "وضعیت زندهٔ سایت، بدون نیاز به کار روزمره"],
     users: ["کاربران", "جست‌وجو، تغییر پلن، مسدودسازی"],
     ads: ["تبلیغات", "جایگاه، نمایش، کلیک و وزن"],
@@ -150,12 +153,111 @@
     const [title, sub] = TITLES[tab] || ["", ""];
     $("#tab-title").textContent = title;
     $("#tab-sub").textContent = sub;
+    if (tab === "orders") loadOrders();
     if (tab === "users") loadUsers();
     if (tab === "ads") loadAds();
     if (tab === "audit") loadAudit();
     if (tab === "guard") loadGuard();
     if (tab === "settings") loadSettings();
-    if (tab === "system") loadSystem();
+    if (tab === "system") { loadSystem(); loadNetwork(); loadCapacity(); }
+  }
+
+  // ------------------------------------------------------- اتاق فرمان
+  function opsRow(order) {
+    const row = document.createElement("article");
+    row.className = "ops-row";
+    const statusText = { pending: "در انتظار", working: "در حال انجام",
+                         done: "انجام شد", skipped: "رد شد" }[order.status] || order.status;
+    const head = document.createElement("header");
+    const badge = document.createElement("span");
+    badge.className = `pill ops-${order.status}`;
+    badge.textContent = statusText;
+    const when = document.createElement("time");
+    when.textContent = timeAgo ? timeAgo(order.at) : "";
+    head.append(badge, when);
+    const body = document.createElement("p");
+    body.textContent = order.text;
+    row.append(head, body);
+    (order.replies || []).forEach((rep) => {
+      const answer = document.createElement("p");
+      answer.className = "ops-reply";
+      answer.textContent = rep.text || "—";
+      row.append(answer);
+    });
+    return row;
+  }
+
+  async function loadOrders() {
+    const list = $("\#ops-list");
+    try {
+      const data = await api("/api/admin/ops");
+      state.orders = data.orders || [];
+      const pending = (data.stats || {}).pending || 0;
+      const pill = $("\#ops-pending");
+      if (pill) {
+        pill.textContent = pending ? `${nf(pending, 0)} دستور در انتظار اجرا` : "همه اجرا شده";
+        pill.classList.toggle("is-warn", pending > 0);
+      }
+      if (!list) return;
+      list.innerHTML = "";
+      if (!state.orders.length) {
+        list.innerHTML = '<p class="hint">هنوز دستوری ثبت نشده.</p>';
+        return;
+      }
+      state.orders.forEach((order) => list.append(opsRow(order)));
+    } catch (err) {
+      if (list) list.innerHTML = `<p class="hint">${err.message}</p>`;
+    }
+  }
+
+  document.addEventListener("click", async (event) => {
+    const target = event.target.closest("\#ops-refresh, \#ops-reload, \#ops-restart");
+    if (!target) return;
+    const label = target.textContent;
+    target.disabled = true;
+    target.textContent = "…";
+    try {
+      if (target.id === "ops-refresh") {
+        await loadOrders();
+      } else if (target.id === "ops-reload") {
+        const info = await api("/api/admin/reload", { method: "POST" });
+        toast(`مدل دوباره بارگذاری شد (${info.seconds}s)`, "ok");
+      } else {
+        const info = await api("/api/admin/restart", { method: "POST" });
+        toast(info.signalled ? "کارگرها بی‌وقفه نو می‌شوند" : (info.reason || "انجام نشد"), "ok");
+      }
+    } catch (err) {
+      toast(err.message, "error");
+    } finally {
+      target.disabled = false;
+      target.textContent = label;
+    }
+  });
+
+  const opsForm = $("\#ops-form");
+  if (opsForm) {
+    opsForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const box = $("\#ops-text");
+      const ok = $("\#ops-ok");
+      const text = (box.value || "").trim();
+      if (text.length < 2) { toast("دستور خیلی کوتاه است", "error"); return; }
+      const btn = $("\#ops-send");
+      btn.disabled = true;
+      try {
+        await api("/api/admin/ops", { method: "POST", body: { text, kind: "order" } });
+        box.value = "";
+        if (ok) {
+          ok.hidden = false;
+          ok.textContent = "ثبت شد. در نشست بعدی سازنده اجرا می‌شود.";
+        }
+        await loadOrders();
+      } catch (err) {
+        toast(err.message, "error");
+      } finally {
+        btn.disabled = false;
+      }
+    });
   }
 
   // ------------------------------------------------------------- کلی
@@ -497,6 +599,61 @@
   $("#guard-refresh").addEventListener("click", loadGuard);
 
   // ------------------------------------------------------------- سامانه
+  // -------------------------------------------------- شبکه و ظرفیت
+  async function loadNetwork() {
+    try {
+      const data = await api("/api/admin/network");
+      $$("#network-mode button").forEach((btn) => {
+        btn.classList.toggle("is-active", btn.dataset.mode === data.mode);
+      });
+      $("#network-info").innerHTML = Object.entries({
+        "حالت فعلی": { auto: "خودکار", national: "فقط ملی", global: "بین‌المللی" }[data.mode] || data.mode,
+        "تماس بیرونی": data.outbound_allowed ? "آزاد" : "بسته",
+        "آخرین موفقیت": data.last_success_s ? `${nf(Math.round(data.last_success_s))} ثانیه پیش` : "—",
+        "آخرین خطا": data.last_error || "—",
+        "فایل‌های سایت": data.assets_local ? "همه محلی" : "بیرونی",
+      }).map(([k, v]) => `<div class="check-row"><span>${k}</span><span class="hint">${v ?? "—"}</span></div>`).join("");
+    } catch (err) {
+      $("#network-info").textContent = err.message;
+    }
+  }
+
+  async function loadCapacity() {
+    try {
+      const data = await api("/api/admin/capacity");
+      const hw = data.hardware || {};
+      $("#capacity-info").innerHTML = Object.entries({
+        "کارگرهای فعال": nf(data.workers, 0),
+        "صف فعلی": nf(data.queue_depth, 0),
+        "سقف هم‌زمانی": nf(data.concurrency_limit, 0),
+        "کش پاسخ": `${nf(data.cache_used, 0)} از ${nf(data.cache_size, 0)}`,
+        "درخواست این نشست": nf(data.requests_served, 0),
+        "پردازنده": hw.cpu || "—",
+        "هسته‌ها": nf(hw.cores, 0),
+        "حافظه": hw.memory_gb ? `${nf(hw.memory_gb, 1)} گیگابایت` : "—",
+        "پایگاه کاربران": `${nf((data.database || {}).users_db_bytes, 0)} بایت`,
+        "دانش نمایه‌شده": `${nf(Math.round(((data.database || {}).index_bytes || 0) / 1048576), 0)} مگابایت`,
+      }).map(([k, v]) => `<div class="check-row"><span>${k}</span><span class="hint">${v ?? "—"}</span></div>`).join("");
+      $("#capacity-note").textContent = data.honest_note || "";
+    } catch (err) {
+      $("#capacity-info").textContent = err.message;
+    }
+  }
+
+  document.addEventListener("click", async (event) => {
+    const btn = event.target.closest("#network-mode button");
+    if (!btn || !state.csrf) return;
+    try {
+      const data = await api("/api/admin/network", { method: "POST", body: { mode: btn.dataset.mode } });
+      $("#network-result").textContent = data.outbound_allowed
+        ? "حالت ذخیره شد؛ تماس بیرونی آزاد است."
+        : "حالت ذخیره شد؛ سایت کاملاً ملی کار می‌کند.";
+      loadNetwork();
+    } catch (err) {
+      $("#network-result").textContent = err.message;
+    }
+  });
+
   async function loadSystem() {
     try {
       const data = await api("/api/admin/overview?days=3");

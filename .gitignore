@@ -57,3 +57,15 @@ checkpoints/*.tmp.npz
 
 # عکس مرحله‌های هم‌ترازسازی (با scripts/train_align.py بازتولید می‌شوند)
 checkpoints/stages/
+
+# ابزار ساخت ویدیوی آموزش (فقط برای بازسازی ویدیو لازم است)
+data/intro/fonts/
+data/intro/voice/_track.wav
+
+# وضعیت اجراییِ حالت شبکه (مدیر از پنل انتخاب می‌کند، در زمان اجرا نوشته می‌شود)
+data/network.json
+# خروجی سنجش بار (با scripts/load_test.py بازتولید می‌شود)
+reports/load-*.json
+# شناسهٔ فرایند سرور و صف دستورها (وضعیت اجرایی، قابل بازسازی)
+data/server.pid
+data/ops/

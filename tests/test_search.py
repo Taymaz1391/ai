@@ -124,7 +124,9 @@ class SearchApiTest(unittest.TestCase):
         os.chdir(ROOT)
         cls.server = server
         cls.client = TestClient(server.app)
-        cls.client.get("/chat")  # کوکی مهمان برای دسترسی به مدل
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from auth_support import signup
+        signup(cls.client)  # هوش فقط با حساب ثبت‌نام‌شده
 
     @classmethod
     def tearDownClass(cls):

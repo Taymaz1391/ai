@@ -300,6 +300,17 @@
   overflow: hidden;
 }
 .welcome-reel[hidden] { display: none; }
+/* پخش‌کنندهٔ آموزش با گوینده؛ در قاب کامل و وسط‌چین */
+.intro-video {
+  width: 100vw; height: 100dvh; object-fit: contain; background: #040a18;
+  display: block;
+}
+.welcome-sound {
+  position: absolute; inset-block-end: 72px; inset-inline: 0; margin-inline: auto;
+  width: max-content; z-index: 6;
+  color: #eff6ff; border-color: rgba(190, 216, 255, .34);
+  background: rgba(255, 255, 255, .12); backdrop-filter: blur(10px);
+}
 body.reel-open { overflow: hidden; overscroll-behavior: none; }
 /* هدایت نگاه: جمله‌های کوتاه که با ریتم ویدیو ظاهر می‌شوند */
 .reel-hooks { position: absolute; inset-inline: 0; top: clamp(18px, 5vh, 54px); display: grid; justify-items: center; pointer-events: none; }
@@ -326,6 +337,13 @@ body.reel-open { overflow: hidden; overscroll-behavior: none; }
 .welcome-actions { display: flex; gap: 10px; align-items: center; flex: none; }
 .welcome-actions .btn { color: #eff6ff; border-color: rgba(190, 216, 255, 0.34); background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
 .welcome-actions .btn-primary { color: var(--on-accent); border-color: transparent; background: var(--grad); }
+/* دکمهٔ «شروع گفتگو» باید چشم را بگیرد: بزرگ‌تر، درشت‌تر و کمی بالاتر از نوار */
+#welcome-skip {
+  padding: 13px 30px; font-size: 16px; font-weight: 700; border-radius: 14px;
+  min-height: 48px; box-shadow: 0 14px 30px rgba(26, 99, 240, .38);
+  transition: transform .18s var(--ease), box-shadow .18s var(--ease);
+}
+#welcome-skip:hover { transform: translateY(-1px); box-shadow: 0 18px 36px rgba(26, 99, 240, .46); }
 /* حلقهٔ پیشرفت پخش دور کلید صدا */
 .welcome-progress {
   position: absolute; inset-inline: 0; top: 0; height: 3px;

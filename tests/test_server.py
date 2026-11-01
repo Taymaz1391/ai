@@ -21,14 +21,8 @@ except Exception:  # pragma: no cover
     HAVE_CLIENT = False
 
 
-def human_proof(client) -> dict:
-    """چالش «من ربات نیستم» را مثل مرورگر حل می‌کند."""
-    from web import security
-
-    challenge = client.get("/api/captcha").json()
-    return {"token": challenge["token"],
-            "nonce": security.HumanCheck.solve(challenge["salt"], challenge["bits"]),
-            "evidence": {"moves": 14, "keys": 7, "elapsed_ms": 2400}}
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from auth_support import human_proof, signup  # noqa: E402
 
 
 @unittest.skipUnless(HAVE_CLIENT, "httpx/fastapi TestClient unavailable")
@@ -47,7 +41,7 @@ class ApiTest(unittest.TestCase):
         server.engine = server.load_engine(CHECKPOINT)
         cls.server = server
         cls.client = TestClient(server.app)
-        cls.client.get("/chat")   # کوکی مهمان، مثل باز کردن سایت در مرورگر
+        signup(cls.client, email="api-owner@example.com")  # هوش فقط با حساب
 
     @classmethod
     def tearDownClass(cls):
@@ -97,6 +91,18 @@ class ApiTest(unittest.TestCase):
         self.assertGreaterEqual(len(data["samples"]), 3)
 
     # ----------------------------------------------------------------- چت
+    def test_guest_is_asked_to_sign_up(self):
+        """بدون حساب، پاسخ ۴۰۱ با پرچم ثبت‌نام می‌آید نه خطای مبهم."""
+        guest = TestClient(self.server.app)
+        guest.get("/chat")
+        res = guest.post("/api/chat", json={"message": "سلام", "max_new_tokens": 16})
+        self.assertEqual(res.status_code, 401)
+        self.assertEqual(res.headers.get("x-rayan-need"), "signup")
+        self.assertIn("حساب", res.json()["detail"])
+        me = guest.get("/api/auth/me").json()
+        self.assertTrue(me["signup_required"])
+        self.assertFalse(me["signed_in"])
+
     def test_chat_short(self):
         res = self.client.post("/api/chat", json={"message": "سلام", "max_new_tokens": 16,
                                                   "session_id": "short"})
@@ -179,7 +185,7 @@ class ApiTest(unittest.TestCase):
 
     def test_share_flow(self):
         client = TestClient(self.server.app)
-        client.get("/chat")
+        signup(client)
         conv = client.post("/api/chat", json={"message": "سلام", "max_new_tokens": 16}).json()["conversation_id"]
         share = client.post(f"/api/conversations/{conv}/share").json()
         self.assertIn("token", share)
@@ -191,10 +197,10 @@ class ApiTest(unittest.TestCase):
 
     def test_guest_cannot_read_others_conversation(self):
         owner = TestClient(self.server.app)
-        owner.get("/chat")
+        signup(owner)
         conv = owner.post("/api/chat", json={"message": "سلام", "max_new_tokens": 16}).json()["conversation_id"]
         stranger = TestClient(self.server.app)
-        stranger.get("/chat")
+        signup(stranger)
         self.assertEqual(stranger.get(f"/api/conversations/{conv}").status_code, 404)
         self.assertEqual(stranger.delete(f"/api/conversations/{conv}").status_code, 404)
 
@@ -240,7 +246,7 @@ class V3Test(unittest.TestCase):
         server.engine_error = None
         cls.server = server
         cls.client = TestClient(server.app)
-        cls.client.get("/chat")   # کوکی مهمان، مثل باز کردن سایت در مرورگر
+        signup(cls.client, email="v3-owner@example.com")  # هوش فقط با حساب
 
     @classmethod
     def tearDownClass(cls):
@@ -271,6 +277,39 @@ class V3Test(unittest.TestCase):
         data = self.client.get("/api/selftest").json()
         self.assertTrue(any(c["name"] == "database" and c["ok"] for c in data["checks"]))
         self.client.post("/api/admin/logout")
+
+    def test_network_mode_switch_from_panel(self):
+        """مدیر از پنل حالت شبکه را عوض می‌کند؛ سایت بلافاصله تابع آن می‌شود."""
+        from web import network
+
+        login = self.client.post("/api/admin/login", json={"password": "v3-test-admin-pass"})
+        self.assertEqual(login.status_code, 200)
+        headers = {"x-rayan-csrf": login.json()["csrf"]}
+        before = network.mode()
+        try:
+            res = self.client.post("/api/admin/network", json={"mode": "national"}, headers=headers)
+            self.assertEqual(res.status_code, 200)
+            self.assertFalse(res.json()["allow_outbound"])
+            self.assertEqual(self.client.get("/api/admin/network").json()["mode"], "national")
+            self.assertEqual(self.client.post("/api/admin/network", json={"mode": "moon"},
+                                               headers=headers).status_code, 422)
+        finally:
+            network.set_mode(before)
+            self.client.post("/api/admin/logout")
+
+    def test_capacity_report_is_measured(self):
+        login = self.client.post("/api/admin/login", json={"password": "v3-test-admin-pass"})
+        self.assertEqual(login.status_code, 200)
+        try:
+            data = self.client.get("/api/admin/capacity").json()
+            self.assertGreaterEqual(data["workers"], 1)
+            self.assertGreaterEqual(data["cache_size"], 1)
+            self.assertIn("hardware", data)
+            self.assertTrue(data["honest_note"])
+            anon = TestClient(self.server.app)
+            self.assertIn(anon.get("/api/admin/capacity").status_code, (401, 403))
+        finally:
+            self.client.post("/api/admin/logout")
 
     def test_locale_is_persian_only(self):
         """سایت تک‌زبانه است: حتی مرورگر یا IP خارجی هم نسخهٔ فارسی می‌گیرد."""

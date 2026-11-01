@@ -188,7 +188,10 @@ def _check_url(url: str) -> str | None:
 
 
 def fetch(url: str) -> dict | None:
-    """صفحه را می‌خواند و متن اصلی را برمی‌گرداند."""
+    """صفحه را می‌خواند و متن اصلی را برمی‌گرداند (در حالت ملی، هیچ تماسی نمی‌زند)."""
+    from web import network
+    if not network.allow_outbound():
+        return None
     safe = _check_url(url)
     if not safe:
         return None
@@ -203,7 +206,9 @@ def fetch(url: str) -> dict | None:
             charset = response.headers.get_content_charset() or "utf-8"
             raw = response.read(MAX_BYTES)
             final_url = response.geturl()
-    except (urllib.error.URLError, OSError, ValueError):
+    except (urllib.error.URLError, OSError, ValueError) as exc:
+        from web import network
+        network.report_failure(f"learn: {exc}")
         return None
     if content_type == "application/pdf":
         return None

@@ -161,3 +161,76 @@
 .guard-cell { padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); display: grid; gap: 4px; }
 .guard-cell span { font-size: 11.5px; color: var(--text-3); }
 .guard-cell b { font-size: 16px; }
+
+/* ---------------------------------------------------- اتاق فرمان (دستورها) */
+.admin-nav button.is-new::after {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--blue-2, #2f6bff); margin-inline-start: 6px; display: inline-block;
+}
+.link-btn {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--blue-2, #2f6bff); font: inherit; text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ops-list { display: grid; gap: 12px; }
+.ops-row {
+  border: 1px solid var(--line, rgba(20, 40, 80, .12)); border-radius: 14px;
+  padding: 14px 16px; background: #fff;
+  box-shadow: 0 10px 26px rgba(20, 44, 92, .06);
+}
+.ops-row header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+.ops-row time { color: var(--muted, #5d6b82); font-size: 12px; }
+.ops-row p { margin: 0; line-height: 1.85; white-space: pre-wrap; }
+.ops-row .ops-reply {
+  margin-top: 10px; padding: 10px 12px; border-radius: 10px;
+  background: rgba(32, 168, 116, .08); border-inline-start: 3px solid #20a874;
+}
+.pill.ops-pending { background: rgba(255, 176, 32, .16); color: #8a5a00; }
+.pill.ops-working { background: rgba(47, 107, 255, .14); color: #1d3f9e; }
+.pill.ops-done { background: rgba(32, 168, 116, .16); color: #0d6b47; }
+.pill.ops-skipped { background: rgba(120, 130, 145, .14); color: #4a5568; }
+.pill.is-warn { box-shadow: 0 0 0 1px rgba(255, 176, 32, .5) inset; }
+.form-ok { color: #0d6b47; font-size: 13px; margin: 10px 0 0; }
+#ops-form textarea {
+  width: 100%; resize: vertical; min-height: 96px;
+  border-radius: 12px; border: 1px solid var(--line, rgba(20, 40, 80, .16));
+  padding: 12px 14px; font: inherit; line-height: 1.9; background: #fff;
+}
+#ops-form textarea:focus-visible { outline: 2px solid var(--blue-2, #2f6bff); outline-offset: 1px; }
+
+/* ------------------------------------------------- شبکه: انتخاب حالت */
+.mode-switch {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0 14px;
+}
+.mode-switch button {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 10px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+.mode-switch button small {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+.mode-switch button:hover { transform: translateY(-1px); }
+.mode-switch button.is-active {
+  border-color: var(--mint);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--mint) 22%, transparent);
+  background: color-mix(in srgb, var(--mint) 10%, transparent);
+}
+@media (max-width: 560px) {
+  .mode-switch { grid-template-columns: 1fr; }
+}
