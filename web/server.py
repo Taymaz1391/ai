@@ -52,6 +52,7 @@ from web import search as search_module  # noqa: E402
 from web import skills as skills_module
 from web import tutor as tutor_module  # noqa: E402
 from web import writer as writer_module  # noqa: E402
+from web import mailer as mailer_module  # noqa: E402
 from web import knowledge as knowledge_module  # noqa: E402
 from web import tools as tools_module  # noqa: E402
 from web import security as security_module  # noqa: E402
@@ -355,6 +356,10 @@ class RegisterRequest(BaseModel):
     captcha: HumanProof | None = None
 
 
+class VerificationConfirm(BaseModel):
+    code: str = Field(min_length=4, max_length=8)
+
+
 class LoginRequest(BaseModel):
     """ورود با ایمیل یا نام کاربری. فیلد ``identifier`` تازه است و ``email``
     برای سازگاری با کلاینت‌های قدیمی پذیرفته می‌شود."""
@@ -366,6 +371,12 @@ class LoginRequest(BaseModel):
 
 class ProfileRequest(BaseModel):
     name: str = Field(min_length=1, max_length=60)
+
+
+class PasswordChange(BaseModel):
+    """تغییر گذرواژه از پنل تنظیمات؛ گذرواژهٔ کنونی الزامی است."""
+    current: str = Field(min_length=1, max_length=128)
+    new: str = Field(min_length=8, max_length=128)
 
 
 class ConversationCreate(BaseModel):
@@ -770,6 +781,11 @@ async def security_headers(request: Request, call_next):
     response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
     response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
     response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
+    # پاسخ‌های حساب و پیکربندی هرگز نباید از کش مرورگر بیایند؛ وگرنه کاربر
+    # پس از ساخت حساب همچنان «مهمان» دیده می‌شود.
+    if path.startswith(("/api/auth", "/api/admin", "/api/me", "/api/config", "/api/health")):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
     response.headers["Permissions-Policy"] = (
         "camera=(), microphone=(self), geolocation=(), payment=(), usb=(), browsing-topics=()"
     )
@@ -942,6 +958,13 @@ def admin_page() -> FileResponse:
     """پوستهٔ ورود مدیر؛ هیچ داده‌ای پیش از ورود در آن نیست."""
     res = _page("admin.html")
     res.headers["X-Robots-Tag"] = "noindex, nofollow"
+    res.headers["Cache-Control"] = "no-store"
+    return res
+
+
+@app.get("/settings", response_class=HTMLResponse)
+def settings_page() -> FileResponse:
+    res = _page("settings.html")
     res.headers["Cache-Control"] = "no-store"
     return res
 
@@ -1308,13 +1331,96 @@ def register(req: RegisterRequest, request: Request, response: Response) -> dict
         raise HTTPException(429, "تلاش‌های زیاد؛ یک دقیقه بعد دوباره امتحان کنید.")
     _check_password(req.password)
     _require_human(req.captcha, request, ip)
+    if not mailer_module.valid_address(req.email):
+        raise HTTPException(400, "نشانی ایمیل درست نیست.")
     user = store().create_user(req.email, req.password, req.name)
     if user is None:
         raise HTTPException(409, "این ایمیل قبلاً ثبت شده است.")
     token = store().create_session(user_id=user["id"], user_agent=request.headers.get("user-agent", ""), ip=ip)
     _set_session_cookie(response, token)
     store().record_event("signup", user_id=user["id"], ip=ip)
-    return {"user": user}
+
+    # کد تأیید واقعی؛ اگر ایمیل پیکربندی نشده باشد، ثبت‌نام متوقف نمی‌شود
+    verification = {"sent": False, "required": False}
+    try:
+        verification = _issue_code(req.email, purpose="signup", ip=ip)
+    except mailer_module.MailError as exc:
+        verification = {"sent": False, "required": False, "error": str(exc)}
+    return {"user": user, "verification": verification, "admin": user.get("role") == "owner"}
+
+
+def _issue_code(email: str, purpose: str = "signup", ip: str = "") -> dict:
+    """ساخت و ارسال کد تأیید؛ محدودیت ارسال دوباره و حالت توسعه را رعایت می‌کند."""
+    email = mailer_module.normalize(email)
+    if not mailer_module.configured() and not mailer_module.dev_mode():
+        raise mailer_module.MailError("ارسال ایمیل هنوز پیکربندی نشده است.")
+    pending = store().get_code(email)
+    wait = mailer_module.seconds_until_resend(pending)
+    if wait > 0 and pending and pending.get("purpose") == purpose:
+        raise HTTPException(429, f"{wait} ثانیهٔ دیگر می‌توانی کد تازه بگیری.")
+    code = mailer_module.new_code()
+    salt = secrets.token_hex(16)
+    store().save_code(email, mailer_module.hash_code(code, salt), salt,
+                      time.time() + mailer_module.CODE_TTL)
+    result = {"sent": False, "required": True, "ttl": mailer_module.CODE_TTL,
+              "resend": mailer_module.RESEND_SECONDS}
+    if mailer_module.dev_mode():
+        result.update({"sent": True, "dev_code": code})
+        return result
+    mailer_module.send(email, code, purpose)
+    result["sent"] = True
+    return result
+
+
+@app.get("/api/auth/verification")
+def verification_status(request: Request) -> dict:
+    """وضعیت تأیید ایمیلِ کاربرِ واردشده + آیا سرویس ارسال آماده است."""
+    owner = _owner(request)
+    user = (owner or {}).get("user") or {}
+    return {"email": user.get("email"), "verified": bool(user.get("verified")),
+            "service": mailer_module.status()}
+
+
+@app.post("/api/auth/verification/send")
+def verification_send(request: Request) -> dict:
+    """ارسال (یا ارسال دوبارهٔ) کد تأیید به ایمیل کاربر واردشده."""
+    owner = _owner(request)
+    user = (owner or {}).get("user") or {}
+    email = user.get("email")
+    if not email:
+        raise HTTPException(401, "برای دریافت کد، وارد حساب شو.")
+    if user.get("verified"):
+        return {"sent": False, "already": True}
+    ip = client_ip(request)
+    if not limiter.allow(f"code:{ip}"):
+        raise HTTPException(429, "درخواست‌های زیاد؛ یک دقیقه بعد دوباره تلاش کن.")
+    try:
+        return _issue_code(email, purpose="signup", ip=ip)
+    except mailer_module.MailError as exc:
+        raise HTTPException(503, str(exc)) from exc
+
+
+@app.post("/api/auth/verification/confirm")
+def verification_confirm(payload: VerificationConfirm, request: Request) -> dict:
+    """بررسی کد؛ پس از تأیید، حساب تأییدشده علامت می‌خورد."""
+    owner = _owner(request)
+    user = (owner or {}).get("user") or {}
+    email = user.get("email")
+    if not email:
+        raise HTTPException(401, "برای تأیید، وارد حساب شو.")
+    ip = client_ip(request)
+    if not limiter.allow(f"verify:{ip}"):
+        raise HTTPException(429, "تلاش‌های زیاد؛ یک دقیقه بعد دوباره امتحان کن.")
+    pending = store().get_code(email)
+    ok, why = mailer_module.check_code(pending, payload.code)
+    if not ok:
+        store().bump_code_tries(email)
+        raise HTTPException(400, why)
+    store().clear_code(email)
+    store().mark_verified(email)
+    store().record_event("email_verified", user_id=user.get("id"), ip=ip)
+    fresh = store().get_user(int(user["id"]))
+    return {"verified": True, "user": fresh}
 
 
 def _owner_login(req: LoginRequest, request: Request, response: Response, ident: str, ip: str) -> dict:
@@ -1431,6 +1537,24 @@ def update_me(req: ProfileRequest, request: Request) -> dict:
         raise HTTPException(401, "برای ویرایش حساب وارد شوید.")
     store().update_user(owner["user_id"], name=req.name)
     return {"user": store().get_user(owner["user_id"])}
+
+
+@app.post("/api/auth/password")
+def change_my_password(req: PasswordChange, request: Request) -> dict:
+    """تغییر گذرواژه؛ فقط با دانستن گذرواژهٔ کنونی."""
+    owner = _owner(request)
+    user = (owner or {}).get("user") or {}
+    if not user.get("id"):
+        raise HTTPException(401, "برای تغییر گذرواژه وارد حساب شو.")
+    email = user.get("email") or ""
+    if store().verify_user(email, req.current) is None:
+        store().record_event("password_change_failed", user_id=user.get("id"), ip=client_ip(request))
+        raise HTTPException(403, "گذرواژهٔ کنونی درست نیست.")
+    if req.new.strip() == req.current:
+        raise HTTPException(400, "گذرواژهٔ تازه باید متفاوت باشد.")
+    store().change_password(int(user["id"]), req.new)
+    store().record_event("password_changed", user_id=user.get("id"), ip=client_ip(request))
+    return {"changed": True}
 
 
 # --------------------------------------------------------------- گفتگوها
@@ -1709,6 +1833,21 @@ def api_search(request: Request, q: str = "", limit: int = 5) -> dict:
     return search_module.search(query, limit=max(1, min(int(limit), 8)))
 
 
+def _reveal_chunks(text: str, budget: float = 0.45) -> list[str]:
+    """متن را به تکه‌های کوچک می‌شکند تا در رابط، واژه‌به‌واژه نوشته شود.
+
+    تعداد تکه‌ها سقف دارد تا پاسخِ فوری واقعاً فوری بماند (حدود نیم‌ثانیه).
+    """
+    text = text or ""
+    if not text:
+        return [""]
+    words = text.split(" ")
+    limit = max(1, int(budget / 0.012))
+    size = max(1, -(-len(words) // limit))
+    return [" ".join(words[i:i + size]) + (" " if i + size < len(words) else "")
+            for i in range(0, len(words), size)]
+
+
 def _ground_if_weak(message: str, answer: str, history, owner: dict, req,
                     tried_local: bool = False) -> tuple[str, list[dict]]:
     """اگر پاسخ مدل بی‌ربط بود: جست‌وجوی وب، و اگر نشد پاسخ صادقانهٔ مخصوص سؤال.
@@ -1742,9 +1881,18 @@ def _ground_if_weak(message: str, answer: str, history, owner: dict, req,
 
     text = answer_module.enhance(message, answer, history, owner, resolver=resolver)
     if not found and answer_module.weak(message, text, history):
-        # هیچ شاهدی نبود: صریح بگو و موضوع‌های نزدیک را پیشنهاد بده
-        near = reason_module._near_subjects(message)  # noqa: SLF001 - همان ماژول داخلی
-        text = reason_module.honest(message, near)
+        # هیچ شاهدی نبود: پیش از هر عذرخواهی، راهنمای موضوعی جواب می‌دهد
+        guided = None
+        try:
+            from web import guide as guide_module
+            guided = guide_module.answer(message)
+        except Exception:  # noqa: BLE001 - این لایه نباید پاسخ را بشکند
+            guided = None
+        if guided:
+            text = guided["answer"]
+        else:
+            near = reason_module._near_subjects(message)  # noqa: SLF001 - همان ماژول داخلی
+            text = reason_module.honest(message, near)
     return text, found
 
 
@@ -1938,7 +2086,10 @@ def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
                 yield json.dumps({"type": "think", "steps": thought["trace"],
                                   "sources": thought.get("sources") or []},
                                  ensure_ascii=False) + "\n"
-            yield json.dumps({"type": "token", "text": instant_answer}, ensure_ascii=False) + "\n"
+            # پاسخ‌های قطعی هم واژه‌به‌واژه روی صفحه می‌آیند (افکت نوشتن)
+            for chunk in _reveal_chunks(instant_answer):
+                yield json.dumps({"type": "token", "text": chunk}, ensure_ascii=False) + "\n"
+                time.sleep(0.012)   # مولدِ همگام در رشتهٔ کارگر اجرا می‌شود
             yield json.dumps({
                 "type": "done", "answer": instant_answer, "stats": stats,
                 "sources": (thought or {}).get("sources") or [],

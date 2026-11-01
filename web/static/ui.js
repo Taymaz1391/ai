@@ -53,6 +53,8 @@
   async function request(path, options = {}) {
     const url = `${apiBase}${path}`;
     const opts = Object.assign({ credentials: "include", headers: {} }, options);
+    // وضعیت حساب هرگز از کش خوانده نشود (باگ «هنوز می‌گوید حساب بساز»)
+    if (!opts.method || opts.method === "GET") opts.cache = "no-store";
     if (opts.body && typeof opts.body !== "string") {
       opts.body = JSON.stringify(opts.body);
       opts.headers["Content-Type"] = "application/json";
@@ -192,8 +194,9 @@
     $$("[data-auth='guest']").forEach((el) => { el.hidden = !!state.user; });
     $$("[data-auth='user']").forEach((el) => { el.hidden = !state.user; });
     $$("[data-admin-link]").forEach((node) => {
-      node.hidden = !(state.user && state.user.plan === "admin");
+      node.hidden = !(state.user && (state.user.plan === "admin" || state.user.role === "owner"));
     });
+    ensureSettingsLink(!!state.user);
     if (state.user) {
       const display = state.user.name || state.user.email.split("@")[0];
       $$("[data-user-name]").forEach((el) => { el.textContent = display; });
@@ -206,6 +209,23 @@
       });
     }
     return state;
+  }
+
+  // پیوند «تنظیمات» در نوار بالا برای کاربرِ واردشده ساخته می‌شود تا در همهٔ
+  // صفحه‌ها یک‌جا و بی‌تکرار باشد.
+  function ensureSettingsLink(signedIn) {
+    let link = document.querySelector("[data-settings-link]");
+    if (!link) {
+      const host = document.querySelector(".nav-actions") || document.querySelector(".nav-inner");
+      if (!host) return;
+      link = document.createElement("a");
+      link.className = "btn btn-ghost btn-sm";
+      link.setAttribute("data-settings-link", "");
+      link.href = "/settings";
+      link.textContent = "تنظیمات";
+      host.appendChild(link);
+    }
+    link.hidden = !signedIn;
   }
 
   async function logout() {

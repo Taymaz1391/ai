@@ -32,7 +32,7 @@
         <p class="form-error" id="login-error" hidden></p>
         <button class="btn btn-block" type="submit" id="login-btn">ورود</button>
       </form>
-      <p class="hint" style="margin-top:12px">اگر نام کاربری را فراموش کردی، همان «تایماز جلیلی» است. گذرواژهٔ پیش‌فرض مالک هم در <code>data/owner.json</code> نگه‌داری می‌شود و با <code>scripts/set_owner.py</code> عوض می‌شود.</p>
+      <p class="hint" style="margin-top:12px">اگر نام کاربری را فراموش کردی، همان نامِ نمایشیِ مالک است. گذرواژهٔ مالک را می‌توانی از همین‌جا یا از پنل مدیریت عوض کنی.</p>
     </div>
   </section>
 
@@ -211,6 +211,43 @@
           <p class="hint">بدون تنظیم درگاه، پلن حرفه‌ای فقط نمایش داده می‌شود و هیچ پرداختی انجام نمی‌شود.</p>
         </div>
         <div class="panel">
+          <div class="panel-head"><h3>ارسال ایمیل و کد تأیید</h3>
+            <span class="hint" id="mail-state">در حال بررسی…</span>
+          </div>
+          <p class="hint">با هر سرویس SMTP کار می‌کند. سرویس‌های رایگان مثل Brevo یا Gmail
+            (با «گذرواژهٔ برنامه») چند صد ایمیل در روز می‌دهند؛ همین‌جا واردش کن تا
+            کد تأیید واقعاً برای کاربران فرستاده شود.</p>
+          <div class="grid-2">
+            <label class="field"><span>میزبان SMTP</span>
+              <input id="mail-host" dir="ltr" maxlength="120" placeholder="smtp.gmail.com">
+            </label>
+            <label class="field"><span>درگاه</span>
+              <input id="mail-port" type="number" min="1" max="65535" dir="ltr" placeholder="587">
+            </label>
+            <label class="field"><span>نام کاربری</span>
+              <input id="mail-user" dir="ltr" maxlength="160" placeholder="you@gmail.com">
+            </label>
+            <label class="field"><span>گذرواژه (خالی = بدون تغییر)</span>
+              <input id="mail-pass" type="password" dir="ltr" maxlength="200" autocomplete="new-password">
+            </label>
+            <label class="field"><span>فرستنده</span>
+              <input id="mail-from" dir="ltr" maxlength="200" placeholder="رایان &lt;you@gmail.com&gt;">
+            </label>
+            <label class="field"><span>امنیت</span>
+              <select id="mail-mode">
+                <option value="starttls">STARTTLS (۵۸۷)</option>
+                <option value="ssl">SSL (۴۶۵)</option>
+                <option value="none">بدون رمزنگاری</option>
+              </select>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" id="save-mail">ذخیرهٔ پیکربندی</button>
+            <button class="btn" id="test-mail">ارسال ایمیل آزمایشی</button>
+          </div>
+          <p class="hint" id="mail-note"></p>
+        </div>
+        <div class="panel">
           <div class="panel-head"><h3>گذرواژهٔ مدیریت</h3></div>
           <label class="field"><span>گذرواژهٔ تازه (حداقل ۱۰ نویسه)</span>
             <input id="new-password" type="password" minlength="10" autocomplete="new-password">
@@ -224,7 +261,7 @@
             <input id="owner-new-password" type="password" minlength="8" autocomplete="new-password">
           </label>
           <div class="form-actions"><button class="btn btn-primary" id="save-owner-password">ذخیرهٔ گذرواژهٔ مالک</button></div>
-          <p class="hint">این گذرواژه فقط به‌صورت هش scrypt در <code>data/owner.json</code> ذخیره می‌شود و در Git نمی‌رود.</p>
+          <p class="hint">این گذرواژه فقط به‌صورت هشِ scrypt روی همین سرور نگه داشته می‌شود و جایی منتشر نمی‌شود.</p>
         </div>
       </section>
 

@@ -139,7 +139,8 @@ def require_admin(request: Request, csrf: bool = False) -> dict:
     if session is None:
         raise HTTPException(401, "دسترسی مدیریت لازم است.")
     user = session["user"]
-    if user.get("plan") != "admin" and str(user.get("id")) not in admin_ids():
+    if (user.get("plan") != "admin" and user.get("role") != "owner"
+            and str(user.get("id")) not in admin_ids()):
         raise HTTPException(403, "این حساب دسترسی مدیریت ندارد.")
     if csrf:
         sent = request.headers.get(CSRF_HEADER, "")
@@ -159,6 +160,20 @@ def audit(action: str, request: Request, target: str = "", detail: str = "", act
 # ------------------------------------------------------------------- مدل‌ها
 class AdminLogin(BaseModel):
     password: str = Field(min_length=1, max_length=200)
+
+
+class MailConfig(BaseModel):
+    """پیکربندیِ سرویس ایمیل از پنل؛ گذرواژه خالی یعنی «همان قبلی بماند»."""
+    host: str = Field(default="", max_length=120)
+    port: int = Field(default=587, ge=1, le=65535)
+    user: str = Field(default="", max_length=160)
+    password: str = Field(default="", max_length=200)
+    sender: str = Field(default="", max_length=200)
+    mode: str = Field(default="starttls", max_length=12)
+
+
+class MailTest(BaseModel):
+    to: str = Field(min_length=3, max_length=160)
 
 
 class AdPayload(BaseModel):
@@ -223,6 +238,30 @@ def session_info(request: Request) -> dict:
     }
 
 
+@router.post("/elevate")
+def elevate(request: Request, response: Response) -> dict:
+    """مالکِ واردشده در سایت، بدون گذرواژهٔ دوم وارد پنل می‌شود.
+
+    فقط حسابی که نقش «owner» دارد می‌تواند این کار را بکند؛ هیچ راه دیگری برای
+    دور زدن گذرواژهٔ مدیریت وجود ندارد.
+    """
+    cookie = request.cookies.get(os.environ.get("RAYAN_SESSION_COOKIE", "rayan_session"), "")
+    user = store().session_user(cookie)
+    if not user:
+        raise HTTPException(401, "برای ورود به پنل، اول با حساب مالک وارد سایت شو.")
+    if (user.get("role") != "owner" and user.get("plan") != "admin"
+            and str(user.get("id")) not in admin_ids()):
+        raise HTTPException(403, "این حساب دسترسی مدیریت ندارد.")
+    csrf = secrets.token_urlsafe(24)
+    token = store().create_admin_session(int(user["id"]), csrf, ip=_client_ip(request),
+                                         user_agent=request.headers.get("user-agent", ""))
+    response.set_cookie(ADMIN_COOKIE, token, max_age=2 * 3600, httponly=True,
+                        samesite="strict", secure=os.environ.get("RAYAN_ENV") == "prod", path="/")
+    store().record_event("admin_elevate", user_id=int(user["id"]), ip=_client_ip(request))
+    audit("admin_elevate", request, target=str(user["id"]))
+    return {"authenticated": True, "csrf": csrf}
+
+
 @router.post("/login")
 def admin_login(req: AdminLogin, request: Request, response: Response) -> dict:
     ip = _client_ip(request)
@@ -260,6 +299,50 @@ def admin_logout(request: Request, response: Response) -> dict:
     response.delete_cookie(ADMIN_COOKIE, path="/")
     audit("logout", request)
     return {"ok": True}
+
+
+@router.get("/mail")
+def mail_status(request: Request) -> dict:
+    """وضعیتِ سرویس ایمیل؛ گذرواژه هرگز برنمی‌گردد."""
+    require_admin(request)
+    from web import mailer as mailer_module
+    data = mailer_module.status()
+    data["from_env"] = bool(os.environ.get("RAYAN_SMTP_HOST"))
+    return data
+
+
+@router.post("/mail")
+def mail_save(req: MailConfig, request: Request) -> dict:
+    """ذخیرهٔ پیکربندی SMTP از رابط مدیریت — بدون ویرایش فایل یا متغیر محیطی."""
+    require_admin(request, csrf=True)
+    from web import mailer as mailer_module
+    mode = req.mode if req.mode in ("starttls", "ssl", "none") else "starttls"
+    if req.host and not mailer_module.valid_address(req.sender.split("<")[-1].strip(" >") or ""):
+        raise HTTPException(400, "نشانی فرستنده معتبر نیست؛ مثلاً «رایان <you@example.com>».")
+    values = {"host": req.host.strip(), "port": str(req.port), "user": req.user.strip(),
+              "from": req.sender.strip(), "tls": mode}
+    if req.password:
+        values["pass"] = req.password
+    for key, value in values.items():
+        store().set_setting(f"mail.{key}", value)
+    audit("mail_config", request, detail=f"host={req.host[:40]} mode={mode}")
+    return {"saved": True, "status": mailer_module.status()}
+
+
+@router.post("/mail/test")
+def mail_test(req: MailTest, request: Request) -> dict:
+    """ارسالِ ایمیل آزمایشی با همین پیکربندی؛ خطا صادقانه برمی‌گردد."""
+    require_admin(request, csrf=True)
+    from web import mailer as mailer_module
+    if not mailer_module.configured():
+        raise HTTPException(503, "اول پیکربندیِ ایمیل را ذخیره کن.")
+    try:
+        mailer_module.send_test(req.to.strip())
+    except mailer_module.MailError as exc:
+        audit("mail_test_failed", request)
+        raise HTTPException(502, str(exc)) from exc
+    audit("mail_test", request, detail=req.to.strip()[-40:])
+    return {"sent": True}
 
 
 @router.get("/overview")
@@ -524,18 +607,22 @@ _started = False
 
 
 def _ensure_admin_user(email: str) -> int:
+    """حساب مالک را تضمین می‌کند: نقشِ owner و طرح admin.
+
+    فقط همین حساب نقش مالک می‌گیرد؛ ثبت‌نام‌های عادی همیشه کاربر معمولی‌اند.
+    """
     user = store()._one("SELECT id FROM users WHERE email=?", (email,))  # noqa: SLF001
-    if user:
-        store().set_plan(int(user["id"]), "admin")
-        return int(user["id"])
-    created = store().create_user(email, secrets.token_urlsafe(24), "مدیر رایان")
-    if created is None:
-        user = store()._one("SELECT id FROM users WHERE email=?", (email,))  # noqa: SLF001
-        assert user is not None
-        store().set_plan(int(user["id"]), "admin")
-        return int(user["id"])
-    store().set_plan(created["id"], "admin")
-    return int(created["id"])
+    if user is None:
+        created = store().create_user(email, secrets.token_urlsafe(24), "مدیر رایان")
+        if created is not None:
+            user = {"id": created["id"]}
+        else:
+            user = store()._one("SELECT id FROM users WHERE email=?", (email,))  # noqa: SLF001
+    assert user is not None
+    user_id = int(user["id"])
+    store().set_plan(user_id, "admin")
+    store().set_owner(user_id)
+    return user_id
 
 
 # ------------------------------------------------------------- زمان‌بند خودکار

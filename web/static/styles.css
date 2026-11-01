@@ -149,7 +149,8 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
-  font-size: 16px;
+  /* اندازهٔ متن از پنل تنظیمات قابل تغییر است */
+  font-size: calc(16px * var(--font-scale, 1));
   line-height: 1.8;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -1142,3 +1143,52 @@ html.fonts-ready body { transition: opacity 0.4s var(--ease); }
   background: linear-gradient(135deg, #38d2ff, #1a63f0);
 }
 .speed-pill.is-ready { opacity: 1; transform: none; }
+
+/* ── نشانگر نوشتن: پاسخ واژه‌به‌واژه روی صفحه ساخته می‌شود ───────────── */
+.bubble.streaming {
+  position: relative;
+}
+.bubble.streaming::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-inline-start: 3px;
+  vertical-align: -0.16em;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #38d2ff, #1a63f0);
+  animation: caret-blink 0.9s steps(2, start) infinite;
+}
+@keyframes caret-blink {
+  0%, 45% { opacity: 1; }
+  55%, 100% { opacity: 0.15; }
+}
+.bubble.streaming > * {
+  transition: opacity 0.12s linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bubble.streaming::after { animation: none; }
+}
+
+/* ── پنل تنظیمات: کاهش حرکت و مقیاس متن ───────────────────────────────── */
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+.reduce-motion .orb,
+.reduce-motion .orb-halo { animation: none !important; }
+
+/* ── مرحلهٔ تأیید ایمیل در ثبت‌نام ─────────────────────────────────────── */
+.verify-step { display: grid; gap: 14px; }
+.verify-head { display: grid; gap: 4px; font-size: 14px; }
+.verify-head .muted { font-size: 12.5px; color: var(--text-3); }
+.verify-links { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+.verify-links .link-btn { font-size: 12.5px; }
+.auth-form .code-input {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  letter-spacing: 0.42em; text-align: center; font-size: 18px;
+}

@@ -154,6 +154,91 @@
     } catch { /* آفلاین */ }
   }
 
+
+  // ------------------------------------------------------ تأیید ایمیل (ثبت‌نام)
+  function showVerifyStep(email, verification, next) {
+    const form = $("\#auth-form");
+    if (!form) { location.replace(next); return; }
+    const card = document.createElement("form");
+    card.className = "auth-form verify-step";
+    card.id = "verify-step";
+    card.noValidate = true;
+    card.innerHTML = [
+      '<div class="verify-head">',
+      '  <b>کد تأیید را از ایمیل بردار</b>',
+      '  <span class="muted" dir="ltr">' + email + "</span>",
+      "</div>",
+      '<div class="field">',
+      '  <label for="verify-code">کد شش‌رقمی</label>',
+      '  <input class="input code-input" id="verify-code" inputmode="numeric" maxlength="6"',
+      '         autocomplete="one-time-code" placeholder="— — — — — —" dir="ltr">',
+      '  <span class="field-error" id="verify-error"></span>',
+      "</div>",
+      '<button class="btn btn-primary btn-lg" type="submit" id="verify-submit">تأیید و ادامه</button>',
+      '<div class="verify-links">',
+      '  <button type="button" class="link-btn" id="verify-resend">ارسال دوبارهٔ کد</button>',
+      '  <button type="button" class="link-btn" id="verify-skip">فعلاً رد کن</button>',
+      "</div>",
+      '<p class="field-hint" id="verify-hint">اگر ایمیل را نمی‌بینی، پوشهٔ هرزنامه را هم ببین.</p>',
+    ].join("");
+    form.replaceWith(card);
+
+    if (verification.dev_code) {
+      const hint = $("#verify-hint");
+      if (hint) hint.textContent = "حالت آزمایشی سرور: کد " + verification.dev_code;
+      const input = $("#verify-code");
+      if (input) input.value = verification.dev_code;
+    }
+
+    const err = $("#verify-error");
+    card.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const code = ($("#verify-code").value || "").replace(/\D/g, "");
+      if (code.length !== 6) { err.textContent = "کد شش‌رقمی را کامل بنویس."; return; }
+      const btn = $("#verify-submit");
+      btn.disabled = true;
+      btn.textContent = "در حال بررسی…";
+      try {
+        await request("/api/auth/verification/confirm", { method: "POST", body: { code } });
+        toast("ایمیلت تأیید شد.", "ok");
+        playWelcomeReel(next);
+      } catch (e) {
+        err.textContent = e.message || "کد پذیرفته نشد.";
+        btn.disabled = false;
+        btn.textContent = "تأیید و ادامه";
+      }
+    });
+
+    const resend = $("#verify-resend");
+    if (resend) {
+      resend.addEventListener("click", async () => {
+        const btn = $("#verify-submit");
+        resend.disabled = true;
+        try {
+          const res = await request("/api/auth/verification/send", { method: "POST", body: {} });
+          if (res.dev_code) {
+            $("#verify-code").value = res.dev_code;
+            $("#verify-hint").textContent = "حالت آزمایشی سرور: کد " + res.dev_code;
+          } else {
+            err.textContent = "کد تازه فرستاده شد.";
+          }
+        } catch (e) {
+          err.textContent = e.message || "ارسال نشد.";
+        }
+        let left = 45;
+        const t = setInterval(() => {
+          left -= 1;
+          if (left <= 0) { clearInterval(t); resend.disabled = false; resend.textContent = "ارسال دوبارهٔ کد"; return; }
+          resend.textContent = "ارسال دوباره تا " + left + " ثانیه";
+        }, 1000);
+        if (btn) btn.disabled = false;
+      });
+    }
+
+    const skip = $("#verify-skip");
+    if (skip) skip.addEventListener("click", () => playWelcomeReel(next));
+  }
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     errorEl.textContent = "";
@@ -205,6 +290,14 @@
       if (data.admin) {
         toast("دسترسی مدیریت فعال شد.", "ok");
         setTimeout(() => location.replace(safeNext || "/admin"), 420);
+        return;
+      }
+      // کد تأیید واقعی: مرحلهٔ کوتاه تأیید ایمیل پیش از ورود به گفتگو
+      const verification = data.verification || {};
+      if (isSignup && verification.required) {
+        submit.disabled = false;
+        label.textContent = original;
+        showVerifyStep(identifier, verification, safeNext || "/chat");
         return;
       }
       if (isSignup && !safeNext) {

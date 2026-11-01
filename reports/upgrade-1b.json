@@ -1,0 +1,63 @@
+{
+  "params_total": 1072250880,
+  "params_billion": 1.072,
+  "breakdown": {
+    "embedding": 65536000,
+    "head": 0,
+    "per_layer": 50335744,
+    "layers": 20,
+    "total": 1072250880
+  },
+  "architecture": {
+    "arch": "decoder-only transformer",
+    "vocab_size": 32000,
+    "block_size": 2048,
+    "n_layer": 20,
+    "n_head": 16,
+    "n_embd": 2048,
+    "ffn_mult": 4,
+    "tie_embeddings": true,
+    "norm": "rmsnorm",
+    "activation": "swiglu",
+    "rope": true,
+    "precision": "bf16"
+  },
+  "tokens_needed": 21440000000,
+  "chars_needed": 47168000000,
+  "corpus_gb_estimate": 84.9,
+  "memory": {
+    "weights_gb": 2.14,
+    "grads_gb": 2.14,
+    "adam_gb": 8.58,
+    "train_total_gb": 20.9,
+    "inference_gb_bf16": 3.14
+  },
+  "scenarios": [
+    {
+      "hardware": "۸×H100 80GB",
+      "tokens_per_second": 1000000.0,
+      "hours": 6.0,
+      "days": 0.25,
+      "cost_usd": 119,
+      "docs_per_hour": 3600000.0
+    },
+    {
+      "hardware": "۸×A100 80GB",
+      "tokens_per_second": 450000.0,
+      "hours": 13.2,
+      "days": 0.55,
+      "cost_usd": 132,
+      "docs_per_hour": 1620000.0
+    },
+    {
+      "hardware": "۱×A100 80GB",
+      "tokens_per_second": 55000.0,
+      "hours": 108.3,
+      "days": 4.51,
+      "cost_usd": 130,
+      "docs_per_hour": 198000.0
+    }
+  ],
+  "fits_on_cpu": false,
+  "honest_note": "آموزشِ این مدل روی CPUِ همین سرور ممکن نیست: هم توان محاسباتی و هم حافظهٔ لازم چند مرتبه بیشتر از این ماشین است. اعدادِ ساعت و هزینه تخمینِ خطی از توانِ اعلام‌شدهٔ هر سخت‌افزار است، نه اندازه‌گیری."
+}

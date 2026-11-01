@@ -1145,6 +1145,19 @@ def think(question: str, limit: int = 10, path: str | None = None,
                 "trace": trace, "confidence": 0.97, "coverage": 1.0,
                 "seconds": round(time.time() - started, 3), "engine": taught["engine"]}
 
+    # ۰٫۶) راهنمای موضوعی: پرسش‌های «چطور...» پاسخِ گام‌به‌گام می‌گیرند
+    try:
+        from web import guide as guide_module
+        guided = guide_module.answer(question)
+    except Exception:  # noqa: BLE001 - این لایه نباید مسیر را بشکند
+        guided = None
+    if guided:
+        trace.append({"step": "راهنمای موضوعی", "detail": guided["source"],
+                      "seconds": round(time.time() - started, 3)})
+        return {"answer": guided["answer"], "sources": [],
+                "trace": trace, "confidence": 0.92, "coverage": 1.0,
+                "seconds": round(time.time() - started, 3), "engine": guided["engine"]}
+
     # ۱) دانشنامه: فقط برای پرسش‌های تعریفی؛ «چطور/چگونه» مقالهٔ دانشنامه نمی‌خواهد
     # «چگونه به وجود می‌آید» پرسش تبیینی است و مقالهٔ دانشنامه می‌خواهد؛
     # «چطور بخوابم» درخواست کار است و نباید مقالهٔ «خواب» را برگرداند.

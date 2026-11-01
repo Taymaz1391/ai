@@ -48,6 +48,20 @@
         return;
       }
     } catch { /* ورود لازم است */ }
+    // مالکِ واردشده در سایت، بی‌گذرواژهٔ دوم وارد می‌شود
+    try {
+      const me = await api("/api/auth/me");
+      if (me && me.user && me.user.role === "owner") {
+        const lifted = await api("/api/admin/elevate", { method: "POST" });
+        state.csrf = lifted.csrf;
+        const info = await api("/api/admin/session");
+        state.user = info.user;
+        state.sessionInfo = info;
+        enterPanel();
+        toast("پنل مدیریت باز شد.", "ok");
+        return;
+      }
+    } catch { /* مهمان است؛ فرم ورود */ }
     $("#admin-login").hidden = false;
   }
 
@@ -158,7 +172,7 @@
     if (tab === "ads") loadAds();
     if (tab === "audit") loadAudit();
     if (tab === "guard") loadGuard();
-    if (tab === "settings") loadSettings();
+    if (tab === "settings") { loadSettings(); loadMail(); }
     if (tab === "system") { loadSystem(); loadNetwork(); loadCapacity(); }
   }
 
@@ -498,6 +512,80 @@
     } catch (err) {
       toast(err.message, "error");
     }
+  }
+
+  // ------------------------------------------------------------ ایمیل
+  async function loadMail() {
+    const state = $("#mail-state");
+    try {
+      const data = await api("/api/admin/mail");
+      const host = $("#mail-host");
+      if (host && !host.value) host.value = data.host || "";
+      if ($("#mail-from") && !$("#mail-from").value) $("#mail-from").value = data.sender || "";
+      if ($("#mail-port") && !$("#mail-port").value) $("#mail-port").value = 587;
+      const mode = $("#mail-mode");
+      if (mode && data.mode) mode.value = data.mode;
+      if (state) {
+        state.textContent = data.configured
+          ? (data.has_password ? "فعال — آمادهٔ ارسال" : "پیکربندی ناقص")
+          : "پیکربندی نشده";
+      }
+      if (data.from_env) {
+        const note = $("#mail-note");
+        if (note) note.textContent = "این سرور از متغیرهای محیطی تنظیم می‌شود؛ مقادیر زیر فقط نمایشی‌اند.";
+      }
+    } catch (err) {
+      if (state) state.textContent = "خطا: " + err.message;
+    }
+  }
+
+  const saveMailBtn = $("#save-mail");
+  if (saveMailBtn) {
+    saveMailBtn.addEventListener("click", async () => {
+      const note = $("#mail-note");
+      saveMailBtn.disabled = true;
+      try {
+        const data = await api("/api/admin/mail", {
+          method: "POST",
+          body: {
+            host: $("#mail-host").value.trim(),
+            port: Number($("#mail-port").value || 587),
+            user: $("#mail-user").value.trim(),
+            password: $("#mail-pass").value,
+            sender: $("#mail-from").value.trim(),
+            mode: $("#mail-mode").value,
+          },
+        });
+        $("#mail-pass").value = "";
+        if (note) note.textContent = "ذخیره شد. حالا یک ایمیل آزمایشی بفرست.";
+        const state = $("#mail-state");
+        if (state) state.textContent = data.status && data.status.configured ? "فعال" : "پیکربندی ناقص";
+        toast("پیکربندی ایمیل ذخیره شد.", "ok");
+      } catch (err) {
+        if (note) note.textContent = err.message;
+      } finally {
+        saveMailBtn.disabled = false;
+      }
+    });
+  }
+
+  const testMailBtn = $("#test-mail");
+  if (testMailBtn) {
+    testMailBtn.addEventListener("click", async () => {
+      const note = $("#mail-note");
+      const address = ($("#mail-user").value || "").trim() || (state.user && state.user.email) || "";
+      testMailBtn.disabled = true;
+      if (note) note.textContent = "در حال ارسال…";
+      try {
+        await api("/api/admin/mail/test", { method: "POST", body: { to: address } });
+        if (note) note.textContent = "ایمیل آزمایشی به " + address + " فرستاده شد.";
+        toast("ارسال انجام شد.", "ok");
+      } catch (err) {
+        if (note) note.textContent = err.message;
+      } finally {
+        testMailBtn.disabled = false;
+      }
+    });
   }
 
   $("#save-flags").addEventListener("click", async () => {
