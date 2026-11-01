@@ -10,7 +10,9 @@ sys.path.insert(0, ROOT)
 
 from rayan.tokenizer import SPECIAL_TOKENS, BPETokenizer
 
-TOKENIZER = os.path.join(ROOT, "tokenizer", "rayan_bpe.json")
+# نسخهٔ فعال پروژه؛ توکنایزر قدیمی ۱۰هزارتایی فقط برای مقایسه نگه داشته شده است.
+TOKENIZER = os.path.join(ROOT, "tokenizer", "rayan_bpe_16k.json")
+LEGACY_TOKENIZER = os.path.join(ROOT, "tokenizer", "rayan_bpe.json")
 
 
 @unittest.skipUnless(os.path.exists(TOKENIZER), "tokenizer not trained yet")
@@ -20,12 +22,23 @@ class TokenizerTest(unittest.TestCase):
         cls.tok = BPETokenizer.load(TOKENIZER)
 
     def test_vocab_and_specials(self):
-        self.assertEqual(self.tok.vocab_size, 10000)
+        self.assertEqual(self.tok.vocab_size, 16000)
         for token in SPECIAL_TOKENS:
             self.assertIn(token, self.tok.token_to_id)
         ids = self.tok.encode("<|doc|> <|user|> سلام <|bot|> ")
         self.assertIn(self.tok.special_ids["<|doc|>"], ids)
         self.assertIn(self.tok.special_ids["<|user|>"], ids)
+
+    def test_newline_roundtrip(self):
+        text = "خط اول\nخط دوم\n\nخط سوم"
+        self.assertEqual(self.tok.decode(self.tok.encode(text)), text)
+
+    @unittest.skipUnless(os.path.exists(LEGACY_TOKENIZER), "legacy tokenizer missing")
+    def test_legacy_tokenizer_still_loads(self):
+        old = BPETokenizer.load(LEGACY_TOKENIZER)
+        self.assertEqual(old.vocab_size, 10000)
+        self.assertNotIn("<|nl|>", old.special_ids)
+        self.assertIn("سلام", old.decode(old.encode("سلام")))
 
     def test_persian_roundtrip(self):
         text = "زبان فارسی، خانه اندیشه است و می‌شود با آن نوشت."

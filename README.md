@@ -8,7 +8,7 @@
 
 <sub>یک محصول کامل و یک مدل زبانی فارسی، هر دو ساخته‌شده از صفر — بدون API، بدون وزن آماده، بدون PyTorch</sub>
 
-`۶٬۵۷۴٬۸۴۸ پارامتر` · `توکنایزر BPE فارسی` · `ترنسفورمر با پس‌انتشار دستی در NumPy` · `آموزش واقعی روی CPU`
+`۱۶٬۸۸۹٬۸۵۶ پارامتر` · `توکنایزر BPE فارسی ۱۶هزارتایی` · `ترنسفورمر ۶ لایه با پس‌انتشار دستی در NumPy` · `آموزش واقعی روی CPU`
 
 [![tests](https://github.com/Taymaz1391/ai/actions/workflows/tests.yml/badge.svg)](https://github.com/Taymaz1391/ai/actions/workflows/tests.yml)
 [![pages](https://github.com/Taymaz1391/ai/actions/workflows/pages.yml/badge.svg)](https://github.com/Taymaz1391/ai/actions/workflows/pages.yml)
@@ -31,7 +31,7 @@
 
 هیچ‌کدام از این‌ها به سرویس بیرونی وصل نیست: نه OpenAI، نه Anthropic، نه هیچ API دیگری. توکنایزر، ترنسفورمر، پس‌انتشار دستی، بهینه‌ساز، استنتاج با حافظهٔ KV، سرور و رابط کاربری همه در همین مخزن نوشته شده‌اند.
 
-> این پروژه ادعای رقابت با مدل‌های میلیاردپارامتری را ندارد. مدلی با ۶٫۵ میلیون پارامتر در سطح توان زبانی آن‌ها نیست. اما کل مسیر ساخت — از نرمال‌سازی متن فارسی تا دکمهٔ «ارسال» — خوانا، آزمون‌پذیر و قابل بازتولید است.
+> این پروژه ادعای رقابت با مدل‌های میلیاردپارامتری را ندارد. مدلی با ۱۷ میلیون پارامتر در سطح توان زبانی آن‌ها نیست. اما کل مسیر ساخت — از نرمال‌سازی متن فارسی تا دکمهٔ «ارسال» — خوانا، آزمون‌پذیر و قابل بازتولید است.
 
 ---
 
@@ -150,7 +150,7 @@ pip install -r requirements.txt
 python web/server.py --host 0.0.0.0 --port 8000
 ```
 
-سپس <http://localhost:8000> را باز کن. مدل از `checkpoints/rayan-1-small.npz` بارگذاری می‌شود و پایگاه‌داده خودکار در `data/rayan.sqlite3` ساخته می‌شود (با `RAYAN_DB` قابل تغییر است).
+سپس <http://localhost:8000> را باز کن. مدل از `checkpoints/last.npz` بارگذاری می‌شود (اگر نبود، `rayan-2-base.npz` و سپس نسخهٔ قبلی) و پایگاه‌داده خودکار در `data/rayan.sqlite3` ساخته می‌شود (با `RAYAN_DB` قابل تغییر است).
 
 گفتگو در ترمینال:
 
@@ -189,7 +189,7 @@ python scripts/chat_cli.py --deep
 | `GET /api/health` | وضعیت مدل و آموزش |
 | `GET /api/model` | مشخصات، سخت‌افزار، پیکره و محدودیت‌ها |
 | `GET /api/models` | فهرست مدل‌ها و وضعیت هرکدام |
-| `GET /api/metrics` | گزارش زندهٔ آموزش (`logs/metrics.jsonl`) |
+| `GET /api/metrics` | گزارش زندهٔ آموزش (`logs/metrics-v2.jsonl`، وگرنه `logs/metrics.jsonl`) |
 | `GET /api/showcase` | نمونه‌های واقعی تولید مدل |
 | `GET /api/stats` | آمار عمومی سرویس |
 | `GET /api/samples` | پیشنهادهای شروع گفتگو |
@@ -226,23 +226,40 @@ curl -s -X POST localhost:8000/api/chat \
 # ۱) دانلود پیکره‌های عمومی فارسی (در پوشهٔ بیرونی)
 bash scripts/fetch_corpora.sh
 
-# ۲) ساخت پیکرهٔ تمیز
-python data/build_corpus.py --sources ../corpora --out data
+# ۲) ویکی‌پدیای فارسی (جریان‌وار، بدون باز کردن کل دامپ)
+python scripts/import_wikipedia.py --source ../corpora/_wiki/repo --max-chars 150000000
 
-# ۳) آموزش توکنایزر BPE با ۱۰٬۰۰۰ توکن
-python data/train_tokenizer.py --vocab-size 10000
+# ۳) ادغام، حذف تکرار و جدا کردن اعتبارسنجی
+python scripts/merge_corpus.py --out-dir data \
+    ../corpora/milad-4274_persian_news:18000000 \
+    ../corpora/wiki.txt:26000000 \
+    ../corpora/mizan/ext/mizan/mizan_fa.txt:40000000 \
+    ../corpora/poems/normalized:25000000 \
+    ../corpora/miras-sample.txt:6600000
 
-# ۴) آموزش پایه (حدود ۱۰۳ دقیقه روی ۲ هستهٔ CPU)
-python -m rayan.train --steps 1800 --batch-size 24 --block-size 256 \
-    --layers 5 --heads 4 --embed 256 --lr 1.2e-3
+# ۴) توکنایزر BPE با ۱۶٬۰۰۰ توکن
+python data/train_tokenizer.py --vocab-size 16000 --sample-chars 24000000
 
-# ۵) ادامهٔ آموزش روی پیکرهٔ گفتگویی بزرگ‌تر
-python -m rayan.train --resume checkpoints/rayan-1-small.npz --steps 2400 \
-    --batch-size 24 --block-size 256 --lr 3.5e-4 --min-lr 3e-5 --warmup 60
+# ۵) توکن‌کردن یک‌بارهٔ پیکره به uint16 (حدود ۲ دقیقه، ~۵۵ مگابایت)
+python scripts/tokenize_corpus.py --tokenizer tokenizer/rayan_bpe_16k.json \
+    --input data/train.txt --out data/train.u16 \
+    --val data/val.txt --val-out data/val.u16
 
-# ۶) ارزیابی و ساخت نمونه‌های نمایش
-python scripts/evaluate.py --checkpoint checkpoints/rayan-1-small.npz
-python scripts/build_showcase.py --evaluation reports/evaluation.json
+# ۶) آموزش مدل ۱۶٫۹ میلیون پارامتری از صفر (memmap، یک دورهٔ کامل)
+python -m rayan.train --tokenizer tokenizer/rayan_bpe_16k.json \
+    --train-ids data/train.u16 --val-ids data/val.u16 \
+    --steps 3400 --batch-size 8 --block-size 256 \
+    --layers 6 --heads 6 --embed 384 --lr 1e-3 --min-lr 1e-4 --warmup 100 \
+    --out checkpoints/rayan-2-base.npz --latest checkpoints/rayan-2-last.npz \
+    --metrics logs/metrics-v2.jsonl --name "رایان ۲"
+
+# ۷) بستن اجرا: ارزیابی مستقل، انتشار checkpoint، نوشتن کارت واقعی
+python scripts/finalize_run.py --checkpoint checkpoints/rayan-2-last.npz
+
+# ۸) مقایسهٔ منصفانه با نسخهٔ قبلی (بیت بر نویسه، مستقل از توکنایزر)
+python scripts/compare_models.py \
+    --old checkpoints/rayan-1-small.npz tokenizer/rayan_bpe.json \
+    --new checkpoints/last.npz tokenizer/rayan_bpe_16k.json
 ```
 
 ---
@@ -253,13 +270,13 @@ python scripts/build_showcase.py --evaluation reports/evaluation.json
 متن فارسی
    │  نرمال‌سازی: ي→ی، ك→ک، حذف اعراب، یکسان‌سازی ارقام و نشانه‌ها
    ▼
-BPE فارسی (۱۰٬۰۰۰ توکن) ──► دنبالهٔ توکن‌ها
+BPE فارسی (۱۶٬۰۰۰ توکن، شامل توکن شکستن خط) ──► دنبالهٔ توکن‌ها
    ▼
-امبدینگ واژه + امبدینگ موقعیت (۲۵۶ بُعد، زمینهٔ ۲۵۶)
+امبدینگ واژه + امبدینگ موقعیت (۳۸۴ بُعد، زمینهٔ ۲۵۶)
    ▼
-۵ × بلوک ترنسفورمر
-   ├─ LayerNorm → توجه چندسری (۴ سر، ماسک علّی) → اتصال باقی‌مانده
-   └─ LayerNorm → خطی ۲۵۶→۱۰۲۴ → SiLU → خطی ۱۰۲۴→۲۵۶ → اتصال باقی‌مانده
+۶ × بلوک ترنسفورمر
+   ├─ LayerNorm → توجه چندسری (۶ سر، ماسک علّی) → اتصال باقی‌مانده
+   └─ LayerNorm → خطی ۳۸۴→۱۵۳۶ → SiLU → خطی ۱۵۳۶→۳۸۴ → اتصال باقی‌مانده
    ▼
 LayerNorm پایانی ─► پیش‌بینی واژگان (وزن مشترک با امبدینگ)
    ▼
@@ -280,17 +297,19 @@ LayerNorm پایانی ─► پیش‌بینی واژگان (وزن مشترک 
 
 | سنجه | مقدار |
 |---|---|
-| پارامترهای آموزش‌پذیر | ۶٬۵۷۴٬۸۴۸ |
-| توکن‌های آموزش | ۱۴٬۷۴۵٬۶۰۰ (دو فاز) |
+| پارامترهای آموزش‌پذیر | ۱۶٬۸۸۹٬۸۵۶ |
+| توکن‌های آموزش | ۷٬۵۷۷٬۶۰۰ (۶٫۱۴ میلیون پایه + ۱٫۴۳ میلیون تنظیم گفتگو) |
+| نویسه‌های پیکره | ۹۹٬۱۱۵٬۶۶۳ آموزش · ۹۱۸٬۰۸۲ اعتبارسنجی |
 | طول زمینه | ۲۵۶ توکن |
 | سخت‌افزار | ۲ هستهٔ vCPU · بدون GPU |
-| خطای اعتبارسنجی | ۵٫۳۰ nats/token |
-| Perplexity | ۲۰۱٫۳ |
-| بیت بر نویسه | ۱٫۸۰ |
-| دقت top-1 / top-5 | ۱۷٫۴٪ / ۳۴٫۱٪ |
-| سرعت تولید | ~۸۴ توکن بر ثانیه (CPU) |
+| خطای اعتبارسنجی | ۶٫۳۴۳۰ nats/token |
+| Perplexity | ۵۶۸٫۵۰ |
+| بیت بر نویسه | ۲٫۴۸۰۶ |
+| دقت top-1 / top-5 | ۱۲٫۹٪ / ۲۴٫۶٪ |
+| سرعت تولید | ~۱۹۲ توکن بر ثانیه (CPU) |
+| مقایسه با رایان ۱ روی همان متن | ۲٫۵۲۶۸ → ۲٫۴۷۶۰ بیت بر نویسه (۲٫۰٪ کمتر) |
 
-هیچ عددی در رابط کاربری ساختگی نیست؛ همه از `logs/metrics.jsonl`، `reports/evaluation.json` و متادیتای checkpoint خوانده می‌شوند.
+هیچ عددی در رابط کاربری ساختگی نیست؛ همه از `logs/metrics-v2.jsonl`، `reports/final-metrics.json`، `reports/evaluation.json` و متادیتای checkpoint خوانده می‌شوند. مقایسهٔ منصفانه با نسخهٔ ۱ در `reports/compare-20261031-232844.json` و نمونه‌های هم‌شرط در `reports/compare-samples.md` است.
 
 ---
 
@@ -342,7 +361,7 @@ GitHub Pages فقط فایل‌های ایستا را سرو می‌کند و ن
 
 ## محدودیت‌ها (صادقانه)
 
-- **اندازه:** ۶٫۵ میلیون پارامتر در برابر ده‌ها یا صدها میلیارد پارامتر مدل‌های امروزی.
+- **اندازه:** ۱۶٫۹ میلیون پارامتر در برابر ده‌ها یا صدها میلیارد پارامتر مدل‌های امروزی.
 - **دانش:** فقط آنچه در پیکره بوده؛ بدون اینترنت، خبر تازه یا جست‌وجو.
 - **دقت:** ممکن است جمله‌های نادرست، تکراری یا بی‌ربط بسازد. پاسخ‌ها را بررسی کن.
 - **زبان:** پیکره ترکیبی خبر، شعر و گفتگوست؛ سبک خروجی بین این سه نوسان می‌کند.

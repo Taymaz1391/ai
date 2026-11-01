@@ -93,7 +93,7 @@
             </div>
             <p class="hero-note"><span class="dot-live"></span><span id="hero-status">در حال خواندن وضعیت مدل…</span></p>
             <div class="hero-stats">
-              <div class="hero-stat"><b id="stat-params">۶٫۵۷ میلیون</b><span>پارامتر</span></div>
+              <div class="hero-stat"><b id="stat-params" data-model-slot="params-long">—</b><span>پارامتر</span></div>
               <div class="hero-stat"><b id="stat-speed">۸۴</b><span>توکن بر ثانیه</span></div>
               <div class="hero-stat"><b>۱۰۰٪</b><span>فارسی و محلی</span></div>
             </div>
@@ -228,15 +228,15 @@
           <div class="step-row reveal">
             <div class="step-num">۰۳ / مدل</div>
             <div class="step-body">
-              <h3>ترنسفورمر ۶٫۵۷ میلیون پارامتری</h3>
+              <h3>ترنسفورمر <span data-model-slot="params-long">—</span> پارامتری</h3>
               <p>یک ترنسفورمر کوچک که کاملاً با <bdi dir="ltr">NumPy</bdi> ساخته شده؛ نه <bdi dir="ltr">PyTorch</bdi>، نه وزن آماده.</p>
             </div>
           </div>
           <div class="step-row reveal">
             <div class="step-num">۰۴ / آموزش</div>
             <div class="step-body">
-              <h3>۲٬۴۰۰ گام آموزش واقعی</h3>
-              <p>۲٬۴۰۰ گام روی دو هستهٔ CPU؛ خطای اعتبارسنجی از ۹٫۲۵ به ۵٫۳۱ رسید.</p>
+              <h3><span data-model-slot="steps">—</span> گام آموزش واقعی</h3>
+              <p><span data-model-slot="steps">—</span> گام روی دو هستهٔ CPU؛ خطای اعتبارسنجی نهایی <span data-model-slot="bpc">—</span> بیت بر نویسه است.</p>
             </div>
           </div>
           <div class="step-row reveal">
@@ -378,7 +378,7 @@
         <div class="faq">
           <div class="faq-item">
             <button class="faq-q" aria-expanded="false">آیا <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> مثل ChatGPT است؟ <span class="chev">+</span></button>
-            <div class="faq-a"><p>نه. <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> از نظر مقیاس با مدل‌های میلیاردپارامتری فاصلهٔ زیادی دارد: ۶٫۵۷ میلیون پارامتر در برابر صدها میلیارد. هدف این پروژه ساختن یک جایگزین نیست؛ نمایش شفاف ساخت یک مدل زبانی فارسی از صفر است. اما تجربهٔ محصولش — حساب، تاریخچه، جریان پاسخ، اشتراک‌گذاری — کامل است.</p></div>
+            <div class="faq-a"><p>نه. <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> از نظر مقیاس با مدل‌های میلیاردپارامتری فاصلهٔ زیادی دارد: <span data-model-slot="params-long">—</span> پارامتر در برابر صدها میلیارد. هدف این پروژه ساختن یک جایگزین نیست؛ نمایش شفاف ساخت یک مدل زبانی فارسی از صفر است. اما تجربهٔ محصولش — حساب، تاریخچه، جریان پاسخ، اشتراک‌گذاری — کامل است.</p></div>
           </div>
           <div class="faq-item">
             <button class="faq-q" aria-expanded="false">از هیچ مدل آماده‌ای استفاده شده؟ <span class="chev">+</span></button>
@@ -477,5 +477,6 @@
   <script src="/static/speed.js"></script>
   <script src="/static/scroll.js"></script>
   <script src="/static/perf.js"></script>
+<script src="/static/model-stats.js"></script>
 </body>
 </html>

@@ -816,3 +816,18 @@
   .messages { gap: 24px; }
   .msg-tools { opacity: 1; }
 }
+
+/* بلوک «فکر کردن» — مسیر استدلال پیش از پاسخ، جمع‌شونده */
+.msg-think { margin-top: 10px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--surface-2); padding: 9px 12px; font-size: 12.5px; }
+.msg-think > summary { display: flex; align-items: center; gap: 8px; cursor: pointer;
+  color: var(--text-2); font-weight: 600; list-style: none; }
+.msg-think > summary::-webkit-details-marker { display: none; }
+.think-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-solid);
+  box-shadow: 0 0 0 3px var(--accent-soft); animation: think-pulse 1.6s ease-in-out infinite; }
+.msg-think[open] .think-dot { animation: none; }
+@keyframes think-pulse { 0%, 100% { transform: scale(.85); opacity: .55; } 50% { transform: scale(1.15); opacity: 1; } }
+.think-steps { margin: 9px 0 2px; padding: 0; list-style: none; display: grid; gap: 6px; }
+.think-steps li { display: flex; gap: 8px; align-items: baseline; color: var(--text-3); }
+.think-steps b { color: var(--text-2); font-weight: 600; flex: 0 0 auto; }
+.think-steps li::before { content: "←"; color: var(--accent-solid); font-size: 11px; }

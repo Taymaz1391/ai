@@ -45,7 +45,15 @@ def _final_train_loss(path: str) -> float | None:
     return float(last["loss"]) if last else None
 
 
-def update_model_card(evaluation: dict, path: str, metrics_path: str = "logs/metrics.jsonl") -> bool:
+def default_metrics_path() -> str:
+    """جدیدترین گزارش آموزش موجود؛ نسخهٔ ۲ اولویت دارد."""
+    for candidate in ("logs/metrics-v2.jsonl", "logs/metrics.jsonl"):
+        if os.path.exists(os.path.join(ROOT, candidate)):
+            return candidate
+    return "logs/metrics.jsonl"
+
+
+def update_model_card(evaluation: dict, path: str, metrics_path: str | None = None) -> bool:
     """جدول ارزیابی را میان نشانه‌های eval در کارت مدل جای‌گذاری می‌کند."""
     ev = evaluation.get("evaluation")
     if not ev or not os.path.exists(path):
@@ -57,7 +65,7 @@ def update_model_card(evaluation: dict, path: str, metrics_path: str = "logs/met
     cfg = evaluation.get("config") or {}
     if not tokens and steps and cfg.get("batch_size") and cfg.get("block_size"):
         tokens = int(steps) * int(cfg["batch_size"]) * int(cfg["block_size"])
-    final_loss = _final_train_loss(os.path.join(ROOT, metrics_path))
+    final_loss = _final_train_loss(os.path.join(ROOT, metrics_path or default_metrics_path()))
     rows = [
         "> ارزیابی روی کل مجموعهٔ اعتبارسنجی، بدون dropout و بدون نمونه‌گیری داغ.",
         "",

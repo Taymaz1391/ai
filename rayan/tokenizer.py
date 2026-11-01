@@ -4,7 +4,8 @@
   * نیم‌فاصله (ZWNJ) جزئی از واژه است و شکسته نمی‌شود.
   * نشانه‌گذاری به واژهٔ پیش از خود می‌چسبد تا «سلام،» یک واحد باشد.
   * هر واژه با نشانگر پایان واژه (</w>) بسته می‌شود تا مرز واژه‌ها گم نشود.
-  * توکن‌های ویژه (سند، بیت، کاربر، ربات) هرگز ادغام نمی‌شوند.
+  * توکن‌های ویژه (سند، بیت، کاربر، ربات، خط جدید) هرگز ادغام نمی‌شوند.
+  * خط جدید یک توکن ویژهٔ تک‌شناسه‌ای است تا مدل بتواند پاراگراف بسازد.
 """
 from __future__ import annotations
 
@@ -12,7 +13,7 @@ import json
 import re
 from collections import Counter, defaultdict
 
-SPECIAL_TOKENS = ["<|doc|>", "<|verse|>", "<|user|>", "<|bot|>"]
+SPECIAL_TOKENS = ["<|doc|>", "<|verse|>", "<|user|>", "<|bot|>", "<|nl|>"]
 EOW = "</w>"
 
 # واژه + نشانه‌های چسبیده به آن، یا نشانهٔ مستقل.
@@ -80,7 +81,10 @@ class BPETokenizer:
             vocab = list(SPECIAL_TOKENS) + [tok for tok in base if tok not in SPECIAL_TOKENS]
         self.vocab: list[str] = list(vocab)
         self.token_to_id: dict[str, int] = {tok: i for i, tok in enumerate(self.vocab)}
-        self.special_ids: dict[str, int] = {t: self.token_to_id[t] for t in SPECIAL_TOKENS}
+        # توکنایزرهای قدیمی‌تر ممکن است بعضی توکن‌های ویژهٔ تازه را نداشته باشند؛
+        # فقط آن‌هایی که واقعاً در واژگان‌اند نگاشت می‌شوند تا بارگذاری نسخه‌های قبلی نشکند.
+        self.special_ids: dict[str, int] = {t: self.token_to_id[t] for t in SPECIAL_TOKENS
+                                            if t in self.token_to_id}
         self.reverse_special: dict[int, str] = {v: k for k, v in self.special_ids.items()}
         self._ranks: dict[tuple[str, str], int] = {pair: i for i, pair in enumerate(self.merges)}
 
@@ -220,11 +224,17 @@ class BPETokenizer:
 
     def encode(self, text: str, *, allow_specials: bool = True) -> list[int]:
         text = text.translate(_DIGIT_MAP)
+        # خط جدید به توکن ویژه تبدیل می‌شود؛ وگرنه در شکستن تکه‌ها گم می‌شد.
+        if allow_specials and "<|nl|>" in self.special_ids:
+            text = text.replace("\r\n", "\n").replace("\r", "\n")
+            text = text.replace("\n", " <|nl|> ")
         ids: list[int] = []
         parts = _split_special(text) if allow_specials else [(False, text)]
         for is_special, piece in parts:
             if is_special:
-                ids.append(self.special_ids[piece])
+                token_id = self.special_ids.get(piece)
+                if token_id is not None:
+                    ids.append(token_id)
                 continue
             for chunk in pretokenize(piece):
                 ids.extend(self._encode_chunk(chunk))
@@ -232,7 +242,8 @@ class BPETokenizer:
 
     def decode(self, ids, *, skip_specials: bool = False) -> str:
         parts: list[str] = []
-        special_text = {"<|doc|>": "\n\n", "<|verse|>": "\n", "<|user|>": "", "<|bot|>": ""}
+        special_text = {"<|doc|>": "\n\n", "<|verse|>": "\n", "<|user|>": "", "<|bot|>": "",
+                        "<|nl|>": "\n"}
         for raw in ids:
             i = int(raw)
             special = self.reverse_special.get(i)

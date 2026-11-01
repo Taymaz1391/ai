@@ -68,10 +68,10 @@
 
         <h2 id="how">چطور ساخته شد</h2>
         <ol>
-          <li><b>پیکره:</b> ۱۶٫۹ میلیون نویسه از خبر فارسی، روزنامهٔ همشهری و شعر کلاسیک گنجور، با پاک‌سازی و نرمال‌سازی.</li>
-          <li><b>توکنایزر:</b> BPE با ۱۰٬۰۰۰ توکن، آموزش‌دیده روی همین پیکره؛ حفظ نیم‌فاصله و چسبیدن نشانه‌گذاری.</li>
-          <li><b>مدل:</b> ترنسفورمر رمزگشا با ۵ لایه، ۴ سر، بُعد ۲۵۶ و زمینهٔ ۲۵۶ توکن — ۶٬۵۷۴٬۸۴۸ پارامتر.</li>
-          <li><b>آموزش:</b> پیش‌رو و پس‌رو دستی با NumPy و AdamW؛ ۲٬۴۰۰ گام و ۱۴٫۷ میلیون توکن در دو فاز.</li>
+          <li><b>پیکره:</b> خبر فارسی، روزنامهٔ همشهری، ویکی‌پدیا، کتاب و شعر کلاسیک — نزدیک ۱۰۰ میلیون نویسه پس از پاک‌سازی و حذف تکرار.</li>
+          <li><b>توکنایزر:</b> BPE با <span data-model-slot="vocab">—</span> توکن، آموزش‌دیده روی همین پیکره؛ حفظ نیم‌فاصله، نشانه‌گذاری و شکستن خط.</li>
+          <li><b>مدل:</b> ترنسفورمر رمزگشا با <span data-model-slot="layers">—</span> لایه، <span data-model-slot="heads">—</span> سر، بُعد <span data-model-slot="embed">—</span> و زمینهٔ <span data-model-slot="context">—</span> توکن — <span data-model-slot="params">—</span> پارامتر.</li>
+          <li><b>آموزش:</b> پیش‌رو و پس‌رو دستی با NumPy و AdamW؛ <span data-model-slot="steps">—</span> گام و <span data-model-slot="tokens">—</span> توکن.</li>
           <li><b>سرویس:</b> FastAPI با حافظهٔ KV، جریان NDJSON، حساب کاربری SQLite و همین رابط فارسی.</li>
         </ol>
         <p>
@@ -185,5 +185,6 @@
   <script src="/static/ads.js"></script>
   <script src="/static/scroll.js"></script>
   <script src="/static/perf.js"></script>
+<script src="/static/model-stats.js"></script>
 </body>
 </html>

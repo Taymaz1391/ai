@@ -1,0 +1,50 @@
+{
+  "val_chars": 300000,
+  "val_file": "/home/user/ai/data/val.txt",
+  "old": {
+    "checkpoint": "/home/user/ai/checkpoints/rayan-1-small.npz",
+    "tokenizer": "/home/user/ai/tokenizer/rayan_bpe.json",
+    "params": 6574848,
+    "cfg": {
+      "vocab_size": 10000,
+      "block_size": 256,
+      "n_layer": 5,
+      "n_head": 4,
+      "n_embd": 256
+    },
+    "checkpoint_step": 2400,
+    "windows": 64,
+    "chars": 300000,
+    "tokens": 85519,
+    "chars_per_token": 3.508,
+    "val_loss_nats": 6.1441,
+    "bits_per_token": 8.8641,
+    "bits_per_char": 2.5268,
+    "ppl": 465.97,
+    "seconds": 2.8
+  },
+  "new": {
+    "checkpoint": "/home/user/ai/checkpoints/last.npz",
+    "tokenizer": "/home/user/ai/tokenizer/rayan_bpe_16k.json",
+    "params": 16889856,
+    "cfg": {
+      "vocab_size": 16000,
+      "block_size": 256,
+      "n_layer": 6,
+      "n_head": 6,
+      "n_embd": 384
+    },
+    "checkpoint_step": 3700,
+    "windows": 64,
+    "chars": 300000,
+    "tokens": 81797,
+    "chars_per_token": 3.668,
+    "val_loss_nats": 6.2946,
+    "bits_per_token": 9.0812,
+    "bits_per_char": 2.476,
+    "ppl": 541.64,
+    "seconds": 5.7
+  },
+  "delta_bits_per_char": 0.0508,
+  "better": "new"
+}

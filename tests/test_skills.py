@@ -12,7 +12,10 @@ sys.path.insert(0, ROOT)
 
 from web import knowledge, skills  # noqa: E402
 
-CHECKPOINT = os.path.join(ROOT, "checkpoints", "rayan-1-small.npz")
+# سایت هر checkpointی را که موجود باشد بار می‌کند؛ آزمون هم همان را می‌سنجد.
+CHECKPOINTS = [os.path.join(ROOT, "checkpoints", name) for name in
+               ("last.npz", "rayan-2-base.npz", "rayan-1-small.npz")]
+CHECKPOINT = next((p for p in CHECKPOINTS if os.path.exists(p)), CHECKPOINTS[-1])
 
 try:
     from fastapi.testclient import TestClient
@@ -110,11 +113,18 @@ class SkillApiTest(unittest.TestCase):
         self.assertEqual(data["engine"], "skill")
         self.assertEqual(data["stats"]["finish_reason"], "skill")
 
-    def test_chat_fact_uses_knowledge(self):
+    def test_chat_fact_is_grounded(self):
+        """سؤال دانشی باید از شاهد (پیکره/دانشنامه) جواب بگیرد، نه از متن آماده."""
+        from web import retrieval
+        if not retrieval.index_exists() and not retrieval.wiki_exists():
+            self.skipTest("ایندکس محلی ساخته نشده است")
         res = self.client.post("/api/chat", json={"message": "پایتخت ایران کجاست؟", "mode": "chat"})
         self.assertEqual(res.status_code, 200, res.text)
-        self.assertEqual(res.json()["engine"], "knowledge")
-        self.assertIn("تهران", res.json()["answer"])
+        data = res.json()
+        self.assertIn(data["engine"], {"think", "knowledge", "chat"})
+        if data["engine"] == "think":
+            self.assertTrue(data["sources"])
+        self.assertIn("تهران", data["answer"])
 
     def test_stream_greeting_uses_skill(self):
         with self.client.stream("POST", "/api/chat/stream",

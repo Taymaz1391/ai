@@ -47,6 +47,11 @@
       <div class="wrap">
         <span class="eyebrow">آموزش کامل · رایگان · بدون ثبت‌نام</span>
         <h1>دورهٔ ۵ ساعتهٔ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> </h1>
+        <p class="course-note" style="border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--surface-2)">
+          این دوره ساختِ <b>نسخهٔ اول</b> رایان (۵ لایه، ۴ سر، واژگان ۱۰٬۰۰۰) را گام‌به‌گام توضیح می‌دهد؛ همان معماری و همان کد امروز هم کار می‌کند. مدل فعال سایت بزرگ‌تر است
+          (<span data-model-slot="layers">—</span> لایه، <span data-model-slot="vocab">—</span> توکن، <span data-model-slot="params-long">—</span> پارامتر) و جزئیاتش در <a href="/models">کارت مدل</a> آمده است.
+        </p>
+
         <p class="course-lead">
           ده درس، سیصد دقیقه، از پیکرهٔ خام فارسی تا محصولی که روی اینترنت کار می‌کند.
           هرچه در این سایت می‌بینی — توکنایزر، مدل، API، رابط، پنل مدیر و استقرار — در همین درس‌ها ساخته می‌شود.
@@ -381,7 +386,7 @@ print(tok.decode(ids))
             </ol>
             <pre><code>from rayan.model import Model
 m = Model.load("checkpoints/rayan-1-small.npz")
-print(sum(p.size for p in m.params.values()))   # 6574848
+print(sum(p.size for p in m.params.values()))   # 16889856
 probs = m.next_token_logits(m.prepare("هوش مصنوعی"))
 print(probs.shape)                              # (10000,)</code></pre>
             <p>
@@ -853,5 +858,6 @@ curl -i localhost:8000/admin
   <script src="/static/course.js"></script>
   <script src="/static/scroll.js"></script>
   <script src="/static/perf.js"></script>
+<script src="/static/model-stats.js"></script>
 </body>
 </html>

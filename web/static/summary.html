@@ -69,7 +69,7 @@
  هیچ API بیرونی‌ای در آن استفاده نمی‌شود.
         </p>
         <div class="sum-numbers">
-          <div><b>۶٫۵۷M</b><span>پارامتر مدل</span></div>
+          <div><b data-model-slot="params-m">—</b><span>میلیون پارامتر</span></div>
           <div><b>۱۴٫۷M</b><span>توکن فارسی آموزش</span></div>
           <div><b>۵٫۳۰</b><span>validation loss</span></div>
           <div><b>۲۰۰</b><span>پرسش در روز (رایگان)</span></div>
@@ -88,8 +88,8 @@
         <article class="sum-card">
           <h3>هوش و مدل</h3>
           <ul>
-            <li>ترنسفورمر دیکودر فقط با NumPy، بدون وزن آماده</li>
-            <li>توکنایزر BPE با واژگان ۱۰٬۰۰۰ فارسی</li>
+            <li>ترنسفورمر دیکودر <span data-model-slot="params-long">—</span> پارامتری، فقط با NumPy و بدون وزن آماده</li>
+            <li>توکنایزر BPE با واژگان <span data-model-slot="vocab">—</span> فارسی</li>
             <li>حالت‌های گفتگو، ادامهٔ متن و شعر</li>
             <li>اندیشهٔ ژرف با چند کاندید و توضیح مسیر</li>
             <li>نرمال‌سازی فارسی و پاک‌سازی خروجی</li>
@@ -213,5 +213,6 @@ pip install -r requirements.txt &amp;&amp; python -m web.server --port 8000</div
   <script src="/static/ui.js"></script>
   <script src="/static/scroll.js"></script>
   <script src="/static/perf.js"></script>
+<script src="/static/model-stats.js"></script>
 </body>
 </html>

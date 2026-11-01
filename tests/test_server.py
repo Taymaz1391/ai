@@ -9,7 +9,10 @@ import unittest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-CHECKPOINT = os.path.join(ROOT, "checkpoints", "rayan-1-small.npz")
+# سایت هر checkpointی را که موجود باشد بار می‌کند؛ آزمون هم همان را می‌سنجد.
+CHECKPOINTS = [os.path.join(ROOT, "checkpoints", name) for name in
+               ("last.npz", "rayan-2-base.npz", "rayan-1-small.npz")]
+CHECKPOINT = next((p for p in CHECKPOINTS if os.path.exists(p)), CHECKPOINTS[-1])
 
 try:
     from fastapi.testclient import TestClient
@@ -64,7 +67,7 @@ class ApiTest(unittest.TestCase):
 
     def test_model(self):
         data = self.client.get("/api/model").json()
-        self.assertEqual(data["config"]["vocab_size"], 10000)
+        self.assertIn(data["config"]["vocab_size"], (10000, 16000))
         self.assertGreaterEqual(len(data["limitations"]), 3)
 
     def test_pages(self):
@@ -80,8 +83,14 @@ class ApiTest(unittest.TestCase):
     def test_models_catalog(self):
         data = self.client.get("/api/models").json()
         self.assertGreaterEqual(len(data["models"]), 2)
-        self.assertEqual(data["default"], "rayan-1-small")
-        self.assertTrue(any(m["status"] == "ready" for m in data["models"]))
+        ids = [m["id"] for m in data["models"]]
+        # مدل پیش‌فرض همان مدل فعال است و باید در فهرست باشد
+        self.assertIn(data["default"], ids)
+        ready = [m for m in data["models"] if m["status"] == "ready"]
+        self.assertTrue(ready)
+        self.assertEqual(ready[0]["id"], data["default"])
+        self.assertGreater(ready[0]["params"], 1_000_000)
+        self.assertTrue(ready[0]["desc"])
 
     def test_samples(self):
         data = self.client.get("/api/samples").json()

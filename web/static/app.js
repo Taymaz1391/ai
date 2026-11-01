@@ -306,8 +306,8 @@
   function renderModelMenu() {
     el.modelMenu.innerHTML = "";
     const list = state.models.length ? state.models : [{
-      id: "rayan-1-small", name: "۱ — کوچک", tagline: "مدل فعال", status: "ready",
-      desc: "مدل ۶٫۵۷ میلیون پارامتری روی CPU", context: 256,
+      id: "active", name: "رایان", tagline: "مدل فعال", status: "ready",
+      desc: "مدل فعال روی CPU", context: 256,
     }];
     list.forEach((model) => {
       const item = document.createElement("button");
@@ -661,18 +661,24 @@
     box.className = "msg-sources";
     const head = document.createElement("div");
     head.className = "sources-head";
-    head.innerHTML = `<span class="sources-badge">وب</span><span>${nf(sources.length)} منبع</span>`;
+    const local = sources.every((item) => !item.url);
+    const fromWiki = sources.every((item) => (item.source || "").includes("ویکی"));
+    const badge = local ? (fromWiki ? "دانشنامه" : "پیکره") : "وب";
+    head.innerHTML = `<span class="sources-badge">${badge}</span>` +
+      `<span>${nf(sources.length)} منبع</span>`;
     const list = document.createElement("div");
     list.className = "sources-list";
     sources.forEach((item, index) => {
-      const card = document.createElement("a");
+      const card = document.createElement(item.url ? "a" : "div");
       card.className = "source-card";
-      card.href = item.url;
-      card.target = "_blank";
-      card.rel = "noopener noreferrer nofollow";
+      if (item.url) {
+        card.href = item.url;
+        card.target = "_blank";
+        card.rel = "noopener noreferrer nofollow";
+      }
       card.innerHTML = `<span class="source-index">${nf(index + 1)}</span>
         <span class="source-body"><b>${escapeHtml(item.title || "منبع")}</b>
-        <em>${escapeHtml(item.domain || "")}</em></span>`;
+        <em>${escapeHtml(item.domain || item.source || "")}</em></span>`;
       list.append(card);
     });
     box.append(head, list);
@@ -698,6 +704,27 @@
     }
     details.append(summary, body);
     return details;
+  }
+
+  function thinkEl(thought) {
+    const steps = (thought && thought.steps) || [];
+    if (!steps.length) return null;
+    const box = document.createElement("details");
+    box.className = "msg-think";
+    const seconds = steps.reduce((acc, step) => Math.max(acc, step.seconds || 0), 0);
+    const summary = document.createElement("summary");
+    summary.innerHTML = `<span class="think-dot"></span>` +
+      `<span>فکر کرد${seconds ? ` · ${nf(seconds, 2)} ثانیه` : ""}</span>`;
+    const list = document.createElement("ol");
+    list.className = "think-steps";
+    steps.forEach((step) => {
+      const item = document.createElement("li");
+      item.innerHTML = `<b>${escapeHtml(step.step || "")}</b>` +
+        `<span>${escapeHtml(step.detail || "")}</span>`;
+      list.append(item);
+    });
+    box.append(summary, list);
+    return box;
   }
 
   function toolsFor(msg) {
@@ -943,6 +970,10 @@
                 scrollToBottom(false);
               });
             }
+          } else if (event.type === "think") {
+            const block = thinkEl({ steps: event.steps });
+            if (block) { msg.meta = msg.meta || {}; msg.meta.thought = { steps: event.steps }; bubble.parentElement.append(block); }
+            scrollToBottom(false);
           } else if (event.type === "done") {
             msg.content = event.answer || answer;
             msg.id = event.message_id;

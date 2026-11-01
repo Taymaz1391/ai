@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>مدل‌ها · رایان</title>
-  <meta name="description" content="کارت مدل رایان ۱ — کوچک: ۶٫۵۷ میلیون پارامتر، آموزش از صفر، اعداد واقعی ارزیابی و محدودیت‌های صریح.">
+  <meta name="description" content="کارت مدل رایان: جزئیات معماری، اعداد واقعی ارزیابی و محدودیت‌های صریح.">
   <meta name="theme-color" content="#ffffff">
   <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/static/assets/icons/apple-touch-icon.png">
@@ -56,9 +56,9 @@
             <div>
               <h3> <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> ۱ — کوچک <span class="tag tag-blue">فعال</span></h3>
               <p class="tagline">مدل از صفر، روی پردازندهٔ معمولی · ۶٬۵۷۴٬۸۴۸ پارامتر · زمینهٔ ۲۵۶ توکن</p>
-              <p>همین مدلی که در حال گفتگوست: توکنایزر واژه‌ای فارسی، ترنسفورمر ۵ لایه با <bdi dir="ltr">NumPy</bdi> و ۲٬۴۰۰ گام آموزش روی ۱۶٫۹ میلیون نویسهٔ فارسی.</p>
+              <p>همین مدلی که در حال گفتگوست: توکنایزر BPE فارسی، ترنسفورمر <span data-model-slot="layers-heads">—</span> با <bdi dir="ltr">NumPy</bdi>، آموزش‌دیده روی <span data-model-slot="tokens">—</span> توکن فارسی.</p>
               <div class="model-meta">
-                <span>خطای اعتبارسنجی <b>۵٫۳۱</b></span>
+                <span>خطای اعتبارسنجی کامل <b data-model-slot="val-loss">—</b></span>
                 <span>سرعت <b>~۴۵ توکن در ثانیه</b></span>
                 <span>زمینه <b>۲۵۶ توکن</b></span>
               </div>
@@ -98,7 +98,7 @@
       <div class="wrap">
         <div class="section-head"><h2 class="section-title" style="font-size:26px">مشخصات فنی</h2></div>
         <div class="spec-grid" id="spec-grid">
-          <div class="spec"><span>پارامترها</span><b>۶٫۵۷ میلیون</b></div>
+          <div class="spec"><span>پارامترها</span><b data-model-slot="params-long">—</b></div>
           <div class="spec"><span>آموزش</span><b>۱۶٫۹ میلیون نویسه</b></div>
           <div class="spec"><span>زمینه</span><b>۲۵۶ توکن</b></div>
           <div class="spec"><span>اجرا</span><b>پردازندهٔ معمولی · بدون کارت گرافیک</b></div>
@@ -134,7 +134,7 @@ python scripts/train_tokenizer.py --corpus data/train.txt \
           <table class="data-table" id="eval-table">
             <thead><tr><th>سنجه</th><th>مقدار</th><th>توضیح</th></tr></thead>
             <tbody>
-              <tr><td>خطای اعتبارسنجی</td><td>۵٫۳۱ nats/token</td><td>میانگین cross-entropy</td></tr>
+              <tr><td>خطای اعتبارسنجی</td><td><span data-model-slot="val-loss">—</span> nats/token</td><td>میانگین cross-entropy</td></tr>
               <tr><td>Perplexity</td><td>۲۰۲٫۳۵</td><td>exp(خطا)</td></tr>
               <tr><td>بیت بر نویسه</td><td>۱٫۸۱</td><td>معیار مستقل از توکنایزر</td></tr>
               <tr><td>توکن دیده‌شده</td><td data-eval="tokens">۱۴٫۷ میلیون</td><td>دو فاز آموزش</td></tr>
@@ -193,7 +193,7 @@ python scripts/train_tokenizer.py --corpus data/train.txt \
           <h2 style="font-size:20px;margin-bottom:12px">محدودیت‌های صریح</h2>
           <div class="prose" style="font-size:14.5px">
             <ul>
-              <li><b>ظرفیت:</b> ۶٫۵۷ میلیون پارامتر برای دانش عمومی و استدلال کافی نیست.</li>
+              <li><b>ظرفیت:</b> <span data-model-slot="params-long">—</span> پارامتر برای دانش عمومی و استدلال کافی نیست.</li>
               <li><b>دانش:</b> فقط آنچه در پیکره بوده؛ بدون اینترنت، خبر تازه یا جست‌وجو.</li>
               <li><b>دقت:</b> ممکن است جمله‌های نادرست، تکراری یا بی‌ربط بسازد.</li>
               <li><b>سبک:</b> خروجی بین خبر، شعر و گفتگو نوسان می‌کند.</li>
@@ -257,5 +257,6 @@ python scripts/train_tokenizer.py --corpus data/train.txt \
   <script src="/static/models.js"></script>
   <script src="/static/scroll.js"></script>
   <script src="/static/perf.js"></script>
+<script src="/static/model-stats.js"></script>
 </body>
 </html>

@@ -52,14 +52,25 @@ from web import tools as tools_module  # noqa: E402
 from web import security as security_module  # noqa: E402
 from web import answer as answer_module  # noqa: E402
 from web import guard as guard_module  # noqa: E402
+from web import retrieval as retrieval_module  # noqa: E402
+from web import reason as reason_module  # noqa: E402
 
 STATIC_DIR = os.path.join(ROOT, "web", "static")
-CHECKPOINTS = [
-    os.path.join(ROOT, "checkpoints", "last.npz"),
-    os.path.join(ROOT, "checkpoints", "rayan-1-small.npz"),
+# هر checkpoint توکنایزر خودش را دارد؛ جفت‌ها به‌ترتیب اولویت آمده‌اند.
+CHECKPOINT_CANDIDATES = [
+    (os.path.join(ROOT, "checkpoints", "last.npz"), os.path.join(ROOT, "tokenizer", "rayan_bpe_16k.json")),
+    (os.path.join(ROOT, "checkpoints", "rayan-2-base.npz"), os.path.join(ROOT, "tokenizer", "rayan_bpe_16k.json")),
+    (os.path.join(ROOT, "checkpoints", "rayan-1-small.npz"), os.path.join(ROOT, "tokenizer", "rayan_bpe.json")),
 ]
-TOKENIZER_PATH = os.path.join(ROOT, "tokenizer", "rayan_bpe.json")
-METRICS_PATH = os.path.join(ROOT, "logs", "metrics.jsonl")
+CHECKPOINTS = [path for path, _ in CHECKPOINT_CANDIDATES]
+TOKENIZER_BY_VOCAB = {16000: os.path.join(ROOT, "tokenizer", "rayan_bpe_16k.json"),
+                      10000: os.path.join(ROOT, "tokenizer", "rayan_bpe.json")}
+TOKENIZER_PATH = CHECKPOINT_CANDIDATES[0][1]
+METRICS_CANDIDATES = [
+    os.path.join(ROOT, "logs", "metrics-v2.jsonl"),
+    os.path.join(ROOT, "logs", "metrics.jsonl"),
+]
+METRICS_PATH = next((p for p in METRICS_CANDIDATES if os.path.exists(p)), METRICS_CANDIDATES[0])
 RUN_CONFIG_PATH = os.path.join(ROOT, "configs", "training_run.json")
 CORPUS_STATS_PATH = os.path.join(ROOT, "data", "corpus_stats.json")
 
@@ -83,50 +94,96 @@ LIMITS = {
     "pro": {"chat": 3000, "deep": 1200},
 }
 
-MODELS = [
+# مدل‌های آرشیوی/آینده ثابت‌اند؛ مدل فعالِ فهرست از خودِ checkpoint ساخته می‌شود
+# تا هیچ پارامتر یا عددی در متن سایت دستی نوشته نشود.
+ARCHIVE_MODELS = [
     {
         "id": "rayan-1-small",
         "name": "رایان ۱ — کوچک",
-        "tagline": "مدل از صفر، روی CPU",
+        "tagline": "نسخهٔ قبلی، بازنشسته",
         "params": 6_574_848,
         "context": 256,
-        "status": "ready",
-        "badge": "فعال",
-        "desc": "همین مدل که در حال گفتگوست: ۵ لایه، ۴ سر، آموزش‌دیده روی ۱۶٫۹ میلیون نویسهٔ فارسی.",
-        "latency": "~۴۵ توکن/ثانیه",
+        "status": "archived",
+        "badge": "قبلی",
+        "desc": "مدل اول پروژه: ۵ لایه، ۴ سر و واژگان ۱۰هزارتایی. با توکنایزر قدیمی آموزش دید و دیگر پیش‌فرض سایت نیست.",
+        "latency": "—",
         "strengths": ["گفتگوی کوتاه فارسی", "ادامهٔ متن", "بیت کلاسیک"],
     },
     {
-        "id": "rayan-1-medium",
-        "name": "رایان ۱ — متوسط",
-        "tagline": "در حال آموزش",
-        "params": 0,
-        "context": 512,
-        "status": "planned",
-        "badge": "به‌زودی",
-        "desc": "نسخهٔ بزرگ‌تر با ۳۰ تا ۵۰ میلیون پارامتر؛ همان پشته، دادهٔ بیشتر و زمینهٔ بلندتر.",
-        "latency": "—",
-        "strengths": ["جمله‌های بلندتر", "انسجام بهتر", "دانش بیشتر"],
-    },
-    {
-        "id": "rayan-1-pro",
-        "name": "رایان ۱ — حرفه‌ای",
+        "id": "rayan-3",
+        "name": "رایان ۳",
         "tagline": "در نقشهٔ راه",
         "params": 0,
         "context": 1024,
         "status": "planned",
         "badge": "نقشهٔ راه",
-        "desc": "نسخهٔ حرفه‌ای با آموزش دستوری و ارزیابی استاندارد فارسی؛ روی GPU، نه CPU.",
+        "desc": "نسخهٔ بعدی با آموزش دستوری و ارزیابی استاندارد فارسی؛ روی GPU، نه CPU.",
         "latency": "—",
         "strengths": ["پیروی از دستور", "ارزیابی استاندارد", "گفتگوی چندنوبتی"],
     },
 ]
 
+
+def _run_config() -> dict:
+    try:
+        with open(RUN_CONFIG_PATH, encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _fa_number(value: float, digits: int = 1) -> str:
+    """عدد با جداکنندهٔ هزارگان و ارقام فارسی."""
+    text = f"{value:,.{digits}f}".replace(",", "٬")
+    return text.translate(str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹"))
+
+
+def active_model_card() -> dict:
+    """کارت مدل فعال، مستقیم از checkpoint و تنظیمات اجرای همان مدل."""
+    run = _run_config()
+    info = engine.info() if engine is not None else {}
+    cfg = (info.get("config") or {})
+    params = info.get("params") or run.get("params") or 0
+    layers = cfg.get("n_layer") or run.get("layers")
+    heads = cfg.get("n_head") or run.get("heads")
+    embed = cfg.get("n_embd") or run.get("embed")
+    vocab = cfg.get("vocab_size") or run.get("vocab")
+    tokens_seen = run.get("tokens_seen")
+    val_loss = run.get("val_loss") or (info.get("meta") or {}).get("val_loss")
+    bpc = run.get("bits_per_char") or (info.get("meta") or {}).get("bits_per_char")
+    parts = []
+    if layers and heads and embed:
+        parts.append(f"{_fa_number(layers, 0)} لایه، {_fa_number(heads, 0)} سر، بُعد {_fa_number(embed, 0)}")
+    if params:
+        parts.append(f"{_fa_number(params / 1e6)} میلیون پارامتر")
+    if vocab:
+        parts.append(f"واژگان {_fa_number(vocab, 0)}")
+    if tokens_seen:
+        parts.append(f"آموزش روی {_fa_number(tokens_seen / 1e6)} میلیون توکن")
+    desc = "همین مدل که در حال گفتگوست: " + "، ".join(parts) + "."
+    if bpc:
+        desc += f" خطای نگه‌داشته {_fa_number(bpc, 3)} بیت بر نویسه است."
+    return {
+        "id": run.get("id") or "active",
+        "name": info.get("name") or run.get("name") or "رایان",
+        "tagline": "مدل از صفر، روی CPU",
+        "params": params,
+        "context": cfg.get("block_size") or run.get("block_size") or 256,
+        "status": "ready" if engine is not None else "loading",
+        "badge": "فعال" if engine is not None else "در حال بارگذاری",
+        "desc": desc,
+        "metrics": {"val_loss": val_loss, "bits_per_char": bpc, "ppl": run.get("ppl")},
+        "latency": (f"~{_fa_number(run['inference_tokens_per_second'], 0)} توکن/ثانیه"
+                    if run.get("inference_tokens_per_second") else "—"),
+        "strengths": ["گفتگوی کوتاه فارسی", "ادامهٔ متن", "بیت کلاسیک"],
+    }
+
+
 SAMPLES = [
-    {"mode": "chat", "title": "خودت را معرفی کن", "text": "خودت را معرفی کن"},
-    {"mode": "chat", "title": "یک شعر", "text": "یک شعر بگو"},
-    {"mode": "chat", "title": "دربارهٔ ایران", "text": "دربارهٔ ایران برایم بگو"},
-    {"mode": "chat", "title": "پرسش فنی", "text": "مدل زبانی چیست؟"},
+    {"mode": "chat", "title": "پایتخت ایران", "text": "پایتخت ایران کجاست؟"},
+    {"mode": "chat", "title": "بلندترین قله", "text": "بلندترین قلهٔ ایران کجاست؟"},
+    {"mode": "chat", "title": "طولانی‌ترین رود", "text": "طولانی‌ترین رودخانهٔ جهان کدام است؟"},
+    {"mode": "chat", "title": "دربارهٔ خودت", "text": "خودت را معرفی کن"},
     {"mode": "continue", "title": "ادامهٔ متن", "text": "در دل کویر، شب‌ها آسمان پر از ستاره است و"},
     {"mode": "poetry", "title": "بیت‌سازی", "text": ""},
 ]
@@ -275,11 +332,33 @@ class FeedbackRequest(BaseModel):
 
 
 # --------------------------------------------------------------- ابزارها
+def checkpoint_vocab(path: str) -> int:
+    """اندازهٔ واژگان را از سرصفحهٔ checkpoint می‌خواند، بدون بارگذاری وزن‌ها."""
+    try:
+        with np.load(path, allow_pickle=False) as data:
+            return int(json.loads(str(data["__config__"]))["vocab_size"])
+    except Exception:
+        return 0
+
+
+def active_pair() -> tuple[str, str]:
+    """اولین جفت (checkpoint، توکنایزر) موجود؛ توکنایزر همیشه با checkpoint هم‌واژگان است."""
+    for path, tokenizer in CHECKPOINT_CANDIDATES:
+        if os.path.exists(path):
+            return path, tokenizer
+    return "", TOKENIZER_PATH
+
+
 def load_engine(checkpoint: str | None = None) -> Engine:
-    path = checkpoint or next((p for p in CHECKPOINTS if os.path.exists(p)), "")
-    if not path or not os.path.exists(path):
+    if checkpoint:
+        if not os.path.exists(checkpoint):
+            raise FileNotFoundError(f"checkpoint پیدا نشد: {checkpoint}")
+        tokenizer = TOKENIZER_BY_VOCAB.get(checkpoint_vocab(checkpoint), TOKENIZER_PATH)
+        return Engine(checkpoint, tokenizer)
+    path, tokenizer = active_pair()
+    if not path:
         raise FileNotFoundError("هیچ checkpointی پیدا نشد. ابتدا مدل را آموزش دهید.")
-    return Engine(path, TOKENIZER_PATH)
+    return Engine(path, tokenizer)
 
 
 def _engine() -> Engine:
@@ -884,9 +963,66 @@ def health() -> dict:
         "uptime_s": round(time.time() - STARTED, 1),
         "model": {"params": info.get("params")},
         "training_active": metrics["active"],
-        "latest_eval": _public_eval(metrics["latest_eval"]),
+        # ارزیابی جریان آموزش روی چند batch ثابت است؛ ارزیابی کامل در کارت اجرا می‌آید
+        "latest_eval": dict(_public_eval(metrics["latest_eval"]) or {}, scope="training_subset"),
+        "final_eval": _final_eval(),
+        "index": retrieval_module.stats(),
         "latest_train": _public_train(metrics["latest_train"]),
     }
+
+
+def _final_eval() -> dict | None:
+    """سنجه‌های کاملِ اعتبارسنجی از اجرای منتشرشده (finalize_run)."""
+    run = _run_config()
+    if not run or run.get("val_loss") is None:
+        return None
+    return {
+        "step": run.get("steps"),
+        "val_loss": run.get("val_loss"),
+        "ppl": run.get("ppl"),
+        "bits_per_char": run.get("bits_per_char"),
+        "tokens": run.get("tokens_seen"),
+        "scope": "full_validation",
+    }
+
+
+def _source_cards() -> list[dict]:
+    """کارت منابع پیکره از آمار واقعی ادغام، نه فهرست دستی."""
+    stats = _corpus_stats()
+    sources = stats.get("sources") or {}
+    titles = {
+        "train-v1.txt": "پیکرهٔ اول رایان",
+        "wiki.txt": "ویکی‌پدیای فارسی",
+        "mizan_fa.txt": "کتاب‌های فارسی (میزان)",
+        "normalized": "شعر کلاسیک فارسی",
+        "miras-sample.txt": "نمونهٔ متون میراث",
+    }
+    cards = []
+    for name, info in sources.items():
+        chars = int(info.get("chars") or 0)
+        cards.append({
+            "title": titles.get(name, name),
+            "detail": f"{_fa_number(info.get('docs') or 0, 0)} سند، {_fa_number(chars / 1e6)} میلیون نویسه",
+            "chars": chars,
+            "docs": int(info.get("docs") or 0),
+        })
+    cards.sort(key=lambda c: -c["chars"])
+    return cards
+
+
+def _limitations(params: int) -> list[str]:
+    items = []
+    if params:
+        items.append(
+            f"مدل {_fa_number(params / 1e6)} میلیون پارامتر دارد؛ با مدل‌های میلیاردپارامتری قابل مقایسه نیست."
+        )
+    items.extend([
+        "هیچ اتصال اینترنتی یا جست‌وجوی زنده ندارد و دانش آن از پیکرهٔ آموزش می‌آید.",
+        "ممکن است جمله‌های نادرست یا تکراری بسازد؛ پاسخ‌ها را بررسی کنید.",
+        "آموزش روی CPU انجام شده، نه با خوشهٔ GPU.",
+        "«اندیشهٔ ژرف» جست‌وجوی چندمسیره و امتیازدهی است، نه تفکر آگاهانه.",
+    ])
+    return items
 
 
 @app.get("/api/model")
@@ -904,28 +1040,20 @@ def model_info() -> dict:
         "hardware": _hardware(),
         "corpus": _corpus_stats(),
         "metrics": {
+            "final_eval": _final_eval(),
             "latest_eval": _public_eval(metrics["latest_eval"]),
             "best_eval": _public_eval(metrics["best_eval"]),
         },
-        "sources": [
-            {"title": "Persian News Dataset", "detail": "بیش از ۱۷۵ هزار خبر از خبرگزاری‌های ایرانی (milad-4274)"},
-            {"title": "Hamshahri Corpus", "detail": "پیکرهٔ روزنامهٔ همشهری (danialfarsi)"},
-            {"title": "JSON of Classic Persian Poems", "detail": "شعر کلاسیک فارسی از گنجور (namnamir)"},
-            {"title": "گفتگوهای آغازین رایان", "detail": "۱۴۰ نمونهٔ دست‌نویس برای قالب گفتگو و خودشناسی"},
-        ],
-        "limitations": [
-            "مدل فقط ۶٫۵۷ میلیون پارامتر دارد؛ با مدل‌های میلیاردپارامتری قابل مقایسه نیست.",
-            "هیچ اتصال اینترنتی یا جست‌وجوی زنده ندارد و دانش آن از پیکرهٔ آموزش می‌آید.",
-            "ممکن است جمله‌های نادرست یا تکراری بسازد؛ پاسخ‌ها را بررسی کنید.",
-            "آموزش روی CPU و در چند ساعت انجام شده، نه با خوشهٔ GPU.",
-            "«اندیشهٔ ژرف» جست‌وجوی چندمسیره و امتیازدهی است، نه تفکر آگاهانه.",
-        ],
+        "sources": _source_cards(),
+        "run": _run_config(),
+        "limitations": _limitations(info.get("params") or 0),
     }
 
 
 @app.get("/api/models")
 def models_catalog() -> dict:
-    return {"models": MODELS, "default": "rayan-1-small"}
+    card = active_model_card()
+    return {"models": [card, *ARCHIVE_MODELS], "default": card["id"]}
 
 
 _EVAL_FIELDS = ("step", "val_loss", "ppl", "bits_per_char", "top1", "top5", "at")
@@ -1301,6 +1429,26 @@ def _record_usage(owner: dict, ip: str, kind: str) -> None:
     store().record_event(kind, user_id=owner.get("user_id"), guest_id=owner.get("guest_id"), ip=ip)
 
 
+def _think(message: str, req, history=None) -> dict | None:
+    """لایهٔ «فکر کردن»: بازیابی شاهد از پیکره و ساختن پاسخ مستند.
+
+    فقط برای سؤال‌های دانشی در حالت گفتگو اجرا می‌شود و هیچ پاسخی از پیش
+    نوشته نشده؛ اگر شاهدی پیدا نشود None برمی‌گردد تا مسیرهای بعدی امتحان شوند.
+    """
+    if req.mode != "chat" or req.web:
+        return None
+    if not retrieval_module.index_exists():
+        return None
+    question = retrieval_module.resolve_followup(message, history) if history else message
+    if not retrieval_module.looks_factual(question):
+        return None
+    try:
+        return retrieval_module.think(question)
+    except Exception as exc:  # noqa: BLE001 - بازیابی نباید چت را بشکند
+        print(f"[rayan] retrieval failed: {exc}", flush=True)
+        return None
+
+
 def _instant_turn(owner: dict, ip: str, req: ChatRequest, response: Response,
                   conv_id: str | None, message: str, answer: str,
                   tool_result: dict | None, started: float,
@@ -1312,8 +1460,10 @@ def _instant_turn(owner: dict, ip: str, req: ChatRequest, response: Response,
         "tokens_per_second": 0.0, "confidence": 1.0, "entropy": 0.0,
         "finish_reason": engine, "seed": 0,
     }
-    conv_id, msg_id = _persist_turn(owner, conv_id, message, answer, stats, None, False,
-                                    tool_result, None)
+    extra = extra or {}
+    sources = extra.get("sources") or []
+    conv_id, msg_id = _persist_turn(owner, conv_id, message, answer, stats,
+                                    extra.get("thought"), False, tool_result, sources or None)
     _remember(req.session_id, message, answer)
     _record_usage(owner, ip, "chat")
     _set_guest_cookie(response, owner)
@@ -1325,7 +1475,7 @@ def _instant_turn(owner: dict, ip: str, req: ChatRequest, response: Response,
         "stats": stats, "latency_s": round(time.time() - started, 3),
         "session_id": req.session_id, "conversation_id": conv_id,
         "message_id": msg_id, "usage": {"used": used, "limit": limit},
-        "tool": tool_result, "sources": [], "engine": engine, "extra": extra or {},
+        "tool": tool_result, "sources": sources, "engine": engine, "extra": extra or {},
     }
 
 
@@ -1377,6 +1527,13 @@ def _ground_if_weak(message: str, answer: str, history, owner: dict, req) -> tup
     found: list[dict] = []
 
     def resolver(query: str) -> str | None:
+        # ۱) شاهد از پیکرهٔ محلی (بدون شبکه و بدون هزینه)
+        if reason_module.retrieval.index_exists() and reason_module.retrieval.looks_factual(query):
+            thought = reason_module.retrieval.think(query)
+            if thought.get("answer"):
+                found.extend(thought.get("sources") or [])
+                return thought["answer"]
+        # ۲) جست‌وجوی وب، اگر مدیر اجازه داده باشد
         if req.web or not admin_module.flags().get("web_search", True):
             return None
         results = search_module.search(query, limit=4).get("results") or []
@@ -1386,6 +1543,10 @@ def _ground_if_weak(message: str, answer: str, history, owner: dict, req) -> tup
         return search_module.compose(query, results)
 
     text = answer_module.enhance(message, answer, history, owner, resolver=resolver)
+    if not found and answer_module.weak(message, text, history):
+        # هیچ شاهدی نبود: صریح بگو و موضوع‌های نزدیک را پیشنهاد بده
+        near = reason_module._near_subjects(message)  # noqa: SLF001 - همان ماژول داخلی
+        text = reason_module.honest(message, near)
     return text, found
 
 
@@ -1407,11 +1568,13 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
                                  tool_result, started, "skill", {"skill": skill["skill"]})
 
         if not req.web:
-            kb = knowledge_module.answer(message)
-            if kb:
-                return _instant_turn(owner, ip, req, response, conv_id, message, kb["answer"],
-                                     tool_result, started, "knowledge",
-                                     {"knowledge": kb["knowledge"], "score": kb["score"]})
+            thought = _think(message, req, history)
+            if thought and thought.get("answer"):
+                return _instant_turn(owner, ip, req, response, conv_id, message,
+                                     thought["answer"], tool_result, started, "think",
+                                     {"thought": {"steps": thought["trace"],
+                                                  "confidence": thought["confidence"]},
+                                      "sources": thought["sources"]})
 
     web_results: list[dict] = []
     if req.web and req.mode == "chat" and admin_module.flags().get("web_search", True):
@@ -1496,11 +1659,16 @@ def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     model, message, history, conv_id = _prepare(req, owner, ip)
     tool_result = None if req.mode != "chat" else tools_module.detect(message)
     skill = skills_module.match(message) if req.mode == "chat" else None
+    thought = None
+    if req.mode == "chat" and not skill:
+        thought = _think(message, req, history)
     kb = None
-    if req.mode == "chat" and not skill and not req.web:
+    if req.mode == "chat" and not skill and not thought and not req.web:
         kb = knowledge_module.answer(message)
-    instant_answer = (skill or {}).get("answer") or (kb or {}).get("answer") or ""
-    instant_engine = "skill" if skill else ("knowledge" if kb else "")
+    instant_answer = ((skill or {}).get("answer") or (thought or {}).get("answer")
+                      or (kb or {}).get("answer") or "")
+    instant_engine = ("skill" if skill else "think" if thought else
+                      "knowledge" if kb else "")
     kwargs = _generation_kwargs(req)
     kwargs["seed"] = req.seed
     kwargs = {k: v for k, v in kwargs.items() if v is not None}
@@ -1519,14 +1687,21 @@ def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
                 request_count += 1
             used, limit = _quota(owner, ip, "chat")
             yield json.dumps({"type": "start", "prompt_tokens": 0}, ensure_ascii=False) + "\n"
+            if thought:
+                yield json.dumps({"type": "think", "steps": thought["trace"],
+                                  "sources": thought.get("sources") or []},
+                                 ensure_ascii=False) + "\n"
             yield json.dumps({"type": "token", "text": instant_answer}, ensure_ascii=False) + "\n"
             yield json.dumps({
                 "type": "done", "answer": instant_answer, "stats": stats,
+                "sources": (thought or {}).get("sources") or [],
                 "conversation_id": new_conv, "message_id": msg_id,
                 "usage": {"used": used, "limit": limit}, "tool": tool_result,
                 "engine": instant_engine,
                 "skill": (skill or {}).get("skill"),
                 "knowledge": (kb or {}).get("knowledge"),
+                "thought": {"steps": (thought or {}).get("trace", []),
+                            "confidence": (thought or {}).get("confidence")} if thought else None,
             }, ensure_ascii=False) + "\n"
             return
 
@@ -1709,8 +1884,9 @@ def selftest(request: Request) -> dict:
     except Exception as exc:
         add("database", False, str(exc))
     add("model", engine is not None, engine_error or "loaded")
-    add("checkpoint", os.path.exists(CHECKPOINTS[-1]), CHECKPOINTS[-1])
-    add("tokenizer", os.path.exists(TOKENIZER_PATH), TOKENIZER_PATH)
+    active_checkpoint, active_tokenizer = active_pair()
+    add("checkpoint", bool(active_checkpoint), active_checkpoint or "not found")
+    add("tokenizer", os.path.exists(active_tokenizer), active_tokenizer)
     add("static_dir", os.path.isdir(STATIC_DIR), STATIC_DIR)
     add("admin", bool(admin_module.admin_credentials().get("pw_hash")), "credentials ready")
     free = -1

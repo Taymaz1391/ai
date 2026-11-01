@@ -236,7 +236,7 @@ class Engine:
     def info(self) -> dict:
         meta = dict(self.meta)
         return {
-            "name": "رایان ۱ — کوچک",
+            "name": meta.get("name") or "رایان",
             "params": int(sum(p.size for p in self.params.values())),
             "config": self.cfg.to_dict(),
             "tokenizer": self.tokenizer.stats(),
