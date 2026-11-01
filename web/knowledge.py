@@ -15,6 +15,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 FILE = Path(__import__("os").environ.get("RAYAN_KNOWLEDGE_FILE") or ROOT / "data" / "knowledge.jsonl")
+# بستهٔ دانشِ عمومی جدا نگه داشته می‌شود تا ویرایشِ مدیر در پنل آن را بازنویسی نکند
+PACK = Path(__import__("os").environ.get("RAYAN_KNOWLEDGE_PACK") or FILE.with_name("knowledge-pack.jsonl"))
 
 _STOP = {"از", "به", "در", "را", "که", "و", "یا", "با", "برای", "چه", "چی", "چیست",
          "کجاست", "کجا", "کی", "کیست", "است", "هست", "می", "شود", "کن", "کنم", "بگو",
@@ -23,7 +25,7 @@ _STOP = {"از", "به", "در", "را", "که", "و", "یا", "با", "برای
          "بود", "بودند", "شد", "شده", "کرد", "کرده", "کند", "کنند", "دارد", "دارند",
          "کاری", "کارها", "هایی", "های", "نوشت", "گفت", "داریم", "کنیم", "بده",
          # واژه‌های پرسشی که موضوع نمی‌سازند
-         "کسی", "کسانی", "آیا", "چرا", "چگونه", "چطور", "چند", "چندمین", "کدام"}
+         "کسی", "کسانی", "آیا", "چرا", "چگونه", "چطور", "چند", "چندمین", "کدام", "ترین"}
 
 _ENTRIES: list[dict] | None = None
 
@@ -43,17 +45,27 @@ def load() -> list[dict]:
     if _ENTRIES is not None:
         return _ENTRIES
     entries: list[dict] = []
-    try:
-        for line in FILE.read_text(encoding="utf-8").splitlines():
+    seen: set[str] = set()
+    for path in (FILE, PACK):
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            continue
+        for line in lines:
             line = line.strip()
             if not line:
                 continue
-            row = json.loads(line)
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            ident = str(row.get("id") or row.get("q") or "")
+            if ident and ident in seen:
+                continue
+            seen.add(ident)
             keys = row.get("keys") or [row.get("q", "")]
             row["_tokens"] = _tokens(" ".join(keys) + " " + row.get("q", ""))
             entries.append(row)
-    except (OSError, ValueError):
-        entries = []
     _ENTRIES = entries
     return entries
 
@@ -79,6 +91,15 @@ _AUTHOR_ASK = re.compile(r"چه کسی|چه کسانی|نویسنده|مولف|�
 _AUTHOR_KEY = re.compile(r"نوشت|سرود|نویسند|مولف|مؤلف|چه کسی|سراینده|"
                          r"کشف|فرمول|ارائه داد|بنیان")
 _SUMMARY_KEY = re.compile(r"درباره|خلاصه|چیست$")
+# پرسشِ سال/تاریخ، پاسخِ تاریخی می‌خواهد؛ نه اینکه «کجاست» را جواب بدهیم
+_YEAR_ASK = re.compile(r"(?:در\s*)?چه\s*سالی?|سالِ?\s*چند|کدام\s*سال|چندمین\s*سال")
+# گفت‌وگوی کوتاه، پرسش دانشی نیست
+# «شروع» یا «پایان»: دو پاسخِ متفاوت برای یک موضوع
+_START_ASK = re.compile(r"شروع|آغاز|اعلام|رخ داد|وقوع|به قدرت رسید")
+_END_ASK = re.compile(r"پایان|تمام شد|خاتمه|سقوط|فروپاش|شکست خورد")
+
+_SMALL_TALK = re.compile(r"^(?:سلام|درود|خوبی|خوبید|چطوری|چطورید|چه خبر|ممنون|مرسی|سپاس|"
+                         r"خداحافظ|بدرود|صبح بخیر|شب بخیر|وقت بخیر)[\s!.,،؟?]*$")
 
 
 def _stem(token: str) -> str:
@@ -109,11 +130,16 @@ def lookup(message: str, min_score: float = 0.62) -> dict | None:
     از کلیدهای ورودی در پرسش آمده (دقت) و پاداشِ تطبیقِ عبارتِ کامل. سپس نگهبانِ
     موضوع بررسی می‌کند که واژه‌های کم‌بسامدِ پرسش در ورودی آمده باشند.
     """
+    if _SMALL_TALK.match(" ".join((message or "").split())):
+        return None                     # سلام و تشکر، پرسش دانشی نیستند
     query = _tokens(message)
     if not query:
         return None
     flat = " " + " ".join(_norm(message).split()) + " "
     author_intent = bool(_AUTHOR_ASK.search(flat))
+    year_intent = bool(_YEAR_ASK.search(flat))
+    start_intent = bool(_START_ASK.search(flat))
+    end_intent = bool(_END_ASK.search(flat)) and not start_intent
     subjects = _subjects(message)
     subjects_all = subjects | _stems(subjects) if subjects else set()
     ranked: list[tuple[float, dict]] = []
@@ -135,10 +161,26 @@ def lookup(message: str, min_score: float = 0.62) -> dict | None:
             if not _AUTHOR_KEY.search(" ".join(keys) + " " + entry.get("q", "")):
                 continue            # پرسش از پدیدآورنده است؛ ورودیِ توصیفی پاسخ نیست
             score += 0.5
+        elif year_intent:
+            # «در چه سالی پایتخت شد» سال می‌خواهد، نه نامِ پایتخت
+            body = " ".join(keys) + " " + entry.get("q", "")
+            if not re.search(r"سال|تاریخ|قرن", body):
+                continue
+            score += 0.4
+        if start_intent and not _START_ASK.search(entry.get("q", "") + " " + " ".join(keys)):
+            continue                    # پرسش از شروع است؛ ورودیِ «پایان» پاسخ نیست
+        if end_intent and not _END_ASK.search(entry.get("q", "") + " " + " ".join(keys)):
+            continue
         elif _SUMMARY_KEY.search(" ".join(keys)):
             score -= 0.1
-        if score >= 1.0:
-            ranked.append((score, entry))
+        if score < 1.0:
+            continue
+        # واژه‌ای که در بیشترِ ورودی‌ها هست (مثل «خوب») موضوع نمی‌سازد
+        matched = query & keys
+        if matched and all(sum(1 for row in load() if token in row["_tokens"]) > 30
+                           for token in matched):
+            continue
+        ranked.append((score, entry))
     if not ranked:
         return None
     ranked.sort(key=lambda item: item[0], reverse=True)
@@ -149,12 +191,10 @@ def lookup(message: str, min_score: float = 0.62) -> dict | None:
         body_tokens = _tokens(body) | _stems(_tokens(body))
         if not (subjects_all & body_tokens):
             continue                        # پاسخ به موضوعِ دیگری است
-        # واژه‌های کم‌بسامد موضوع را می‌سازند؛ یا یکی از آن‌ها در ورودی باشد،
-        # یا پوششِ واژه‌های پرسش آن‌قدر بالا باشد که موضوع روشن باشد
-        rare = {token for token in subjects_all
-                if sum(1 for row in load() if token in row["_tokens"]) <= 2}
+        # دست‌کم سه‌چهارمِ واژه‌های موضوعیِ پرسش باید در ورودی باشد؛
+        # وگرنه «مرکز استان گیلان» به ورودیِ اصفهان می‌خورد.
         coverage = len(subjects_all & body_tokens) / len(subjects_all)
-        if rare and not (rare & body_tokens) and coverage < 0.75:
+        if coverage < 0.75:
             continue
         return {"entry": entry, "score": round(min(score, 2.0), 2)}
     return None
