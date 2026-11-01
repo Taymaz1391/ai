@@ -55,24 +55,57 @@ class ApiTest(unittest.TestCase):
 
     # ---------------------------------------------------------------- پایه
     def test_health(self):
+        """سلامتِ عمومی فقط «آماده است یا نه» می‌گوید؛ جزئیات داخلی بیرون نمی‌رود."""
         data = self.client.get("/api/health").json()
         self.assertTrue(data["ok"])
-        self.assertGreater(data["model"]["params"], 1_000_000)
+        self.assertTrue(data["ready"])
+        self.assertNotIn("model", data)
+        self.assertNotIn("index", data)
+        self.assertIn("signup_required", data)
+
+    def test_health_detail_is_admin_only(self):
+        fresh = TestClient(self.server.app)
+        self.assertIn(fresh.get("/api/health/detail").status_code, (401, 403))
+        login = self.client.post("/api/admin/login", json={
+            "password": os.environ.get("RAYAN_ADMIN_PASSWORD", "v3-test-admin-pass")})
+        if login.status_code != 200:
+            self.skipTest("admin password not configured for this class")
+        try:
+            detail = self.client.get("/api/health/detail").json()
+            self.assertIn("model", detail)
+            self.assertIn("latency", detail)
+        finally:
+            self.client.post("/api/admin/logout")
 
     def test_model(self):
+        """کارت عمومی توانایی‌ها را می‌گوید، نه معماری و اعداد داخلی."""
         data = self.client.get("/api/model").json()
-        self.assertIn(data["config"]["vocab_size"], (10000, 16000))
-        self.assertGreaterEqual(len(data["limitations"]), 3)
+        self.assertEqual(data["name"], "رایان")
+        self.assertGreaterEqual(len(data["abilities"]), 3)
+        for hidden in ("config", "params", "corpus", "architecture", "limitations"):
+            self.assertNotIn(hidden, data)
+
+    def test_model_detail_is_admin_only(self):
+        fresh = TestClient(self.server.app)
+        self.assertIn(fresh.get("/api/model/detail").status_code, (401, 403))
+        self.assertIn(fresh.get("/api/metrics").status_code, (401, 403))
 
     def test_pages(self):
         for path in ("/", "/chat", "/login", "/signup", "/pricing", "/models", "/about",
-                     "/docs", "/course", "/en", "/en/course", "/en/docs", "/summary",
-                     "/download"):
+                     "/compare"):
             res = self.client.get(path)
             self.assertEqual(res.status_code, 200, path)
             self.assertTrue("رایان" in res.text or "rayan" in res.text.lower(), path)
         self.assertIn("urlset", self.client.get("/sitemap.xml").text)
         self.assertIn("User-agent", self.client.get("/robots.txt").text)
+
+    def test_closed_pages_are_gone(self):
+        """هیچ سند، کد، بستهٔ نصب یا خلاصهٔ پروژه‌ای منتشر نمی‌شود."""
+        for path in ("/docs", "/course", "/download", "/summary", "/developer"):
+            res = self.client.get(path, follow_redirects=False)
+            self.assertEqual(res.status_code, 302, path)
+            self.assertEqual(res.headers["location"], "/")
+            self.assertEqual(self.client.get(f"/static{path}.html").status_code, 404, path)
 
     def test_models_catalog(self):
         data = self.client.get("/api/models").json()
@@ -83,8 +116,9 @@ class ApiTest(unittest.TestCase):
         ready = [m for m in data["models"] if m["status"] == "ready"]
         self.assertTrue(ready)
         self.assertEqual(ready[0]["id"], data["default"])
-        self.assertGreater(ready[0]["params"], 1_000_000)
-        self.assertTrue(ready[0]["desc"])
+        self.assertNotIn("checkpoint", ready[0])
+        self.assertNotIn("metrics", ready[0])
+        self.assertTrue(ready[0]["tagline"])
 
     def test_samples(self):
         data = self.client.get("/api/samples").json()
@@ -408,7 +442,8 @@ class V3Test(unittest.TestCase):
     def test_code_surfaces_are_admin_only(self):
         """کد/وزن‌ها و خودآزمون نباید برای کاربر عادی باز باشد."""
         fresh = TestClient(self.server.app)
-        self.assertIn(fresh.get("/api/download/checkpoint").status_code, (401, 403))
+        # دانلود وزن‌ها کامل حذف شده است؛ حتی برای مدیر هم مسیری نیست
+        self.assertEqual(fresh.get("/api/download/checkpoint").status_code, 404)
         self.assertIn(fresh.get("/api/selftest").status_code, (401, 403))
         page = fresh.get("/admin")
         self.assertEqual(page.status_code, 200)

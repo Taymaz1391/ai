@@ -1,21 +1,59 @@
-MIT License
+حق نشر © ۱۴۰۵ / 2026 — رایان. همهٔ حقوق محفوظ است.
+Copyright © 2026 Rayan. All rights reserved.
 
-Copyright (c) 2026 Rayan contributors
+این نرم‌افزار، مدل، وزن‌ها، توکنایزر، داده‌ها، متن‌ها، تصاویر، صداها، رابط کاربری و
+هر پروندهٔ دیگری که بخشی از رایان است (مجموعاً «محصول»)، دارایی اختصاصی مالک آن است
+و تحت هیچ مجوز متن‌بازی منتشر نمی‌شود.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+۱. هیچ بخشی از محصول، به هیچ شکلی، منتشر، بازنشر، فروخته، اجاره داده، توزیع،
+   بارگذاری، آینه (mirror) یا در اختیار عموم گذاشته نمی‌شود؛ مگر با اجازهٔ کتبی مالک.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+۲. هرگونه استفاده، اجرا، کپی، تغییر، ترجمه، مهندسی معکوس، از هم بازکردن،
+   آموزش مدل دیگر بر پایهٔ آن، یا ساخت اثر اشتقاقی، بدون اجازهٔ کتبی مالک ممنوع است.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+۳. میزبانی محصول روی سرور شخصی، اشتراک‌گذاری وزن‌های مدل، یا در دسترس گذاشتن آن
+   برای دیگران — به هر شکل و با هر نام — ممنوع است. دسترسی به هوش رایان فقط از
+   راه سرویس رسمی خود محصول ممکن است.
+
+۴. نام، نشان، لوگوتایپ و هویت بصری رایان علامت تجاری مالک است و استفاده از آن‌ها
+   بدون اجازهٔ کتبی ممنوع است.
+
+۵. محصول «همان‌گونه که هست» ارائه می‌شود. مالک هیچ ضمانت صریح یا ضمنی، از جمله
+   ضمانت قابلیت فروش یا تناسب برای هدفی خاص، نمی‌دهد و در قبال هیچ خسارت مستقیم،
+   غیرمستقیم، اتفاقی یا تبعی مسئول نیست.
+
+۶. نقض هر بند از این شرایط، حق مالک برای پیگیری قانونی و مطالبهٔ خسارت را محفوظ
+   می‌کند.
+
+------------------------------------------------------------------------------
+ENGLISH
+
+Copyright © 2026 Rayan. All rights reserved.
+
+This software, model, weights, tokenizer, datasets, text, images, audio, user
+interface and every other file that is part of Rayan (together, the "Product")
+is the exclusive proprietary property of its owner. It is not released under any
+open-source license.
+
+1. No part of the Product may be published, republished, sold, rented,
+   distributed, uploaded, mirrored or otherwise made available to the public,
+   in whole or in part, without prior written permission of the owner.
+
+2. Any use, execution, copying, modification, translation, reverse engineering,
+   decompilation, training of other models on it, or creation of derivative
+   works is prohibited without prior written permission of the owner.
+
+3. Self-hosting the Product, sharing model weights, or making it available to
+   others under any name or form is prohibited. Access to the Rayan
+   intelligence is available only through the official service.
+
+4. The Rayan name, mark, logotype and visual identity are trademarks of the
+   owner; use without written permission is prohibited.
+
+5. The Product is provided "AS IS", without warranty of any kind, express or
+   implied, including merchantability or fitness for a particular purpose. The
+   owner shall not be liable for any direct, indirect, incidental or
+   consequential damages.
+
+6. Violation of these terms reserves the owner's right to legal action and
+   damages.

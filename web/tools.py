@@ -180,6 +180,24 @@ def catalog() -> list[dict]:
     return [{"name": item["name"], "desc": item["desc"], "example": item["args"]} for item in CATALOG]
 
 
+def phrase(result: dict) -> str:
+    """نتیجهٔ ابزار را به یک جملهٔ فارسیِ آمادهٔ نمایش تبدیل می‌کند."""
+    if not result or not result.get("ok"):
+        return ""
+    fa = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
+    tool = result.get("tool")
+    if tool == "calc":
+        value = result.get("value")
+        if isinstance(value, float) and value == int(value):
+            value = int(value)
+        expr = str(result.get("expression") or "").replace("*", "×").replace("/", "÷")
+        return f"{expr} = {value}".translate(fa)
+    if tool == "now":
+        parts = [str(result.get(k)) for k in ("weekday", "jalali", "time") if result.get(k)]
+        return " — ".join(parts).translate(fa) if parts else ""
+    return ""
+
+
 def run(name: str, args: dict) -> dict:
     if name not in _INDEX:
         return {"ok": False, "error": f"ابزار ناشناخته: {name}"}
@@ -212,9 +230,20 @@ def normalize_math(text: str) -> str:
     return t
 
 
+_PERCENT = re.compile(r"(\d+(?:\.\d+)?)\s*(?:٪|%|درصد)\s*(?:از|از مبلغ|از عدد)?\s*(\d+(?:\.\d+)?)")
+
+
 def detect(text: str) -> dict | None:
     """تشخیص خودکار ابزار از متن کاربر (بدون هزینه و بدون مدل)."""
     raw = text.strip()
+    # درصد: «۲۵ ٪ از ۸۰» یا «۲۵ درصد ۸۰»
+    pct = _PERCENT.search(raw.translate(_DIGITS))
+    if pct:
+        part, whole = float(pct.group(1)), float(pct.group(2))
+        value = part * whole / 100
+        return {"ok": True, "tool": "calc",
+                "expression": f"{part:g}% * {whole:g}",
+                "value": round(value, 10) if value != int(value) else int(value)}
     t = normalize_math(raw)
     # عبارت ریاضی می‌تواند داخل جمله هم باشد: «۱۲*۳ چند است؟»
     for match in re.finditer(r"[0-9][0-9\s+\-*/%^().]{1,120}", t):

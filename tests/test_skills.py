@@ -32,12 +32,25 @@ class SkillTest(unittest.TestCase):
 
     def test_identity_and_install(self):
         self.assertEqual(skills.match("تو کی هستی؟")["skill"], "identity")
-        self.assertIn("/download", skills.match("چطور نصب کنم؟")["answer"])
+        # نصب از مرورگر است؛ صفحهٔ دانلود حذف شده و لینک مرده نمی‌دهیم
+        self.assertIn("مرورگر", skills.match("چطور نصب کنم؟")["answer"])
 
     def test_code_request_is_honest(self):
         hit = skills.match("یک تابع پایتون بنویس")
         self.assertEqual(hit["skill"], "code_request")
-        self.assertIn("کافی نیست", hit["answer"])
+        self.assertIn("قوی نیستم", hit["answer"])
+
+    def test_answers_leak_no_internals(self):
+        """هیچ پاسخ مهارتی نباید پارامتر، پیکره، مسیر فایل یا لینک مخزن را لو بدهد."""
+        banned = ("پارامتر", "میلیونی", "NumPy", "github", "/docs", "/course", "/download",
+                  "checkpoint", "پیکره")
+        for probe in ("سلام", "تو کی هستی؟", "خودت را معرفی کن", "چه کارهایی می‌کنی؟",
+                      "قیمت چقدر است؟", "چطور نصب کنم؟", "مستندات کجاست؟",
+                      "یک تابع پایتون بنویس"):
+            hit = skills.match(probe)
+            self.assertIsNotNone(hit, probe)
+            for word in banned:
+                self.assertNotIn(word, hit["answer"], f"{probe} → {word}")
 
     def test_no_false_positive(self):
         self.assertIsNone(skills.match("باران امروز چه حالی دارد؟"))

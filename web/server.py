@@ -94,6 +94,20 @@ sessions_lock = threading.Lock()
 request_count = 0
 stats_lock = threading.Lock()
 
+# ------------------------------------------------------------------ میزان تأخیر
+# تأخیر واقعیِ همین سرویس برای صفحهٔ «میزان»؛ پنجرهٔ لغزان تا حافظه رشد نکند.
+_LATENCY_WINDOW = int(os.environ.get("RAYAN_LATENCY_WINDOW", "500"))
+_recent_latencies: deque = deque(maxlen=_LATENCY_WINDOW)
+_latency_lock = threading.Lock()
+
+
+def _note_latency(seconds: float | None) -> None:
+    """هر پاسخ واقعیِ کاربر یک نمونه است؛ هیچ عددی دستی نوشته نمی‌شود."""
+    if seconds is None or seconds < 0:
+        return
+    with _latency_lock:
+        _recent_latencies.append(round(float(seconds), 3))
+
 # --------------------------------------------------------------- محدودیت‌ها
 LIMITS = {
     "guest": {"chat": 25, "deep": 10},
@@ -879,24 +893,14 @@ def about_page() -> FileResponse:
     return _page("about.html")
 
 
-@app.get("/course", response_class=HTMLResponse)
-def course_page() -> FileResponse:
-    return _page("course.html")
+@app.get("/compare", response_class=HTMLResponse)
+def compare_page() -> FileResponse:
+    """میزانِ رایان: سرعت و دقت سنجیده‌شده، در برابر دیگر دستیارها."""
+    return _page("compare.html")
 
 
-@app.get("/docs", response_class=HTMLResponse)
-def docs_page() -> FileResponse:
-    return _page("docs.html")
-
-
-@app.get("/download", response_class=HTMLResponse)
-def download_page() -> FileResponse:
-    return _page("download.html")
-
-
-@app.get("/summary", response_class=HTMLResponse)
-def summary_page() -> FileResponse:
-    return _page("summary.html")
+# صفحه‌های «پشت صحنه» بسته شده‌اند: هیچ سند، کد، بستهٔ نصب یا منبعی منتشر نمی‌شود.
+_CLOSED = ("/course", "/docs", "/download", "/summary", "/developer", "/install")
 
 
 @app.get("/en")
@@ -907,15 +911,20 @@ def english_removed() -> RedirectResponse:
     return RedirectResponse("/", status_code=302)
 
 
+@app.get("/course")
+@app.get("/docs")
+@app.get("/download")
+@app.get("/summary")
+@app.get("/developer")
+def closed_pages() -> RedirectResponse:
+    """این بخش‌ها عمداً وجود ندارند؛ بازدیدکنندهٔ قدیمی به خانه برمی‌گردد."""
+    return RedirectResponse("/", status_code=302)
+
+
 @app.get("/academy")
 def academy_removed() -> RedirectResponse:
     """آکادمی حذف شده است؛ بازدیدکنندهٔ قدیمی به خانه برمی‌گردد."""
     return RedirectResponse("/", status_code=302)
-
-
-@app.get("/developer", response_class=HTMLResponse)
-def developer_page() -> FileResponse:
-    return _page("developer.html")
 
 
 @app.get("/support", response_class=HTMLResponse)
@@ -1013,29 +1022,29 @@ def api_support(req: SupportRequest, request: Request) -> dict:
 
 @app.get("/api/health")
 def health() -> dict:
+    """وضعیت عمومی: فقط «آماده است یا نه»؛ هیچ مسیر، فایل یا جزئیات داخلی بیرون نمی‌رود."""
+    return {"ok": engine is not None, "ready": engine is not None,
+            "uptime_s": round(time.time() - STARTED, 1),
+            "signup_required": REQUIRE_SIGNUP}
+
+
+@app.get("/api/health/detail")
+def health_detail(request: Request) -> dict:
+    """همان وضعیت، کامل — فقط برای مدیر."""
+    admin_module.require_admin(request)
     info = engine.info() if engine is not None else {}
     meta = info.get("meta") or {}
     metrics = _read_metrics(limit=1)
-    owns_run = bool(_run_config_for_active())
     return {
-        "ok": engine is not None,
-        "error": engine_error,
+        "ok": engine is not None, "error": engine_error,
         "uptime_s": round(time.time() - STARTED, 1),
-        "model": {"params": info.get("params"),
-                  "checkpoint": os.path.relpath(engine.checkpoint, ROOT) if engine is not None else None,
-                  "stage": meta.get("stage"), "step": meta.get("step"),
-                  "chat_ppl": meta.get("chat_ppl"),
-                  "rubric_mean": meta.get("rubric_mean")},
-        "training_active": metrics["active"] and owns_run,
-        # ارزیابی جریان آموزش روی چند batch ثابت است؛ ارزیابی کامل در کارت اجرا می‌آید
-        "latest_eval": (dict(_public_eval(metrics["latest_eval"]) or {}, scope="training_subset")
-                        if owns_run else None),
-        "final_eval": _final_eval(),
+        "model": {"params": info.get("params"), "stage": meta.get("stage"),
+                  "step": meta.get("step")},
+        "training_active": metrics["active"],
         "index": retrieval_module.stats(),
         "learned": _learn_stats(),
         "qa": _qa_report(),
-        "signup_required": REQUIRE_SIGNUP,
-        "latest_train": _public_train(metrics["latest_train"]),
+        "latency": _speed_summary(),
     }
 
 
@@ -1135,33 +1144,45 @@ def _limitations(params: int) -> list[str]:
 
 @app.get("/api/model")
 def model_info() -> dict:
+    """کارت عمومی: چه کاری می‌کند، نه چطور ساخته شده."""
+    if engine is None:
+        raise HTTPException(503, "سرویس در حال آماده‌سازی است.")
+    abilities = [
+        "پاسخ دانشی به فارسی",
+        "نوشتن و بازنویسی متن",
+        "محاسبهٔ دقیق و تاریخ شمسی",
+        "پاسخ از وب با منبع (کلید وب)",
+        "اندیشهٔ ژرف برای پرسش‌های چندلایه",
+    ]
+    return {"name": "رایان", "version": "3.0.0", "status": "ready",
+            "abilities": abilities, "languages": ["fa"],
+            "note": "برای دیدن جزئیات فنی، دسترسی مدیر لازم است."}
+
+
+@app.get("/api/model/detail")
+def model_detail(request: Request) -> dict:
+    admin_module.require_admin(request)
     if engine is None:
         raise HTTPException(503, engine_error or "مدل بارگذاری نشده است.")
     info = engine.info()
     metrics = _read_metrics(limit=200)
-    return {
-        "name": info.get("name"),
-        "params": info.get("params"),
-        "config": info.get("config"),
-        "architecture": info.get("architecture"),
-        "loaded_at": info.get("loaded_at"),
-        "hardware": _hardware(),
-        "corpus": _corpus_stats(),
-        "metrics": {
-            "final_eval": _final_eval(),
-            "latest_eval": _public_eval(metrics["latest_eval"]) if _run_config_for_active() else None,
-            "best_eval": _public_eval(metrics["best_eval"]) if _run_config_for_active() else None,
-        },
-        "sources": _source_cards(),
-        "run": _run_config_for_active(),
-        "limitations": _limitations(info.get("params") or 0),
-    }
+    return {"name": info.get("name"), "params": info.get("params"),
+            "config": info.get("config"), "architecture": info.get("architecture"),
+            "hardware": _hardware(), "corpus": _corpus_stats(),
+            "metrics": {"final_eval": _final_eval()},
+            "limitations": _limitations(info.get("params") or 0)}
 
 
 @app.get("/api/models")
 def models_catalog() -> dict:
+    """فهرست عمومی نسخه‌ها؛ بدون مسیر فایل، بدون اعداد داخلی."""
     card = active_model_card()
-    return {"models": [card, *ARCHIVE_MODELS], "default": card["id"]}
+    public = {"id": card.get("id"), "name": card.get("name"),
+              "tagline": card.get("tagline"), "status": card.get("status"),
+              "badge": card.get("badge")}
+    others = [{"id": m.get("id"), "name": m.get("name"), "tagline": m.get("tagline"),
+               "status": m.get("status")} for m in ARCHIVE_MODELS]
+    return {"models": [public, *others], "default": public["id"]}
 
 
 _EVAL_FIELDS = ("step", "val_loss", "ppl", "bits_per_char", "top1", "top5", "at")
@@ -1181,9 +1202,59 @@ def _public_train(record: dict | None) -> dict | None:
     return {k: record.get(k) for k in _TRAIN_FIELDS if record.get(k) is not None}
 
 
+@app.get("/api/compare")
+def api_compare() -> dict:
+    """عددهای میزان: سرعت واقعی همین سرویس + امتیاز آزمون فارسی خودمان."""
+    return {"speed": _speed_summary(), "arena": _arena_summary(),
+            "uptime_pct": _uptime_percent()}
+
+
+def _speed_summary() -> dict:
+    with _latency_lock:
+        samples = list(_recent_latencies)
+    if not samples:
+        return {"median_s": None, "p95_s": None, "per_minute": None, "samples": 0}
+    ordered = sorted(samples)
+    median = ordered[len(ordered) // 2]
+    p95 = ordered[min(len(ordered) - 1, int(round(0.95 * (len(ordered) - 1))))]
+    return {"median_s": round(median, 3), "p95_s": round(p95, 3),
+            "per_minute": round(60 / median, 0) if median else None,
+            "samples": len(samples)}
+
+
+def _uptime_percent() -> float | None:
+    """درصد زمانی که سرویس در ۲۴ ساعت گذشته پاسخ داده است (از پایش خودمان)."""
+    path = os.path.join(ROOT, "data", "uptime.json")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+        return round(float(data.get("percent", 100.0)), 2)
+    except (OSError, ValueError):
+        return None
+
+
+def _arena_summary() -> dict:
+    """امتیاز آزمون فارسی از گزارش واقعی؛ اگر اجرا نشده باشد، عددی ساخته نمی‌شود."""
+    path = os.path.join(ROOT, "reports", "arena.json")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, ValueError):
+        return {}
+    models = data.get("models") or []
+    if not models:
+        return {}
+    best = max(models, key=lambda m: m.get("score") or 0)
+    return {"tasks": best.get("tasks"), "score": best.get("score"),
+            "by_category": best.get("by_category") or {},
+            "speed_note": "امتیاز از اجرای واقعی روی همین ماشین می‌آید.",
+            "note": "این آزمون را خودمان نوشته‌ایم و پرسش‌هایش از هیچ مجموعهٔ دیگری کپی نشده است."}
+
+
 @app.get("/api/metrics")
-def metrics() -> dict:
-    """خلاصهٔ ارزیابی برای صفحهٔ عمومی؛ گزارش گام‌به‌گام فقط در پنل مدیریت است."""
+def metrics(request: Request) -> dict:
+    """سنجه‌های داخلی؛ فقط مدیر."""
+    admin_module.require_admin(request)
     data = _read_metrics(limit=50)
     return {
         "latest_eval": _public_eval(data["latest_eval"]),
@@ -1204,18 +1275,6 @@ def showcase() -> dict:
     except json.JSONDecodeError:
         return {"examples": []}
     return {"examples": data.get("examples", []), "generated_at": data.get("generated_at")}
-
-
-@app.get("/api/download/checkpoint")
-def download_checkpoint(request: Request) -> FileResponse:
-    """وزن‌های مدل فقط با نشست مدیر قابل دانلود است."""
-    admin_module.require_admin(request)
-    if engine is None:
-        raise HTTPException(503, "مدل بارگذاری نشده است.")
-    if not os.path.exists(engine.checkpoint):
-        raise HTTPException(404, "checkpoint پیدا نشد.")
-    return FileResponse(engine.checkpoint, media_type="application/octet-stream",
-                        filename="rayan-1-small.npz")
 
 
 @app.get("/api/samples")
@@ -1591,6 +1650,7 @@ def _instant_turn(owner: dict, ip: str, req: ChatRequest, response: Response,
     _set_guest_cookie(response, owner)
     with stats_lock:
         request_count += 1
+    _note_latency(time.time() - started)
     used, limit = _quota(owner, ip, "chat")
     return {
         "answer": answer, "mode": req.mode, "deep": False, "trace": None,
@@ -1655,8 +1715,9 @@ def _ground_if_weak(message: str, answer: str, history, owner: dict, req) -> tup
             if thought.get("answer"):
                 found.extend(thought.get("sources") or [])
                 return thought["answer"]
-        # ۲) جست‌وجوی وب، اگر مدیر اجازه داده باشد
-        if req.web or not admin_module.flags().get("web_search", True):
+        # ۲) جست‌وجوی وب: فقط وقتی کاربر کلید «وب» را زده یا مدیر خودکارسازی را
+        #    روشن کرده باشد. پیش‌فرض خاموش است تا پاسخ فوری بماند، نه ۵ ثانیه منتظر وب.
+        if not req.web or not admin_module.flags().get("web_search", True):
             return None
         results = search_module.search(query, limit=4).get("results") or []
         if not results:
@@ -1683,6 +1744,12 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
     kwargs = _generation_kwargs(req)
 
     if req.mode == "chat":
+        # ابزار اول: هر محاسبه یا تاریخ، بدون مدل و بدون تأخیر پاسخ می‌گیرد.
+        if tool_result and tool_result.get("ok"):
+            spoken = tools_module.phrase(tool_result)
+            if spoken:
+                return _instant_turn(owner, ip, req, response, conv_id, message, spoken,
+                                     tool_result, started, "tool")
         skill = skills_module.match(message)
         if skill:
             skill = answer_module.personalize(skill, owner)
@@ -1795,22 +1862,26 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
 @app.post("/api/chat/stream")
 def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     global request_count
+    started = time.time()
     owner = _owner(request)
     ip = client_ip(request)
     if req.deep:
         raise HTTPException(400, "برای اندیشهٔ ژرف از /api/chat استفاده کنید.")
     model, message, history, conv_id = _prepare(req, owner, ip)
     tool_result = None if req.mode != "chat" else tools_module.detect(message)
-    skill = skills_module.match(message) if req.mode == "chat" else None
+    tool_answer = ""
+    if tool_result and tool_result.get("ok"):
+        tool_answer = tools_module.phrase(tool_result)
+    skill = None if tool_answer else (skills_module.match(message) if req.mode == "chat" else None)
     thought = None
     if req.mode == "chat" and not skill:
         thought = _think(message, req, history)
     kb = None
     if req.mode == "chat" and not skill and not thought and not req.web:
         kb = knowledge_module.answer(message)
-    instant_answer = ((skill or {}).get("answer") or (thought or {}).get("answer")
+    instant_answer = (tool_answer or (skill or {}).get("answer") or (thought or {}).get("answer")
                       or (kb or {}).get("answer") or "")
-    instant_engine = ("skill" if skill else "think" if thought else
+    instant_engine = ("tool" if tool_answer else "skill" if skill else "think" if thought else
                       "knowledge" if kb else "")
     kwargs = _generation_kwargs(req)
     kwargs["seed"] = req.seed
@@ -1828,6 +1899,7 @@ def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
             _record_usage(owner, ip, "chat")
             with stats_lock:
                 request_count += 1
+            _note_latency(time.time() - started)
             used, limit = _quota(owner, ip, "chat")
             yield json.dumps({"type": "start", "prompt_tokens": 0}, ensure_ascii=False) + "\n"
             if thought:

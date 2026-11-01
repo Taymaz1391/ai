@@ -12,7 +12,7 @@
 
 [![tests](https://github.com/Taymaz1391/ai/actions/workflows/tests.yml/badge.svg)](https://github.com/Taymaz1391/ai/actions/workflows/tests.yml)
 [![pages](https://github.com/Taymaz1391/ai/actions/workflows/pages.yml/badge.svg)](https://github.com/Taymaz1391/ai/actions/workflows/pages.yml)
-[![license](https://img.shields.io/badge/license-MIT-2e8bff)](LICENSE)
+[![license](https://img.shields.io/badge/license-Proprietary-2e8bff)](LICENSE)
 
 [راه‌اندازی و انتشار عمومی](docs/DEPLOY_LIVE.md) · [دورهٔ ۵ ساعته](web/static/course.html) · [بستهٔ تبلیغات گوگل](docs/ADS.md) · [مستندات](docs/) · [کارت مدل](docs/MODEL_CARD.md) · [معماری](docs/ARCHITECTURE.md) · [استقرار رایگان](docs/DEPLOY_FREE.md)
 
@@ -481,7 +481,7 @@ GitHub Pages فقط فایل‌های ایستا را سرو می‌کند و ن
 
 ## داده‌ها و مجوز
 
-- **کد:** MIT — [`LICENSE`](LICENSE)
+- **کد و مدل:** اختصاصی — همهٔ حقوق محفوظ ([`LICENSE`](LICENSE)). انتشار، تغییر، بازنشر و میزبانی روی سرویس دیگر مجاز نیست.
 - **داده‌ها:** از منابع عمومی فارسی؛ فهرست، منشأ و شرایط در [`NOTICE.md`](NOTICE.md). پیکرهٔ خام در مخزن نیست و با اسکریپت بازسازی می‌شود.
 - **فونت:** [Vazirmatn](https://github.com/rastikerdar/vazirmatn) با مجوز OFL.
 - **شعرها:** برگرفته از [ganjoor.net](https://ganjoor.net) از طریق مجموعهٔ `namnamir/JSON_of_Classic_Persian_Poems`.

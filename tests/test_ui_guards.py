@@ -104,9 +104,8 @@ class BrandTest(unittest.TestCase):
 class LanguageTest(unittest.TestCase):
     """سایت تک‌زبانه است: همهٔ صفحه‌ها فارسی و راست‌چین، بدون نسخهٔ انگلیسی."""
 
-    FA_PAGES = ("index.html", "app.html", "auth.html", "about.html", "course.html", "docs.html",
-                "download.html", "models.html", "offline.html", "pricing.html", "share.html",
-                "summary.html", "admin.html")
+    FA_PAGES = ("index.html", "app.html", "auth.html", "about.html", "compare.html",
+                "models.html", "offline.html", "pricing.html", "share.html", "admin.html")
 
     def test_persian_is_default(self):
         for name in self.FA_PAGES:
@@ -195,8 +194,9 @@ class WelcomeReelTest(unittest.TestCase):
         self.assertNotIn("x-api-key", (STATIC / "ui.js").read_text(encoding="utf-8"))
         self.assertNotIn("x-api-key", (STATIC / "app.js").read_text(encoding="utf-8"))
         self.assertIn("/api/auth/me", self.js)
-        developer = (STATIC / "developer.html").read_text(encoding="utf-8")
-        self.assertIn("فقط از همین سایت", developer)
+        # صفحه‌های «پشت صحنه» منتشر نمی‌شوند
+        for name in ("developer.html", "docs.html", "course.html", "download.html", "summary.html"):
+            self.assertFalse((STATIC / name).exists(), name)
 
 
 class HumanShieldTest(unittest.TestCase):

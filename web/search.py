@@ -24,6 +24,7 @@ from html import unescape
 UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36 RayanBot/1.0")
 TIMEOUT = float(os.environ.get("RAYAN_SEARCH_TIMEOUT", "7"))
+DEADLINE = float(os.environ.get("RAYAN_SEARCH_DEADLINE", "5"))
 CACHE_TTL = 600
 CACHE_MAX = 128
 SNIPPET_CHARS = 260
@@ -194,28 +195,57 @@ def search(query: str, limit: int = 5, lang: str = "fa") -> dict:
     if len(query) < 2:
         return {"query": query, "results": [], "provider": "", "cached": False}
 
+    def one(name: str) -> list[dict]:
+        try:
+            if name == "searx":
+                return _searx(query, limit)
+            if name == "ddg":
+                return _ddg(query, limit) or _ddg_lite(query, limit)
+            if name == "wiki":
+                return _wiki(query, limit, lang) or _wiki(query, limit, "en")
+        except Exception:  # noqa: BLE001 - یک منبع خراب نباید جست‌وجو را بکشد
+            return []
+        return []
+
     def build() -> list[dict]:
+        """همهٔ منابع هم‌زمان؛ هر کدام زودتر آمد، همان جواب می‌دهد.
+
+        مهلت کلی کوتاه است تا کاربر پشت «در حال جست‌وجو» نماند؛ اگر هیچ منبعی
+        تا آن مهلت جواب نداد، خالی برمی‌گردیم و مدل محلی جواب می‌دهد.
+        """
+        names = providers()
+        if not names:
+            return []
+        results: dict[str, list[dict]] = {}
+        lock = threading.Lock()
+        done = threading.Event()
+
+        def worker(name: str) -> None:
+            found = one(name)
+            with lock:
+                results[name] = found
+                if found:
+                    done.set()
+
+        threads = [threading.Thread(target=worker, args=(name,), daemon=True)
+                   for name in names]
+        for thread in threads:
+            thread.start()
+        deadline = time.time() + min(TIMEOUT, DEADLINE)
+        while time.time() < deadline and not done.is_set():
+            done.wait(0.05)
         gathered: list[dict] = []
         seen: set[str] = set()
-        for name in providers():
-            try:
-                if name == "searx":
-                    found = _searx(query, limit)
-                elif name == "ddg":
-                    found = _ddg(query, limit) or _ddg_lite(query, limit)
-                elif name == "wiki":
-                    found = _wiki(query, limit, lang) or _wiki(query, limit, "en")
-                else:
-                    found = []
-            except Exception:
-                found = []
-            for item in found:
+        with lock:
+            snapshot = dict(results)
+        for name in names:                      # ترتیب اولویت حفظ می‌شود
+            for item in snapshot.get(name, []):
                 if item["url"] in seen:
                     continue
                 seen.add(item["url"])
                 gathered.append(item)
-            if len(gathered) >= limit:
-                break
+                if len(gathered) >= limit:
+                    return gathered[:limit]
         return gathered[:limit]
 
     key = ("search", query.casefold(), limit, lang)

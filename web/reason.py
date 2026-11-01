@@ -74,6 +74,14 @@ def answer(message: str, engine=None, history=None, mode: str = "chat",
     trace: list[dict] = []
     message = (message or "").strip()
 
+    # ۰) تبدیل یکا و ابزار ریاضی، پیش از هر جست‌وجویی: سریع و قطعی
+    computed_first = compute(message)
+    if computed_first and computed_first.get("engine") == "convert":
+        _step(trace, "تبدیل یکا", "با ابزار دقیق", started)
+        return {"answer": computed_first["answer"], "sources": [],
+                "engine": computed_first["engine"], "trace": trace, "confidence": 0.99,
+                "thought": {"steps": trace, "confidence": 0.99}}
+
     # ۱) شاهد از پیکره
     if mode == "chat" and retrieval.looks_factual(message) and retrieval.index_exists():
         evidence = retrieval.think(message)

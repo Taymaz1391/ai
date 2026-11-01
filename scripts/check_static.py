@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 STATIC = ROOT / "web" / "static"
 
 REQUIRED = ["index.html", "app.html", "auth.html", "admin.html", "offline.html",
-            "pricing.html", "models.html", "about.html", "docs.html",
+            "pricing.html", "models.html", "about.html", "compare.html",
             "manifest.webmanifest", "sw.js", "styles.css", "pages.css", "chat.css",
             "assets/video/intro.mp4", "assets/video/intro-poster.jpg"]
 

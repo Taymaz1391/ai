@@ -1,6 +1,6 @@
 """بازیابی و استدلال محلی رایان — پاسخ از شاهد، نه از حافظهٔ قالبی.
 
-ایدهٔ اصلی: مدل ۱۷ میلیون پارامتری نمی‌تواند دانش جهان را در وزن‌هایش نگه دارد،
+ایدهٔ اصلی: مدل کوچک نمی‌تواند دانش جهان را در وزن‌هایش نگه دارد،
 اما «فکر کردن» را می‌توان متفاوت ساخت: سؤال را بفهم، کلیدواژه‌ها را بساز، در
 پیکرهٔ ۹۷ میلیون نویسه‌ای جست‌وجو کن، جمله‌های شاهد را رتبه بده، و پاسخ را از
 همان شاهدها بساز — با ارجاع. اگر شاهدی نبود، صادقانه بگو و موضوع‌های نزدیک را
@@ -405,6 +405,18 @@ def resolve_followup(message: str, history) -> str:
     return " ".join(parts)
 
 
+_MODIFIERS = {"پایتخت", "بلندترین", "بلند", "قله", "قلهٔ", "کشور", "شهر", "اهل", "زادگاه",
+              "بنیان‌گذار", "نویسندهٔ", "نویسنده", "سازندهٔ", "سازنده", "پدیدآورنده",
+              "درازترین", "بزرگ‌ترین", "کوچک‌ترین", "مهم‌ترین", "معروف‌ترین", "اولین",
+              "نخستین", "کدام", "چه", "کیست", "چیست", "بود", "است", "دارد", "نام"}
+
+
+def _drop_modifiers(words_: list[str]) -> list[str]:
+    """واژه‌های پرسشی/توصیفی را کنار می‌گذارد تا اسمِ خاص بماند."""
+    kept = [w for w in words_ if normalize(w) not in _MODIFIERS and len(w) > 2]
+    return kept or words_
+
+
 def wiki_lookup(question: str, path: str | None = None) -> dict | None:
     """مقالهٔ دانشنامه برای موضوع سؤال: عنوان دقیق، تغییرمسیر، یا جست‌وجوی عنوان.
 
@@ -417,8 +429,17 @@ def wiki_lookup(question: str, path: str | None = None) -> dict | None:
     path = path or wiki_path()
     if not os.path.exists(path):
         return None
-    # فقط موضوعِ کامل؛ کوتاه‌کردن عبارت موضوع را عوض می‌کند («پایتخت ایران» ≠ «پایتخت»)
-    phrases = [" ".join(normalize(w) for w in words_)]
+    # ترتیب امتحان: موضوعِ کامل، موضوعِ بی‌پیشوند، و در پایان تک‌واژه‌های بلند.
+    # «پایتخت فرانسه» مقاله ندارد، اما «فرانسه» دارد و جملهٔ «پاریس، پایتخت
+    # فرانسه...» همان جواب است.
+    full = " ".join(normalize(w) for w in words_)
+    phrases = [full]
+    trimmed = " ".join(normalize(w) for w in _drop_modifiers(words_))
+    if trimmed and trimmed != full:
+        phrases.append(trimmed)
+    for word in sorted({normalize(w) for w in words_ if len(w) > 3}, key=len, reverse=True):
+        if word and word not in phrases:
+            phrases.append(word)
     try:
         with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as db:
             for phrase in phrases:
@@ -499,6 +520,48 @@ def _wiki_sentence_ok(piece: str, phrase: str) -> bool:
     if any(bad in gap for bad in WIKI_GAP_BAD):
         return False
     return len(_WORD.split(gap.strip())) <= 40
+
+
+_JUNK_LEADS = ("ممکن است به یکی از موارد زیر اشاره کند", "می‌تواند به یکی از موارد",
+               "به یکی از معانی زیر", "ابهام‌زدایی", "این صفحه فهرست")
+
+
+def _junk(answer: str | None) -> bool:
+    """پاسخ‌های فهرستی/ابهام‌زدایی جواب سؤال نیستند."""
+    text = answer or ""
+    return any(marker in text for marker in _JUNK_LEADS)
+
+
+_RELATIONS = {
+    "پایتخت": ("پایتخت",),
+    "زادگاه": ("زاده", "متولد", "به دنیا آمد", "زادگاه"),
+    "اهل": ("زاده", "اهل", "متولد", "شیراز", "زادگاه"),
+    "قله": ("قله", "بلندترین", "ارتفاع"),
+    "درازا": ("طول", "درازا", "کیلومتر"),
+    "بنیان": ("بنیان", "تأسیس", "ساخته شد", "سال"),
+}
+
+
+def _relation_sentence(lead: str, question: str) -> str | None:
+    """جمله‌ای از مقاله که دقیقاً به رابطهٔ پرسیده‌شده جواب می‌دهد.
+
+    «پایتخت فرانسه کدام شهر است؟» جوابش در جملهٔ «... پایتخت آن پاریس است» است،
+    نه در جملهٔ اول مقاله. این تابع همان جمله را پیدا می‌کند.
+    """
+    text = normalize(question)
+    cues: tuple[str, ...] = ()
+    for key, words_ in _RELATIONS.items():
+        if key in text:
+            cues = words_
+            break
+    if not cues:
+        return None
+    flat = re.sub(r"\s*\n\s*", " ", lead or "")
+    sentences = [part.strip() for part in re.split(r"(?<=[.!؟])\s+", flat) if part.strip()]
+    for sentence in sentences[:12]:
+        if 20 <= len(sentence) <= 320 and any(cue in sentence for cue in cues):
+            return sentence
+    return None
 
 
 def _wiki_kind(question: str) -> str:
@@ -932,6 +995,10 @@ def looks_factual(question: str) -> bool:
         return False
     if any(word in text for word in QUESTION_WORDS):
         return True
+    # «X را توضیح بده» / «دربارهٔ X بگو» هم پرسش دانشی است
+    if any(marker in text for marker in ("توضیح بده", "توضیح دهید", "تعریف کن", "یعنی چه",
+                                         "دربارهٔ", "درباره ", "چه معنایی")):
+        return True
     return text.endswith(("؟", "?")) and len(text.split()) >= 3
 
 
@@ -946,8 +1013,52 @@ def _online_allowed() -> bool:
         return True
 
 
+THINK_BUDGET = float(os.environ.get("RAYAN_THINK_BUDGET", "1.2"))
+
+
+def _direct_answer(question: str, path: str | None = None) -> dict | None:
+    """پاسخ کوتاه و مستقیم از پیکره: جمله‌ای که خودش جوابِ همین پرسش است.
+
+    نمونه: «پایتخت فرانسه کجاست» → «پایتخت فرانسه پاریس است.» — بی‌حشو و
+    بدون ساختن جملهٔ تازه. فقط وقتی برمی‌گرداند که جمله کوتاه باشد و همهٔ
+    واژه‌های موضوع را در خود داشته باشد.
+    """
+    try:
+        hits = search(question, limit=4, path=path)
+    except sqlite3.Error:
+        return None
+    # پرسش‌های «چطور/چگونه» دنبال راهنمای عملی‌اند، نه تعریف؛ پیکره جوابشان نیست.
+    if re.search(r"(چطور|چگونه|چی\s*کار|چه\s*کار|راهنمایی|پیشنهاد)", normalize(question)):
+        return None
+    # تبدیل یکا کارِ ابزار است، نه پیکره
+    if re.search(r"\d", normalize(question)) and re.search(
+            r"(کیلومتر|متر|سانتی|میلی|مایل|گرم|کیلوگرم|پوند|ساعت|دقیقه|ثانیه)", normalize(question)):
+        return None
+    subject = [normalize(word) for word in (question_subject(question) or []) if len(word) > 2]
+    if not subject:
+        return None
+    for hit in hits[:3]:
+        body = (hit.body or "").replace("*", "").strip()
+        body = re.sub(r"\s+", " ", body)
+        if not body or len(body) > 320:
+            continue
+        norm_body = normalize(body)
+        if not all(word in norm_body for word in subject):
+            continue
+        sentences = [piece.strip() for piece in re.split(r"(?<=[.!؟])\s+", body) if piece.strip()]
+        for sentence in sentences:
+            norm_sentence = normalize(sentence)
+            if len(sentence) < 18 or len(sentence) > 240:
+                continue
+            if all(word in norm_sentence for word in subject):
+                return {"answer": sentence,
+                        "source": {"title": (hit.title or "")[:90], "source": "پیکرهٔ فارسی",
+                                   "snippet": sentence[:170], "score": 1.0}}
+    return None
+
+
 def think(question: str, limit: int = 10, path: str | None = None,
-          online: bool | None = None) -> dict:
+          online: bool | None = None, budget: float | None = None) -> dict:
     """مسیر کاملِ فکر: کلیدواژه → جست‌وجو → انتخاب شاهد → پاسخ + ردپا."""
     started = time.time()
     trace: list[dict] = []
@@ -958,13 +1069,41 @@ def think(question: str, limit: int = 10, path: str | None = None,
         return {"answer": None, "sources": [], "trace": trace, "confidence": 0.0,
                 "reason": "no_terms"}
 
-    # ۰) دانشنامه: اگر مقاله‌ای به همین نام داریم، تعریفش را از همان‌جا بردار
-    entry = wiki_lookup(question)
+    # ۰) پاسخ مستقیم: اگر جملهٔ جوابِ همین پرسش در پیکره هست، همان را بده
+    direct = _direct_answer(question, path=path)
+    if direct:
+        trace.append({"step": "پاسخ مستقیم", "detail": direct["answer"][:70],
+                      "seconds": round(time.time() - started, 3)})
+        return {"answer": direct["answer"], "sources": [direct["source"]],
+                "trace": trace, "confidence": 0.95, "coverage": 1.0,
+                "seconds": round(time.time() - started, 3), "engine": "corpus"}
+
+    # ۱) دانشنامه: فقط برای پرسش‌های تعریفی؛ «چطور/چگونه» مقالهٔ دانشنامه نمی‌خواهد
+    how_to = re.search(r"(چطور|چگونه|چی\s*کار|چه\s*کار|راهنمایی|پیشنهاد)", normalize(question))
+    # «پایتون» در پرسش برنامه‌نویسی یعنی زبان، نه مار
+    if re.search(r"(پایتون|python)", normalize(question)) and \
+            re.search(r"(کد|برنامه|تابع|حلقه|متغیر|فهرست|لیست|کلاس|کتابخانه)", normalize(question)):
+        entry = wiki_lookup("پایتون (زبان برنامه‌نویسی)", path=path)
+        if entry:
+            answer = _wiki_lead_answer(entry["lead"], entry["phrase"], question)
+            if answer and not _junk(answer):
+                return {"answer": answer,
+                        "sources": [{"title": entry["title"][:90], "source": "دانشنامه",
+                                     "snippet": answer[:170], "score": 1.0}],
+                        "trace": trace + [{"step": "دانشنامه", "detail": entry["title"],
+                                           "seconds": round(time.time() - started, 3)}],
+                        "confidence": 0.85, "coverage": 1.0,
+                        "seconds": round(time.time() - started, 3), "engine": "wiki"}
+    entry = None if how_to else wiki_lookup(question)
     if entry:
         answer = _wiki_lead_answer(entry["lead"], entry["phrase"], question)
+        # رابطهٔ پرسیده‌شده (پایتخت/زادگاه/ارتفاع) اولویت دارد
+        relation = _relation_sentence(entry["lead"], question)
+        if relation and (not answer or relation[:60] not in answer):
+            answer = (relation if not answer else f"{answer} {relation}")[:700]
         trace.append({"step": "دانشنامه", "detail": f"مقالهٔ «{entry['title']}» ({entry['match']})",
                       "seconds": round(time.time() - started, 3)})
-        if answer:
+        if answer and not _junk(answer):
             return {
                 "answer": answer,
                 "sources": [{"title": entry["title"][:90], "source": "ویکی‌پدیای فارسی",
@@ -1003,27 +1142,26 @@ def think(question: str, limit: int = 10, path: str | None = None,
     composed = compose(question, hits)
     elapsed = round(time.time() - started, 3)
     if not composed:
-        # ۵) اگر در پیکره و دانشنامه شاهدی نبود، از وب یاد بگیر (دانشِ آنلاین)
+        # ۵) اگر در پیکره و دانشنامه شاهدی نبود، از دانشِ پیشینِ وب استفاده کن.
+        #    خواندن تازه از وب همیشه در پس‌زمینه انجام می‌شود تا پاسخ کاربر
+        #    پشت شبکه معطل نماند؛ بودجهٔ زمانی (پیش‌فرض ۱٫۲ ثانیه) قطعی است.
+        deadline = (budget if budget is not None else THINK_BUDGET)
         if online is None:
             online = path is None and _online_allowed()
-        if online:
+        if online and time.time() - started < deadline:
             try:
                 from web import learn as learn_module
-                learned = learn_module.answer(question)
+                learned = learn_module.answer(question, learn=False)   # فقط دانشِ ذخیره‌شده
             except Exception:  # noqa: BLE001 - شبکه نباید پاسخ را بشکند
                 learned = None
             if learned:
-                trace.append({"step": "خواندن از وب",
-                              "detail": ("صفحه تازه خوانده و ذخیره شد" if learned.get("learned")
-                                         else "از دانشِ پیشین وب"),
-                              "seconds": round(time.time() - started, 3)})
-                trace.append({"step": "انتخاب شاهد",
-                              "detail": f"منبع: {learned['sources'][0]['domain']}",
+                trace.append({"step": "دانشِ خوانده‌شده",
+                              "detail": f"منبع پیشین: {learned['sources'][0]['domain']}",
                               "seconds": round(time.time() - started, 3)})
                 return {"answer": learned["answer"], "sources": learned["sources"],
                         "trace": trace, "confidence": learned.get("confidence", 0.7),
                         "coverage": 1.0, "seconds": round(time.time() - started, 3),
-                        "engine": "learn", "learned": learned.get("learned", False)}
+                        "engine": "learn", "learned": False}
         near = []
         for hit in hits[:3]:
             title = (hit.title or "").strip()
