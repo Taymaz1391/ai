@@ -308,9 +308,149 @@ _FRACTIONS = {"نصف": (1, 2), "یک‌دوم": (1, 2), "نیم": (1, 2), "یک
               "سه‌چهارم": (3, 4), "یک‌پنجم": (1, 5), "یک‌دهم": (1, 10)}
 
 
+_COUNT_FA = {"یک": 1, "دو": 2, "سه": 3, "چهار": 4, "پنج": 5, "شش": 6, "هفت": 7,
+             "هشت": 8, "نه": 9, "ده": 10}
+_ORDINAL_FA = {"سوم": 3, "چهارم": 4, "پنجم": 5, "ششم": 6, "هفتم": 7, "هشتم": 8,
+               "نهم": 9, "دهم": 10}
+
+
+def _ratio(text: str) -> dict | None:
+    """«پدر ۴۰ و پسر ۱۰؛ پدر چند برابر پسر است؟»"""
+    if not re.search(r"چند\s*(?:برابر|بار)|(?:برابر|بار)\s*(?:بزرگ|بیشتر)", text):
+        return None
+    if re.search(r"درصد|٪|%", text):
+        return None
+    nums = [int(n) for n in re.findall(r"\d+", text)][:2]
+    if len(nums) < 2 or not nums[0] or not nums[1]:
+        return None
+    small, big = sorted(nums)
+    ratio = round(big / small, 2)
+    return {"tool": "mathword", "engine": "mathword",
+            "answer": (f"{_fa(big)} ÷ {_fa(small)} = **{_fa(ratio)}**؛ "
+                       f"یعنی {_fa(big)} نزدیک به {_fa(ratio)} برابر {_fa(small)} است."),
+            "expression": f"{big}/{small}", "value": ratio}
+
+
+def _rate(text: str) -> dict | None:
+    """مسافت = سرعت × زمان، و دو حالتِ وارونه‌اش."""
+    if "کیلومتر" not in text:
+        return None
+    speed = re.search(r"(\d+(?:\.\d+)?)\s*(?:کیلومتر|کیلو\s*متر)\s*(?:بر|در)\s*ساعت", text)
+    hours = re.search(r"(\d+(?:\.\d+)?)\s*ساعت", text)
+    distance = re.search(r"(\d+(?:\.\d+)?)\s*(?:کیلومتر|کیلو\s*متر)", text)
+    if speed and hours and "چند کیلومتر" in text:
+        v, h = float(speed.group(1)), float(hours.group(1))
+        out = v * h
+        return {"tool": "mathword", "engine": "mathword",
+                "answer": f"{_fa(v)} × {_fa(h)} = **{_fa(out)} کیلومتر**.\nمسافت = سرعت × زمان.",
+                "value": out}
+    asks_speed = re.search(r"چند کیلومتر بر ساعت|سرعت", text)
+    if distance and hours and asks_speed and not re.search(r"بر\s*ساعت\s*در", text):
+        d, h = float(distance.group(1)), float(hours.group(1))
+        if h and d != h:
+            out = d / h
+            return {"tool": "mathword", "engine": "mathword",
+                    "answer": (f"{_fa(d)} ÷ {_fa(h)} = **{_fa(out)} کیلومتر بر ساعت**.\n"
+                               "سرعت = مسافت ÷ زمان."),
+                    "value": out}
+    if distance and speed and "چند ساعت" in text:
+        d, v = float(distance.group(1)), float(speed.group(1))
+        if v and d != v:
+            out = d / v
+            return {"tool": "mathword", "engine": "mathword",
+                    "answer": f"{_fa(d)} ÷ {_fa(v)} = **{_fa(out)} ساعت**.\nزمان = مسافت ÷ سرعت.",
+                    "value": out}
+    return None
+
+
+def _workers_inverse(text: str) -> dict | None:
+    """«۴ نفر در ۳ روز؛ ۶ نفر در چند روز؟» → نسبتِ وارونه."""
+    if not re.search(r"نفر|کارگر|کارمند", text) or "چند روز" not in text:
+        return None
+    pairs = re.findall(r"(\d+)\s*(?:نفر|کارگر|کارمند)\D{0,12}?(\d+)\s*روز", text)
+    if not pairs:
+        return None
+    p1, d1 = int(pairs[0][0]), int(pairs[0][1])
+    rest = re.search(r"(\d+)\s*(?:نفر|کارگر|کارمند)(?!\D{0,12}?\d+\s*روز)", text)
+    if not rest or not p1 or not d1:
+        return None
+    p2 = int(rest.group(1))
+    if not p2 or p2 == p1:
+        return None
+    total = p1 * d1
+    days = total / p2
+    return {"engine": "mathword", "tool": "mathword",
+            "answer": (f"کار برابر {_fa(total)} نفر-روز است؛ با {_fa(p2)} نفر: "
+                       f"{_fa(total)} ÷ {_fa(p2)} = **{_fa(days)} روز**.\n"
+                       "نفر بیشتر، روز کمتر — نسبت وارونه."),
+            "value": days}
+
+
+_SHAPES_WORD = {"مربع": "مربع", "مستطیل": "مستطیل", "مثلث": "مثلث",
+                "دایره": "دایره", "دائره": "دایره"}
+
+
+def _geometry(text: str) -> dict | None:
+    """محیط و مساحتِ شکل‌های ساده، با فرمول و واحد."""
+    shape = next((v for k, v in _SHAPES_WORD.items() if k in text), "")
+    if not shape:
+        return None
+    want_area = bool(re.search(r"مساحت", text))
+    want_perimeter = bool(re.search(r"محیط|پیرامون", text))
+    if not (want_area or want_perimeter):
+        return None
+    nums = [float(n) for n in re.findall(r"\d+(?:\.\d+)?", text)]
+    if not nums:
+        return None
+    if shape == "مربع":
+        side = nums[0]
+        if want_area:
+            value, formula, unit = side * side, f"{_fa(side)} × {_fa(side)}", "سانتی‌متر مربع"
+        else:
+            value, formula, unit = 4 * side, f"۴ × {_fa(side)}", "سانتی‌متر"
+    elif shape == "مستطیل":
+        if len(nums) < 2:
+            return None
+        a, b = nums[0], nums[1]
+        if want_area:
+            value, formula, unit = a * b, f"{_fa(a)} × {_fa(b)}", "سانتی‌متر مربع"
+        else:
+            value, formula, unit = 2 * (a + b), f"۲ × ({_fa(a)} + {_fa(b)})", "سانتی‌متر"
+    elif shape == "مثلث":
+        if len(nums) < 2 or not want_area:
+            return None
+        base, height = nums[0], nums[1]
+        value, formula, unit = base * height / 2, f"{_fa(base)} × {_fa(height)} ÷ ۲", "سانتی‌متر مربع"
+    else:
+        radius = nums[0]
+        pi = 3.141592653589793
+        if want_area:
+            value, formula, unit = pi * radius * radius, f"π × {_fa(radius)}²", "سانتی‌متر مربع"
+        else:
+            value, formula, unit = 2 * pi * radius, f"۲π × {_fa(radius)}", "سانتی‌متر"
+    nice = round(value, 2)
+    what = "مساحت" if want_area else "محیط"
+    return {"engine": "mathword", "tool": "mathword",
+            "answer": f"{what}ِ **{shape}**: {formula} = **{_fa(nice)} {unit}**.",
+            "value": nice}
+
+
 def _fraction(text: str) -> dict | None:
     """«یک‌سومِ ۹۰ چند است؟» و «۳/۴ از ۲۰۰»."""
     norm = _plain(text)
+    worded = re.search(r"(?<![\w\u200c])(\d+|یک|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده)\s+"
+                       r"(سوم|چهارم|پنجم|ششم|هفتم|هشتم|نهم|دهم)(?![\w\u200c])", norm)
+    if worded:
+        first = worded.group(1)
+        num = int(first) if first.isdigit() else _COUNT_FA.get(first, 1)
+        den = _ORDINAL_FA.get(worded.group(2), 3)
+        amount = re.search(r"(\d+(?:\.\d+)?)", norm.replace(worded.group(0), " ", 1))
+        if amount and den:
+            total = float(amount.group(1))
+            value = total * num / den
+            return {"answer": (f"{_fa(num)}/{_fa(den)} از {_fa(total)} = "
+                               f"{_fa(total)} × {_fa(num)} ÷ {_fa(den)} = **{_fa(value)}**"),
+                    "engine": "mathword", "source": "مسئلهٔ کلامی"}
     for word, (num, den) in _FRACTIONS.items():
         if re.search(rf"(?<![\w\u200c]){re.escape(word)}(?![\w\u200c])", norm):
             amount = re.search(r"(\d+(?:\.\d+)?)", norm)
@@ -463,8 +603,9 @@ def answer(question: str) -> dict | None:
         return None
     if not re.search(r"\d", text):
         return None
-    for handler in (_triangle, _shape, _discount, _work_days, _even_prime, _percent, _root,
-                    _average, _fraction,
+    for handler in (_triangle, _shape, _geometry, _discount, _workers_inverse,
+                    _rate, _work_days, _even_prime, _percent, _root,
+                    _average, _fraction, _ratio,
                     _money_problem, _consecutive, _share, _primes, _age):
         try:
             found = handler(text)

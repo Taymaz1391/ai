@@ -286,72 +286,56 @@ def _function_code(name: str, title: str, params: str, body: str, call: str) -> 
 def _code_answer_python(text: str) -> str | None:
     low = text
     programming = re.search(r"پایتون|python|(?<![\w\u200c])کد(?![\w\u200c])|برنامه|"
-                            r"جاوااسکریپت|javascript|حلقه", text, re.I)
-    # طول رشته/فهرست
-    if re.search(r"طول|len\b", low) and re.search(r"رشته|فهرست|لیست|متن|string", low):
-        code = ("text = \"سلام دنیا\"\n"
-                "print(len(text))            # ۹ — شمارشِ نویسه‌ها\n"
-                "words = text.split()\n"
-                "print(len(words))           # ۲ — شمارشِ واژه‌ها\n"
-                "print(len(\"👩\"))            # ۱ — نویسهٔ مرکب هم یک نویسه است")
-        return ("`len()` طولِ رشته (تعدادِ نویسه) یا فهرست (تعدادِ عضو) را می‌دهد:\n\n"
-                f"```python\n{code}\n```")
+                            r"جاوااسکریپت|javascript|حلقه|\bsql\b|select\s|insert\s|جدول",
+                            text, re.I)
+    # JSON
+    if re.search(r"json", low, re.I):
+        return ("خواندن و نوشتنِ JSON:\n\n"
+                "```python\nimport json\n\n"
+                "with open(\"data.json\", encoding=\"utf-8\") as handle:\n"
+                "    data = json.load(handle)          # دیکشنری/فهرست پایتونی\n\n"
+                "with open(\"out.json\", \"w\", encoding=\"utf-8\") as handle:\n"
+                "    json.dump(data, handle, ensure_ascii=False, indent=2)\n```\n\n"
+                "اگر متن داری نه فایل: `json.loads(text)` و `json.dumps(obj)`.")
 
-    # ورودی از کاربر
-    if re.search(r"از کاربر|ورودی|input", low) and re.search(r"بگیر|خواندن|بخواه", low):
-        code = ("name = input(\"نامت را بنویس: \")          # همیشه رشته است\n"
-                "age = int(input(\"سنت را بنویس: \"))        # عددِ صحیح\n"
-                "score = float(input(\"نمره‌ات را بنویس: \"))  # عددِ اعشاری\n"
-                "print(f\"{name}، {age} ساله با نمرهٔ {score}\")")
-        return ("`input()` هر ورودی را **رشته** برمی‌گرداند؛ برای عدد باید با `int()` یا "
-                "`float()` تبدیلش کنی:\n\n"
-                f"```python\n{code}\n```")
+    # لیست → دیکشنری
+    if re.search(r"دیکشنری|dict", low) and re.search(r"لیست|فهرست|list", low):
+        return ("ساختِ دیکشنری از فهرست، با `dict()` و `zip()`:\n\n"
+                "```python\nkeys = [\"name\", \"age\"]\nvalues = [\"سارا\", 30]\n"
+                "person = dict(zip(keys, values))\n"
+                "print(person)   # {'name': 'سارا', 'age': 30}\n\n"
+                "# یا با درکِ دیکشنری از جفت‌ها\n"
+                "pairs = [(\"a\", 1), (\"b\", 2)]\n"
+                "print({k: v for k, v in pairs})\n```")
 
-    # مرتب‌سازی فهرست
-    if re.search(r"مرتب|sort", low) and re.search(r"فهرست|لیست|list", low):
-        code = ("numbers = [5, 2, 8]\n"
-                "numbers.sort()                        # درجا، صعودی\n"
-                "print(numbers)                        # [2, 5, 8]\n"
-                "print(sorted(numbers, reverse=True))  # نسخهٔ تازه، نزولی\n"
-                "words = [\"کیوی\", \"انار\", \"سیب\"]\n"
-                "print(sorted(words, key=len))         # با معیارِ دلخواه")
-        return ("`sort()` خودِ فهرست را عوض می‌کند و `sorted()` نسخهٔ تازه می‌دهد؛ "
-                "با `reverse=True` نزولی و با `key=` معیارِ دلخواه:\n\n"
-                f"```python\n{code}\n```")
+    # تاریخ و زمان
+    if re.search(r"تاریخ|زمان|ساعت|datetime", low) and re.search(
+            r"امروز|الان|اکنون|تاریخ|زمان|date|time", low):
+        return ("تاریخ و زمان با ماژول `datetime`:\n\n"
+                "```python\nfrom datetime import datetime, date\n\n"
+                "now = datetime.now()\n"
+                "print(now.strftime(\"%Y-%m-%d %H:%M\"))   # 2026-11-01 20:30\n"
+                "print(date.today())                     # 2026-11-01\n```\n\n"
+                "برای تاریخِ شمسی، تبدیل را خودت انجام بده یا از بستهٔ `jdatetime` استفاده کن.")
 
-    # تابع سادهٔ حساب
-    for word, (name, title, op, label) in _OP_NAMES.items():
-        if word in low and re.search(r"تابع|def|بنویس|بده", low):
-            guard = ""
-            if op == "/":
-                guard = ("    if b == 0:\n"
-                         "        raise ValueError(\"تقسیم بر صفر مجاز نیست\")\n")
-            body = f"{guard}    return a {op} b"
-            code = _function_code(name, label, "a, b", body,
-                                  f"print({name}(10, 2))  # {_eval_hint(op)}")
-            return (f"این تابع دو عدد می‌گیرد و {title} را برمی‌گرداند:\n\n"
-                    f"```python\n{code}\n```\n\n"
-                    "برای تست، دو عدد را جای ۱۰ و ۲ بگذار.")
+    # تبدیل نوع: رشته ↔ عدد
+    if re.search(r"(رشته|متن|string)", low) and re.search(r"(عدد|int|float)", low):
+        return ("تبدیل با `int()` و `float()` و بازگشت با `str()`:\n\n"
+                "```python\ntext = \"۴۲\"\n"
+                "number = int(text)        # 42\n"
+                "decimal = float(\"3.5\")   # 3.5\n"
+                "print(str(number))        # \"42\"\n```\n\n"
+                "اگر ورودیِ کاربر آزاد است، تبدیل را در `try` بگذار:\n\n"
+                "```python\ntry:\n    number = int(text)\n"
+                "except ValueError:\n    number = 0\n```")
 
-    # خواندنِ فایل متنی
-    if "فایل" in low and re.search(r"(بخوانم|خواندن|read|باز کنم|بازکردن)", low):
-        return ("خواندنِ فایل در پایتون با `with` انجام می‌شود تا فایل حتی وقتی خطا "
-                "رخ داد بسته شود:\n\n"
-                "```python\n"
-                "with open(\"data.txt\", encoding=\"utf-8\") as handle:\n"
-                "    text = handle.read()\n\n"
-                "print(text[:200])\n"
-                "```\n\n"
-                "برای خواندنِ خط‌به‌خط از `for line in handle:` استفاده کن، و برای فایل‌های "
-                "بزرگ همین روش مصرفِ حافظه را کم نگه می‌دارد.")
-    # نوشتنِ فایل متنی
-    if "فایل" in low and re.search(r"(بنویسم|نوشتن|write|ذخیره)", low):
-        return ("نوشتنِ فایل هم با `with` و حالت `w`:\n\n"
-                "```python\n"
-                "with open(\"out.txt\", \"w\", encoding=\"utf-8\") as handle:\n"
-                "    handle.write(\"سلام\\n\")\n"
-                "```\n\n"
-                "حالت `w` فایل را از نو می‌نویسد؛ برای افزودن به انتهای فایل از `a` استفاده کن.")
+    # تقسیم رشته
+    if re.search(r"split|تقسیم|جدا کردن|بریدن", low) and re.search(r"رشته|متن|string|جمله", low):
+        return ("بریدنِ رشته با `split()` و چسباندن با `join()`:\n\n"
+                "```python\ntext = \"سلام دنیا\"\n"
+                "print(text.split())          # ['سلام', 'دنیا']\n"
+                "print(text.split(\"ا\"))      # بر اساسِ نویسهٔ دلخواه\n"
+                "print(\"-\".join([\"الف\", \"ب\"]))  # الف-ب\n```")
 
     # چاپ اعداد در بازه: «اعداد ۱ تا ۱۰»
     span = re.search(r"(?:اعداد|عددهای|عددها|از)\s*(\d+)\s*(?:تا|-|الی)\s*(\d+)", low)
@@ -487,7 +471,9 @@ def _code_answer_python(text: str) -> str | None:
         return ("ساده‌ترین راه معکوس‌کردن رشته، برش با گام منفی است:\n\n"
                 f"```python\n{code}\n```")
 
-    if "تابع" in low and re.search(r"بنویس|بده|تعریف", low):
+    if ("تابع" in low and re.search(r"بنویس|بده|تعریف", low)
+            and not re.search(r"جمع|تفریق|ضرب|تقسیم|باقیمانده|فاکتوریل|اول|زوج|فرد|"
+                              r"مرتب|جستجو|جست‌وجو|بازگشتی|حساب", low)):
         code = ("def greet(name: str) -> str:\n"
                 '    """سلامی شخصی می‌سازد."""\n'
                 "    return f\"سلام {name}!\"\n\n\n"
@@ -495,11 +481,169 @@ def _code_answer_python(text: str) -> str | None:
         return ("ساختار یک تابع در پایتون این است: `def` + نام + پرانتز پارامترها + دو نقطه، "
                 "و بدنه با تورفتگی. `return` خروجی را برمی‌گرداند:\n\n"
                 f"```python\n{code}\n```")
+    programming = re.search(r"پایتون|python|(?<![\w\u200c])کد(?![\w\u200c])|برنامه|"
+                            r"جاوااسکریپت|javascript|حلقه|\bsql\b|select\s|insert\s|جدول",
+                            text, re.I)
+    # طول رشته/فهرست
+    if re.search(r"طول|len\b", low) and re.search(r"رشته|فهرست|لیست|متن|string", low):
+        code = ("text = \"سلام دنیا\"\n"
+                "print(len(text))            # ۹ — شمارشِ نویسه‌ها\n"
+                "words = text.split()\n"
+                "print(len(words))           # ۲ — شمارشِ واژه‌ها\n"
+                "print(len(\"👩\"))            # ۱ — نویسهٔ مرکب هم یک نویسه است")
+        return ("`len()` طولِ رشته (تعدادِ نویسه) یا فهرست (تعدادِ عضو) را می‌دهد:\n\n"
+                f"```python\n{code}\n```")
+
+    # ورودی از کاربر
+    if re.search(r"از کاربر|ورودی|input", low) and re.search(r"بگیر|خواندن|بخواه", low):
+        code = ("name = input(\"نامت را بنویس: \")          # همیشه رشته است\n"
+                "age = int(input(\"سنت را بنویس: \"))        # عددِ صحیح\n"
+                "score = float(input(\"نمره‌ات را بنویس: \"))  # عددِ اعشاری\n"
+                "print(f\"{name}، {age} ساله با نمرهٔ {score}\")")
+        return ("`input()` هر ورودی را **رشته** برمی‌گرداند؛ برای عدد باید با `int()` یا "
+                "`float()` تبدیلش کنی:\n\n"
+                f"```python\n{code}\n```")
+
+    # مرتب‌سازی فهرست
+    if re.search(r"مرتب|sort", low) and re.search(r"فهرست|لیست|list", low):
+        code = ("numbers = [5, 2, 8]\n"
+                "numbers.sort()                        # درجا، صعودی\n"
+                "print(numbers)                        # [2, 5, 8]\n"
+                "print(sorted(numbers, reverse=True))  # نسخهٔ تازه، نزولی\n"
+                "words = [\"کیوی\", \"انار\", \"سیب\"]\n"
+                "print(sorted(words, key=len))         # با معیارِ دلخواه")
+        return ("`sort()` خودِ فهرست را عوض می‌کند و `sorted()` نسخهٔ تازه می‌دهد؛ "
+                "با `reverse=True` نزولی و با `key=` معیارِ دلخواه:\n\n"
+                f"```python\n{code}\n```")
+
+    # تابع سادهٔ حساب
+    for word, (name, title, op, label) in _OP_NAMES.items():
+        if word in low and re.search(r"تابع|def|بنویس|بده", low):
+            guard = ""
+            if op == "/":
+                guard = ("    if b == 0:\n"
+                         "        raise ValueError(\"تقسیم بر صفر مجاز نیست\")\n")
+            body = f"{guard}    return a {op} b"
+            code = _function_code(name, label, "a, b", body,
+                                  f"print({name}(10, 2))  # {_eval_hint(op)}")
+            return (f"این تابع دو عدد می‌گیرد و {title} را برمی‌گرداند:\n\n"
+                    f"```python\n{code}\n```\n\n"
+                    "برای تست، دو عدد را جای ۱۰ و ۲ بگذار.")
+
+    # چاپ
+    if re.search(r"چاپ|print", low) and re.search(r"چند خط|داخل متن|محل|خط تازه|newline|با هم", low):
+        return ("چاپ با `print()` و چند خط در یک فراخوانی:\n\n"
+                "```python\nprint(\"خط اول\", \"خط دوم\", sep=\"\\n\")   # هر کدام در خط تازه\n"
+                "print(\"پایان\")                              # به‌طور پیش‌فرض با خط تازه تمام می‌شود\n"
+                "print(\"بدون خط تازه\", end=\"\")              # end تعیین می‌کند بعدش چه بیاید\n```\n\n"
+                "`sep` بین مقادیر و `end` بعد از آخرین مقدار گذاشته می‌شود.")
+
+    # ساخت تابع
+    if (re.search(r"تابع|function", low)
+            and re.search(r"بساز|تعریف|بنویس|بده|چطور|چگونه", low)
+            and not re.search(r"جمع|تفریق|ضرب|تقسیم|باقیمانده|فاکتوریل|اول|زوج|فرد|"
+                              r"مرتب|جستجو|جست‌وجو|بازگشتی", low)):
+        return ("ساخت تابع در پایتون با `def`:\n\n"
+                "```python\ndef greet(name: str) -> str:\n"
+                "    \"\"\"سلامِ کوتاه می‌سازد.\"\"\"\n"
+                "    return f\"سلام {name}!\"\n\n"
+                "print(greet(\"سارا\"))   # سلام سارا!\n```\n\n"
+                "سه قاعده: نامِ روشن، پارامترهای صریح با نوعِ اختیاری، و `return` به‌جای `print` "
+                "داخل تابع تا نتیجه قابلِ آزمون باشد.")
+
+    # عدد تصادفی
+    if re.search(r"تصادفی|random", low):
+        return ("عدد تصادفی با ماژول `random`:\n\n"
+                "```python\nimport random\n\n"
+                "print(random.randint(1, 6))        # عدد صحیح بین ۱ و ۶\n"
+                "print(random.choice([\"سنگ\", \"کاغذ\", \"قیچی\"]))\n"
+                "random.shuffle([1, 2, 3])          # جابه‌جایی درجا\n```\n\n"
+                "برای تکرارپذیری در آزمون: `random.seed(42)`.")
+
     return None
 
 
 def _eval_hint(op: str) -> str:
     return {"+": "12", "-": "8", "*": "20", "/": "5.0", "%": "0"}.get(op, "")
+
+
+    # خواندنِ فایل متنی
+    if "فایل" in low and re.search(r"(بخوانم|خواندن|read|باز کنم|بازکردن)", low):
+        return ("خواندنِ فایل در پایتون با `with` انجام می‌شود تا فایل حتی وقتی خطا "
+                "رخ داد بسته شود:\n\n"
+                "```python\n"
+                "with open(\"data.txt\", encoding=\"utf-8\") as handle:\n"
+                "    text = handle.read()\n\n"
+                "print(text[:200])\n"
+                "```\n\n"
+                "برای خواندنِ خط‌به‌خط از `for line in handle:` استفاده کن، و برای فایل‌های "
+                "بزرگ همین روش مصرفِ حافظه را کم نگه می‌دارد.")
+    # نوشتنِ فایل متنی
+    if "فایل" in low and re.search(r"(بنویسم|نوشتن|write|ذخیره)", low):
+        return ("نوشتنِ فایل هم با `with` و حالت `w`:\n\n"
+                "```python\n"
+                "with open(\"out.txt\", \"w\", encoding=\"utf-8\") as handle:\n"
+                "    handle.write(\"سلام\\n\")\n"
+                "```\n\n"
+                "حالت `w` فایل را از نو می‌نویسد؛ برای افزودن به انتهای فایل از `a` استفاده کن.")
+
+
+
+def _sql_answer(text: str) -> str:
+    """پاسخِ SQL بر اساسِ نیتِ پرسش، با دستورِ کامل و قابل اجرا."""
+    low = text.lower()
+    if re.search(r"insert|اضافه|افزودن|درج|رکورد تازه|ثبت", low):
+        return ("افزودنِ رکورد با `INSERT INTO`:\n\n"
+                "```sql\n"
+                "INSERT INTO users (name, email) VALUES ('سارا', 'sara@example.com');\n"
+                "```\n\n"
+                "ستون‌ها را در پرانتزِ اول و مقدارها را به همان ترتیب در `VALUES` بنویس؛ "
+                "مقدارِ متنی را در تک‌کوتیشن بگذار. برای چند رکورد، گروه‌های مقدار را با کاما ادامه بده.")
+    if re.search(r"update|ویرایش|به‌روز", low):
+        return ("به‌روزرسانی با `UPDATE` — بدونِ `WHERE` همهٔ ردیف‌ها تغییر می‌کنند:\n\n"
+                "```sql\nUPDATE users SET email = 'new@example.com' WHERE id = 7;\n```")
+    if re.search(r"delete|حذف", low):
+        return ("حذف با `DELETE` — همیشه `WHERE` بگذار:\n\n"
+                "```sql\nDELETE FROM users WHERE id = 7;\n```")
+    if re.search(r"جدول|table|ساخت|بساز", low):
+        return ("ساختِ جدول با `CREATE TABLE`:\n\n"
+                "```sql\nCREATE TABLE users (\n"
+                "    id      INTEGER PRIMARY KEY,\n"
+                "    name    TEXT NOT NULL,\n"
+                "    email   TEXT UNIQUE NOT NULL,\n"
+                "    created TEXT DEFAULT CURRENT_TIMESTAMP\n"
+                ");\n```")
+    return ("خواندنِ داده با `SELECT`:\n\n"
+            "```sql\nSELECT name, email FROM users WHERE created > '2026-01-01' "
+            "ORDER BY name LIMIT 20;\n```\n\n"
+            "ستون‌های موردنیاز را صریح بنویس، شرط را در `WHERE` بگذار و برای صفحه‌بندی "
+            "`LIMIT` و `OFFSET` را اضافه کن.")
+
+
+def _js_answer(text: str) -> str:
+    """پاسخِ جاوااسکریپت بر اساسِ نیتِ پرسش."""
+    low = text.lower()
+    if re.search(r"دکمه|کلیک|رویداد|event|onclick|addEventListener", low):
+        return ("وصل‌کردنِ رویداد به دکمه در جاوااسکریپت:\n\n"
+                "```html\n<button id=\"save\">ذخیره</button>\n```\n\n"
+                "```javascript\nconst button = document.querySelector('#save');\n"
+                "button.addEventListener('click', () => {\n"
+                "  console.log('کلیک شد');\n"
+                "});\n```\n\n"
+                "`addEventListener` بهتر از `onclick` است: چند شنونده را هم‌زمان می‌پذیرد.")
+    if re.search(r"جمع|تابع|function|بنویس", low):
+        return ("تابع در جاوااسکریپت:\n\n"
+                "```javascript\nfunction add(a, b) {\n  return a + b;\n}\n\n"
+                "// یا کوتاه‌تر:\nconst add = (a, b) => a + b;\n\n"
+                "console.log(add(2, 3)); // 5\n```")
+    if re.search(r"فهرست|آرایه|array", low):
+        return ("آرایه در جاوااسکریپت:\n\n"
+                "```javascript\nconst items = [3, 1, 2];\nitems.push(4);              // افزودن\n"
+                "items.sort((a, b) => a - b); // مرتب‌سازی عددی\n"
+                "console.log(items);         // [1, 2, 3, 4]\n```")
+    return ("نمونهٔ پایهٔ جاوااسکریپت:\n\n"
+            "```javascript\nconst name = 'سارا';\nconsole.log(`سلام ${name}`);\n```\n\n"
+            "بگو ورودی و خروجی چه باشد تا همان را کامل بنویسم.")
 
 
 def code_answer(question: str) -> dict | None:
@@ -508,23 +652,25 @@ def code_answer(question: str) -> dict | None:
     if not text:
         return None
     if not re.search(r"(?<![\w\u200c])کد(?![\w\u200c])|برنامه|تابع|پایتون|python|"
-                     r"جاوااسکریپت|javascript|حلقه|دیکشنری|فهرست|لیست", text, re.I):
+                     r"جاوااسکریپت|javascript|حلقه|دیکشنری|فهرست|لیست|"
+                     r"\bsql\b|select\s|insert\s|جدول|پایگاه‌?داده", text, re.I):
         return None
     # ریاضی و ادبیات، کد نمی‌خواهند
     if re.search(r"ریاضی|ریاضیات|تابع خطی|تابع سهمی|مثلثاتی|صرف|نحو|شعر", text):
         return None
     # بدون بافت برنامه‌نویسی، فقط «تابع … بنویس» درخواست کد است
     programming = re.search(r"پایتون|python|(?<![\w\u200c])کد(?![\w\u200c])|برنامه|"
-                            r"جاوااسکریپت|javascript|حلقه", text, re.I)
+                            r"جاوااسکریپت|javascript|حلقه|\bsql\b|select\s|insert\s|جدول",
+                            text, re.I)
     if not programming and not re.search(r"تابع.*(بنویس|بده)", text):
         return None
-    if re.search(r"حلقه", text) and not re.search(r"بنویس|بده|چطور|چگونه|چه دستور|دستور|مجموع", text):
+    if re.search(r"حلقه", text) and not re.search(
+            r"بنویس|بده|چطور|چگونه|چه دستور|دستور|مجموع|چاپ|نمایش|اعداد|بساز", text):
         return None
-    if re.search(r"جاوااسکریپت|javascript", text, re.I):
-        return {"answer": ("در جاوااسکریپت هم همین منطق برقرار است، اما نمونه‌های من فعلاً "
-                           "پایتون است؛ اگر بخواهی همان تابع را برای جاوااسکریپت بازنویسی کنم، "
-                           "بگو کدام زبان را می‌خواهی."),
-                "source": "کد", "engine": "code"}
+    if re.search(r"\bsql\b|select\s|insert\s|پایگاه‌?داده", text, re.I):
+        return {"answer": _sql_answer(text), "source": "کد", "engine": "code"}
+    if re.search(r"جاوااسکریپت|javascript|\bjs\b", text, re.I):
+        return {"answer": _js_answer(text), "source": "کد", "engine": "code"}
     code = _code_answer_python(text)
     if code:
         return {"answer": code, "source": "کد", "engine": "code"}

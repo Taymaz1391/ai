@@ -191,7 +191,20 @@ def phrase(result: dict) -> str:
         if isinstance(value, float) and value == int(value):
             value = int(value)
         expr = str(result.get("expression") or "").replace("*", "×").replace("/", "÷")
-        return f"{expr} = {value}".translate(fa)
+        line = f"{expr} = **{value}**".translate(fa)
+        pair = re.fullmatch(r"(-?\d+(?:\.\d+)?)\s*([+\-*/×÷])\s*(-?\d+(?:\.\d+)?)", expr.strip())
+        check = ""
+        if pair and value not in (0, None):
+            left, op, right = float(pair.group(1)), pair.group(2), float(pair.group(3))
+            if op in ("+",):
+                check = f"{left + right:g} − {right:g} = {left:g}"
+            elif op in ("-", "−"):
+                check = f"{left:g} + {right:g} = {left + right:g}"
+            elif op in ("×", "*"):
+                check = f"{value:g} ÷ {right:g} = {left:g}"
+            elif op in ("÷", "/"):
+                check = f"{value:g} × {right:g} = {left:g}"
+        return line + ((f"\nبازبینی: {check}".translate(fa)) if check else "")
     if tool == "now":
         parts = [str(result.get(k)) for k in ("weekday", "jalali", "time") if result.get(k)]
         return " — ".join(parts).translate(fa) if parts else ""
@@ -254,7 +267,9 @@ def detect(text: str) -> dict | None:
         if out.get("ok"):
             out["tool"] = "calc"
             return out
-    if re.search(r"(ساعت چند|تاریخ امروز|چه روزی|امروز چندم|امروز چندمه)", raw):
+    asks_time = re.search(r"(ساعت چند|تاریخ امروز|چه روزی|امروز چندم|امروز چندمه)", raw)
+    unrelated = re.search(r"کیلومتر|متر|تومان|درصد|٪|مسافت|سرعت|ضرب|تقسیم", raw)
+    if asks_time and not unrelated:
         out = now_tool()
         if out.get("ok"):
             out["tool"] = "now"

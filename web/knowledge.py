@@ -32,6 +32,10 @@ _ENTRIES: list[dict] | None = None
 
 def _norm(text: str) -> str:
     text = unicodedata.normalize("NFKC", text or "").replace("\u200c", " ")
+    # «ب.م.م» → «بمم»: نقطه‌ها و فاصله‌های درونِ سرواژه‌ها یک واژه می‌سازند
+    text = re.sub(r"(?<=\w)\.(?=\w)", " ", text)
+    text = re.sub(r"\b(?:[^\W\d_]\s){2,}[^\W\d_]\b",
+                  lambda match: match.group(0).replace(" ", ""), text)
     text = text.translate(str.maketrans({"ي": "ی", "ك": "ک", "ۀ": "ه", "ة": "ه"}))
     return re.sub(r"[^\w\s]", " ", text.casefold()).strip()
 
@@ -83,7 +87,7 @@ def _subjects(message: str) -> set[str]:
             if token not in _GENERIC and token not in _STOP and len(token) > 2}
 
 
-_SUFFIXES = ("هایی", "های", "ها", "ای", "ی")
+_SUFFIXES = ("هایی", "های", "ها", "ای", "ی", "ش", "اش")
 
 
 _AUTHOR_ASK = re.compile(r"چه کسی|چه کسانی|نویسنده|مولف|مؤلف|سراینده|"
@@ -95,11 +99,13 @@ _SUMMARY_KEY = re.compile(r"درباره|خلاصه|چیست$")
 _YEAR_ASK = re.compile(r"(?:در\s*)?چه\s*سالی?|سالِ?\s*چند|کدام\s*سال|چندمین\s*سال")
 # گفت‌وگوی کوتاه، پرسش دانشی نیست
 # «شروع» یا «پایان»: دو پاسخِ متفاوت برای یک موضوع
+_SUMMARY_ASK = re.compile(r"درباره|موضوع|حکایت|داستان|قصه|محتوای|دربارهٔ")
 _START_ASK = re.compile(r"شروع|آغاز|اعلام|رخ داد|وقوع|به قدرت رسید")
 _END_ASK = re.compile(r"پایان|تمام شد|خاتمه|سقوط|فروپاش|شکست خورد")
 
 _SMALL_TALK = re.compile(r"^(?:سلام|درود|خوبی|خوبید|چطوری|چطورید|چه خبر|ممنون|مرسی|سپاس|"
-                         r"خداحافظ|بدرود|صبح بخیر|شب بخیر|وقت بخیر)[\s!.,،؟?]*$")
+                         r"خداحافظ|بدرود|صبح بخیر|شب بخیر|وقت بخیر)"
+                         r"(?:[\s،,]+.{0,40})?[\s!.,،؟?]*$")
 
 
 def _stem(token: str) -> str:
@@ -138,6 +144,7 @@ def lookup(message: str, min_score: float = 0.62) -> dict | None:
     flat = " " + " ".join(_norm(message).split()) + " "
     author_intent = bool(_AUTHOR_ASK.search(flat))
     year_intent = bool(_YEAR_ASK.search(flat))
+    summary_intent = bool(_SUMMARY_ASK.search(flat))
     start_intent = bool(_START_ASK.search(flat))
     end_intent = bool(_END_ASK.search(flat)) and not start_intent
     subjects = _subjects(message)
@@ -171,6 +178,8 @@ def lookup(message: str, min_score: float = 0.62) -> dict | None:
             continue                    # پرسش از شروع است؛ ورودیِ «پایان» پاسخ نیست
         if end_intent and not _END_ASK.search(entry.get("q", "") + " " + " ".join(keys)):
             continue
+        elif summary_intent and _SUMMARY_KEY.search(" ".join(keys) + " " + entry.get("q", "")):
+            score += 0.4            # پرسش از موضوعِ اثر است؛ ورودیِ «چه کسی سرود» پاسخ نیست
         elif _SUMMARY_KEY.search(" ".join(keys)):
             score -= 0.1
         if score < 1.0:

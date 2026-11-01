@@ -56,6 +56,14 @@ _FA_EN: dict[str, tuple[str, str]] = {
     "کاغذ": ("paper", "noun"), "دست": ("hand", "noun"), "سر": ("head", "noun"),
     "چشم": ("eye", "noun"), "قلب": ("heart", "noun"), "دل": ("heart", "noun"),
     "ذهن": ("mind", "noun"), "فکر": ("thought", "noun"), "دوستان": ("friends", "noun"),
+    # صفت‌های پرکاربرد
+    "warm": ("گرم", "adj"), "hot": ("داغ", "adj"), "cold": ("سرد", "adj"),
+    "fast": ("سریع", "adj"), "slow": ("کند", "adj"), "strong": ("قوی", "adj"),
+    "weak": ("ضعیف", "adj"), "happy": ("خوشحال", "adj"), "sad": ("غمگین", "adj"),
+    "big": ("بزرگ", "adj"), "small": ("کوچک", "adj"), "new": ("نو", "adj"),
+    "old": ("کهنه", "adj"), "good": ("خوب", "adj"), "bad": ("بد", "adj"),
+    "easy": ("آسان", "adj"), "hard": ("سخت", "adj"), "clean": ("تمیز", "adj"),
+    "long": ("دراز", "adj"), "short": ("کوتاه", "adj"), "beautiful": ("زیبا", "adj"),
     # مفاهیم (پرسش‌های «معنی … چیست»)
     "امید": ("hope", "noun"), "عشق": ("love", "noun"), "دوستی": ("friendship", "noun"),
     "آزادی": ("freedom", "noun"), "صلح": ("peace", "noun"), "جنگ": ("war", "noun"),
@@ -142,6 +150,17 @@ _EN_FA: dict[str, tuple[str, str]] = {}
 for _fa, (_en, _kind) in _FA_EN.items():
     for _alt in _en.split("/"):
         _EN_FA.setdefault(_alt.strip().lower(), (_fa, _kind))
+
+# عبارت‌های ثابتِ روزمره: واژه‌به‌واژه معنا را خراب می‌کند
+_PHRASES: dict[str, str] = {
+    "صبح بخیر": "good morning", "شب بخیر": "good night", "عصر بخیر": "good afternoon",
+    "روز بخیر": "good day", "خسته نباشید": "well done", "خسته نباشی": "well done",
+    "دستت درد نکنه": "thank you", "لطفاً": "please", "لطفا": "please",
+    "ببخشید": "excuse me", "متأسفم": "I am sorry", "متاسفم": "I am sorry",
+    "تولدت مبارک": "happy birthday", "سال نو مبارک": "happy new year",
+    "good morning": "صبح بخیر", "good night": "شب بخیر", "good afternoon": "عصر بخیر",
+    "happy birthday": "تولدت مبارک", "thank you": "ممنون", "please": "لطفاً",
+}
 
 _COMMON_EN_EXTRA = {
     "hello": "سلام", "hi": "سلام", "goodbye": "خداحافظ", "bye": "خداحافظ",
@@ -397,6 +416,29 @@ def _en_pattern(source: str) -> dict | None:
             copula = {"من": "هستم", "تو": "هستی", "شما": "هستید", "ما": "هستیم"}.get(subject, "است")
             return {"text": f"{subject} یک {noun} {copula}", "unknown": [], "complete": True}
 
+    # I have a book  →  من یک کتاب دارم
+    match = re.match(r"^(?P<s>i|you|he|she|we|they)\s+(?:have|has)\s+"
+                     r"(?:a|an|the)?\s*(?P<o>[\w ]+?)[.!]?$", low, re.I)
+    if match:
+        subject = {"i": "من", "you": "تو", "he": "او", "she": "او", "we": "ما",
+                   "they": "آن‌ها"}[match["s"].strip().lower()]
+        verb = {"من": "دارم", "تو": "داری", "او": "دارد", "ما": "داریم", "آن‌ها": "دارند"}[subject]
+        obj = _fa_of(match["o"])
+        if obj:
+            return {"text": f"{subject} یک {obj} {verb}", "unknown": [], "complete": True}
+
+    # We go to school  →  ما به مدرسه می‌رویم
+    match = re.match(r"^(?P<s>i|you|he|she|we|they)\s+go(?:es)?\s+to\s+"
+                     r"(?P<p>[\w ]+?)[.!]?$", low, re.I)
+    if match:
+        subject = {"i": "من", "you": "تو", "he": "او", "she": "او", "we": "ما",
+                   "they": "آن‌ها"}[match["s"].strip().lower()]
+        verb = {"من": "می‌روم", "تو": "می‌روی", "او": "می‌رود", "ما": "می‌رویم",
+                "آن‌ها": "می‌روند"}[subject]
+        place = _fa_of(match["p"])
+        if place:
+            return {"text": f"{subject} به {place} {verb}", "unknown": [], "complete": True}
+
     match = re.match(r"^(?P<s>i|you|he|she|it|we|they)\s+(?P<v>[\w]+)\s+"
                      r"(?P<o>[\w ]+?)[.!]?$", low, re.I)
     if match:
@@ -417,11 +459,23 @@ def _en_pattern(source: str) -> dict | None:
 
 
 # ═══════════════════════════════════════════════════════ ۴) ترجمه
+def _phrase(text: str, to: str) -> dict | None:
+    """عبارتِ ثابتِ شناخته‌شده را کامل ترجمه می‌کند، نه واژه‌به‌واژه."""
+    key = " ".join((text or "").strip().strip(".!؟?").split()).lower()
+    target = _PHRASES.get(key)
+    if target:
+        return {"text": target, "unknown": [], "complete": True}
+    return None
+
+
 def translate(text: str, to: str = "en") -> dict:
     """ترجمهٔ متنی کوتاه؛ خروجی شامل متن، واژه‌های ناشناخته و کامل‌بودن است."""
     source = _norm(text)
     if not source:
         return {"text": "", "unknown": [], "complete": False}
+    fixed = _phrase(source, to)
+    if fixed:
+        return fixed
     if to == "fa":
         patterned = _en_pattern(source)
         if patterned:

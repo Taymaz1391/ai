@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from pathlib import Path
 import re
 import statistics
 import sys
@@ -369,6 +370,15 @@ SETS["blind3"] = BLIND3
 SETS["blind4"] = BLIND4
 SETS["blind5"] = BLIND5
 SETS["blind6"] = BLIND6
+
+# مجموعه‌های تازه از فایل خوانده می‌شوند تا افزودنشان کد را شلوغ نکند
+_EVAL_DIR = Path(__file__).resolve().parent.parent / "data" / "eval"
+for _file in sorted(_EVAL_DIR.glob("*.json")):
+    try:
+        for _name, _cases in json.loads(_file.read_text(encoding="utf-8")).items():
+            SETS[_name] = _cases
+    except (OSError, ValueError):  # یک فایل خراب نباید کلِ سنجش را بشکند
+        continue
 SETS["all"] = CASES + HOLDOUT + HARD + BLIND + BLIND2 + BLIND3 + BLIND4 + BLIND5 + BLIND6
 
 # نشانه‌های پاسخِ ردشده (پیشنهاد به‌جای جواب)
