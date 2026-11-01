@@ -1032,14 +1032,27 @@ def _learn_stats() -> dict:
 
 
 def _qa_report() -> dict | None:
-    """نتیجهٔ سنجش صادقانهٔ پرسش‌های دانشی (scripts/eval_qa.py) — بدون دست‌کاری."""
+    """نتیجهٔ سنجش صادقانهٔ پرسش‌های دانشی (scripts/eval_qa.py) — بدون دست‌کاری.
+
+    اگر ایندکس دانش روی این ماشین ساخته نشده باشد، عدد گزارش مربوط به اجرای دیگری
+    است و تکرارپذیر نیست؛ در آن حالت سنجه نشان داده نمی‌شود تا عدد کهنه جای واقعیت
+    ننشیند.
+    """
     path = os.path.join(ROOT, "reports", "qa.json")
     try:
         with open(path, encoding="utf-8") as fh:
             data = json.load(fh)
     except (OSError, ValueError):
         return None
+    try:
+        ready = bool(retrieval_module.stats().get("ready"))
+    except Exception:  # noqa: BLE001
+        ready = False
+    if not ready:
+        return {"available": False,
+                "note": "ایندکس دانش روی این ماشین ساخته نشده؛ عدد گزارش تکرارپذیر نیست."}
     return {
+        "available": True,
         "run_at": data.get("run_at"),
         "total": data.get("total"),
         "correct": data.get("correct"),

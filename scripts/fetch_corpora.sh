@@ -39,16 +39,26 @@ if [ -d "_wiki/Persian-Wikipedia-Corpus-master" ] && [ ! -d "_wiki/repo" ]; then
   mv "_wiki/Persian-Wikipedia-Corpus-master" "_wiki/repo"
 fi
 
+# نمونهٔ میراث اختیاری است: اگر این میزبان در دسترس نباشد (فیلتر شبکه یا خطای SSL)
+# بقیهٔ منابع باید همچنان کامل شوند، وگرنه پیکره ناقص می‌ماند.
 if [ ! -f miras-sample.txt ]; then
   printf '[+] MirasText sample\n'
-  curl -L --fail --retry 3 \
-    "https://raw.githubusercontent.com/miras-tech/MirasText/master/MirasText/MirasText_sample.txt" \
-    -o miras-sample.txt
+  if ! curl -L --fail --retry 2 --retry-delay 2 \
+      "https://raw.githubusercontent.com/miras-tech/MirasText/master/MirasText/MirasText_sample.txt" \
+      -o miras-sample.txt; then
+    printf '[!] MirasText در دسترس نیست؛ بدون این منبع ادامه می‌دهیم.\n'
+    rm -f miras-sample.txt
+  fi
 fi
 
-# میزان در یک فایل zip می‌آید؛ اگر از قبل باز نشده، بازش کن
-if [ -f "omidkashefi_Mizan/mizan.zip" ] && [ ! -f "omidkashefi_Mizan/ext/mizan/mizan_fa.txt" ]; then
-  ( cd omidkashefi_Mizan && unzip -q mizan.zip -d ext )
+# میزان در یک فایل zip می‌آید؛ اگر از قبل باز نشده، بازش کن.
+# تاربال، zip را یک پوشه پایین‌تر می‌گذارد (Mizan-master/)، پس با find پیدایش می‌کنیم.
+if [ ! -s omidkashefi_Mizan/ext/mizan/mizan_fa.txt ]; then
+  MIZAN_ZIP="$(find omidkashefi_Mizan -maxdepth 3 -name 'mizan.zip' -print -quit 2>/dev/null || true)"
+  if [ -n "${MIZAN_ZIP}" ]; then
+    mkdir -p omidkashefi_Mizan/ext
+    unzip -q -o "${MIZAN_ZIP}" -d omidkashefi_Mizan/ext
+  fi
 fi
 
 echo

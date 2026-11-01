@@ -1,12 +1,12 @@
 {
-  "run_at": "2026-11-01T04:40:52",
+  "run_at": "2026-11-01T06:38:13",
   "total": 30,
   "answered": 29,
   "correct": 29,
   "answered_rate": 0.967,
   "accuracy_on_all": 0.967,
   "accuracy_on_answered": 1.0,
-  "seconds": 7.55,
+  "seconds": 6.97,
   "rows": [
     {
       "question": "پایتخت ایران کجاست؟",
@@ -17,7 +17,7 @@
       "engine": "retrieval",
       "confidence": 0.97,
       "verdict": "درست",
-      "seconds": 0.924
+      "seconds": 0.88
     },
     {
       "question": "پایتخت فرانسه کجاست؟",
@@ -28,7 +28,7 @@
       "engine": "retrieval",
       "confidence": 0.97,
       "verdict": "درست",
-      "seconds": 0.831
+      "seconds": 0.837
     },
     {
       "question": "پایتخت ژاپن کجاست؟",
@@ -39,7 +39,7 @@
       "engine": "retrieval",
       "confidence": 0.97,
       "verdict": "درست",
-      "seconds": 0.882
+      "seconds": 0.795
     },
     {
       "question": "بلندترین قلهٔ ایران کجاست؟",
@@ -50,7 +50,7 @@
       "engine": "retrieval",
       "confidence": 0.97,
       "verdict": "درست",
-      "seconds": 1.076
+      "seconds": 1.088
     },
     {
       "question": "بلندترین قلهٔ جهان کجاست؟",
@@ -61,7 +61,7 @@
       "engine": null,
       "confidence": 0.0,
       "verdict": "بدون پاسخ",
-      "seconds": 1.744
+      "seconds": 1.487
     },
     {
       "question": "زبان فارسی چیست؟",
@@ -74,7 +74,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.031
+      "seconds": 0.03
     },
     {
       "question": "فتوسنتز چیست؟",
@@ -87,7 +87,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.108
+      "seconds": 0.103
     },
     {
       "question": "اینترنت چیست؟",
@@ -100,7 +100,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.04
+      "seconds": 0.027
     },
     {
       "question": "جنگ جهانی دوم چه بود؟",
@@ -140,7 +140,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.416
+      "seconds": 0.277
     },
     {
       "question": "حافظ کیست؟",
@@ -166,7 +166,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.27
+      "seconds": 0.265
     },
     {
       "question": "فردوسی کیست؟",
@@ -178,7 +178,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.03
+      "seconds": 0.028
     },
     {
       "question": "سعدی کیست؟",
@@ -217,7 +217,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.26
+      "seconds": 0.258
     },
     {
       "question": "تهران کجاست؟",
@@ -267,7 +267,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.268
+      "seconds": 0.261
     },
     {
       "question": "آب چیست؟",
@@ -280,7 +280,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.008
+      "seconds": 0.004
     },
     {
       "question": "سیب چیست؟",
@@ -293,7 +293,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.073
+      "seconds": 0.054
     },
     {
       "question": "خون چیست؟",
@@ -306,7 +306,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.033
+      "seconds": 0.03
     },
     {
       "question": "مغز چیست؟",
@@ -345,7 +345,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.261
+      "seconds": 0.259
     },
     {
       "question": "سازمان ملل متحد چه کاری می‌کند؟",
@@ -371,7 +371,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.264
+      "seconds": 0.258
     },
     {
       "question": "برج میلاد کجاست؟",
@@ -383,7 +383,7 @@
       "engine": "wiki",
       "confidence": 0.93,
       "verdict": "درست",
-      "seconds": 0.007
+      "seconds": 0.006
     }
   ]
 }

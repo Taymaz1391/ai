@@ -87,3 +87,30 @@ def test_run_config_used_when_parameters_match(monkeypatch):
                                               checkpoint="checkpoints/last.npz"))
     assert server._run_config_for_active() == run
     assert server._final_eval()["ppl"] == pytest.approx(22.2)
+
+
+def _qa_fixture(monkeypatch, tmp_path, ready: bool) -> dict:
+    """گزارش ساختگی در ریشهٔ موقت، به‌جای reports/qa.json واقعی."""
+    import json
+
+    from web import server
+
+    reports = tmp_path / "reports"
+    reports.mkdir(parents=True, exist_ok=True)
+    (reports / "qa.json").write_text(
+        json.dumps({"total": 30, "correct": 29, "accuracy_on_all": 0.967}), encoding="utf-8")
+    monkeypatch.setattr(server, "ROOT", str(tmp_path))
+    monkeypatch.setattr(server.retrieval_module, "stats", lambda: {"ready": ready})
+    return server._qa_report()
+
+
+def test_qa_report_hidden_when_index_missing(monkeypatch, tmp_path):
+    """عدد گزارش بدون ایندکس دانش نمایش داده نمی‌شود (کهنه، نه واقعیت)."""
+    report = _qa_fixture(monkeypatch, tmp_path, ready=False)
+    assert report["available"] is False
+    assert "correct" not in report and "accuracy_on_all" not in report
+
+
+def test_qa_report_shown_when_index_ready(monkeypatch, tmp_path):
+    report = _qa_fixture(monkeypatch, tmp_path, ready=True)
+    assert report["available"] is True and report["correct"] == 29
