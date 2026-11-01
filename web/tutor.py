@@ -288,6 +288,19 @@ def _code_answer_python(text: str) -> str | None:
     programming = re.search(r"پایتون|python|(?<![\w\u200c])کد(?![\w\u200c])|برنامه|"
                             r"جاوااسکریپت|javascript|حلقه|\bsql\b|select\s|insert\s|جدول",
                             text, re.I)
+    # برعکس‌کردنِ رشته
+    if re.search(r"برعکس|معکوس|reverse", low):
+        return ("معکوس‌کردنِ رشته با برشِ گامِ منفی:\n\n"
+                "```python\ntext = \"سلام\"\nprint(text[::-1])   # مالس\n```\n\n"
+                "`[::-1]` یعنی از ابتدا تا انتها با گامِ ۱-؛ روی فهرست هم کار می‌کند.")
+
+    # تبدیلِ اعشاری به صحیح
+    if re.search(r"int\b|اعشاری|صحیح", low) and re.search(r"تبدیل|کن|بشود", low):
+        return ("تبدیلِ عدد به صحیح با `int()` (بخشِ اعشاری حذف می‌شود، گرد نمی‌شود):\n\n"
+                "```python\nprint(int(3.9))      # 3\nprint(round(3.9))    # 4\n"
+                "print(int(\"42\"))     # 42  از رشته\n```\n\n"
+                "برای گردکردن `round()` و برای بریدنِ اعشار `int()` یا `math.floor()`.")
+
     # توان
     if re.search(r"توان|به قوه|power", low):
         return ("توان در پایتون:\n\n"
@@ -339,6 +352,15 @@ def _code_answer_python(text: str) -> str | None:
                 "print(len(words))           # 2\n"
                 "print(\" \".join(words))      # سلام دنیا\n```\n\n"
                 "`split(\",\")` بر اساسِ نویسهٔ دلخواه می‌برد؛ `split()` با فاصله و خط تازه.")
+
+    # چسباندنِ فهرست‌ها
+    if re.search(r"فهرست|لیست|list", low) and re.search(r"چسب|ادغام|ترکیب|به هم|merge", low):
+        return ("چسباندنِ دو فهرست در پایتون:\n\n"
+                "```python\na = [1, 2]\nb = [3, 4]\n"
+                "print(a + b)        # [1, 2, 3, 4]  فهرستِ تازه\n"
+                "a.extend(b)         # a درجا [1, 2, 3, 4]\n"
+                "print([*a, *b])     # شیوهٔ بازکردن (unpacking)\n```\n\n"
+                "`+` فهرستِ نو می‌سازد، `extend` همان فهرست را تغییر می‌دهد.")
 
     # نوشتنِ فایل متنی
     if "فایل" in low and re.search(r"بنویسم|نوشتن|write|ذخیره|بسازم", low):
@@ -741,6 +763,13 @@ def code_answer(question: str) -> dict | None:
     if re.search(r"\bsql\b|select\s|insert\s|پایگاه‌?داده", text, re.I):
         return {"answer": _sql_answer(text), "source": "کد", "engine": "code"}
     if re.search(r"جاوااسکریپت|javascript|\bjs\b", text, re.I):
+        if re.search(r"طول|length", text):
+            return {"answer": ("طولِ رشته یا آرایه در جاوااسکریپت:\n\n"
+                               "```javascript\nconst s = \"سلام\";\nconsole.log(s.length);"
+                               "        // 4\nconst arr = [1, 2, 3];\n"
+                               "console.log(arr.length);      // 3\n```\n\n"
+                               "`length` ویژگی است، نه تابع؛ پرانتز ندارد."),
+                    "source": "کد", "engine": "code"}
         if re.search(r"تصادفی|random", text):
             return {"answer": ("عدد تصادفی در جاوااسکریپت:\n\n"
                                "```javascript\n// عدد صحیح بین ۱ و ۶\n"

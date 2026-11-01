@@ -269,6 +269,23 @@ def _knowledge_retry(message: str) -> str | None:
     return f"**{entry.get('q', '').rstrip('؟')}**\n{entry['a']}"
 
 
+def _related_lines(message: str) -> list[str]:
+    """یک‌خطی‌های مرتبط از دانشنامه برای وقتی که پاسخِ مستقیم نداریم."""
+    try:
+        from web import knowledge  # noqa: PLC0415
+
+        entries = knowledge.related(message, limit=2)
+    except Exception:  # noqa: BLE001
+        return []
+    lines: list[str] = []
+    for entry in entries:
+        text = (entry.get("a") or "").strip()
+        first = re.split(r"(?<=[.!؟])\s+", text)[0].strip()
+        if first and first not in lines:
+            lines.append(first[:240])
+    return lines
+
+
 def _evidence_lines(message: str) -> list[str]:
     try:
         from web import retrieval  # noqa: PLC0415
@@ -296,9 +313,16 @@ def grounded(message: str) -> str:
         return body
     if domain in _SCAFFOLD:
         return f"دربارهٔ **{subject}**:\n{_SCAFFOLD[domain]}"
-    return (f"دربارهٔ **{subject}**: تعریفِ دقیقش را در دانشنامهٔ خودم نگه نمی‌دارم و چیزی از "
-            "خودم نمی‌سازم. موضوع را کوتاه‌تر بپرس یا جنبهٔ مشخصش را بگو (تعریف، کاربرد، مثال) "
-            "تا همان را دقیق جواب بدهم.")
+    # لایهٔ آخر: نزدیک‌ترین دانسته‌های بررسی‌شده + یک قدمِ روشن، نه بن‌بست
+    near = _related_lines(message)
+    if near:
+        bullets = "\n".join(f"• {line}" for line in near)
+        return (f"نزدیک‌ترین دانسته‌های بررسی‌شده دربارهٔ **{subject}**:\n{bullets}\n\n"
+                f"اگر جنبهٔ دقیق‌تری از «{subject}» را بپرسی (تاریخ، عدد، نام، مکان)، همان را "
+                "با جزئیات می‌گویم.")
+    return (f"**{subject}** را می‌شناسم ولی جزئیاتِ قابل‌اتکایی برای همین پرسش در دانشنامه‌ام "
+            "ندارم؛ عدد یا نامِ دقیق را از خودم نمی‌سازم. اگر یکی از این‌ها را بپرسی، پاسخِ "
+            "دقیق می‌دهم: تعریف، کاربرد، تاریخ، مقایسه، یا نمونه.")
 
 
 def quality_flag(reply: str) -> str:

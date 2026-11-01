@@ -87,7 +87,8 @@ _GENERIC = {"کدام", "کدامیک", "جهان", "دنیا", "بزرگ‌تر
 def _subjects(message: str) -> set[str]:
     """واژه‌های موضوعیِ پرسش: بدونِ واژه‌های پرسشی و صفت‌های برتر."""
     return {token for token in _tokens(message)
-            if token not in _GENERIC and token not in _STOP and len(token) > 2}
+            if (token not in _GENERIC and token not in _STOP and len(token) > 1
+                and not token.endswith("ترین"))}
 
 
 _SUFFIXES = ("هایی", "های", "ها", "ای", "ی", "ش", "اش")
@@ -108,7 +109,8 @@ _START_ASK = re.compile(r"شروع|آغاز|اعلام|رخ داد|وقوع|به
 _END_ASK = re.compile(r"پایان|تمام شد|خاتمه|سقوط|فروپاش|شکست خورد")
 
 _SMALL_TALK = re.compile(r"^(?:سلام|درود|خوبی|خوبید|چطوری|چطورید|چه خبر|ممنون|مرسی|سپاس|"
-                         r"خداحافظ|بدرود|صبح بخیر|شب بخیر|وقت بخیر)"
+                         r"خداحافظ|بدرود|صبح بخیر|شب بخیر|وقت بخیر|سلامت باشی|"
+                         r"عافیت باشه|خسته نباشی|دستت درد نکنه)"
                          r"(?:[\s،,]+.{0,40})?[\s!.,،؟?]*$")
 
 
@@ -211,6 +213,26 @@ def lookup(message: str, min_score: float = 0.62) -> dict | None:
             continue
         return {"entry": entry, "score": round(min(score, 2.0), 2)}
     return None
+
+
+def related(message: str, limit: int = 2) -> list[dict]:
+    """نزدیک‌ترین ورودی‌هایی که موضوعِ پرسش را در متنشان دارند (برای پاسخِ بی‌بن‌بست)."""
+    subjects = _subjects(message)
+    if not subjects:
+        return []
+    out: list[dict] = []
+    for entry in load():
+        body = _norm(f"{entry.get('a', '')} {' '.join(entry.get('keys') or [])} {entry.get('q', '')}")
+        tokens = set(body.split())
+        if not (subjects & tokens):
+            continue
+        # دست‌کم نیمی از واژه‌های موضوعی باید در متن باشد تا پاسخ به موضوعِ دیگری نرود
+        if len(subjects & tokens) / len(subjects) < 0.5:
+            continue
+        out.append(entry)
+        if len(out) >= limit:
+            break
+    return out
 
 
 def answer(message: str) -> dict | None:
