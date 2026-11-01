@@ -134,10 +134,12 @@ ADMIN_HEADER = "x-rayyan-admin"
 
 def current_admin(request: Request) -> dict | None:
     """نشستِ مدیر از کوکی یا سرصفحهٔ اختصاصی؛ دومی وقتی کوکی مسدود است."""
-    token = request.cookies.get(ADMIN_COOKIE, "") or (request.headers.get(ADMIN_HEADER) or "").strip()
-    if not token:
-        return None
-    return store().admin_session(token)
+    token = request.cookies.get(ADMIN_COOKIE, "")
+    session = store().admin_session(token) if token else None
+    if session:
+        return session
+    header = (request.headers.get(ADMIN_HEADER) or "").strip()
+    return store().admin_session(header) if header else None
 
 
 def require_admin(request: Request, csrf: bool = False) -> dict:

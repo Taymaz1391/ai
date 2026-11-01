@@ -314,6 +314,17 @@ class PaletteTest(unittest.TestCase):
             self.assertNotIn("grayscale(", path.read_text(encoding="utf-8"), path.name)
 
 
+def _ffmpeg_available() -> bool:
+    try:
+        import imageio_ffmpeg  # noqa: F401
+    except Exception:  # noqa: BLE001 - نبودِ بسته یعنی ردکردنِ آزمون
+        return False
+    return True
+
+
+_HAS_FFMPEG = _ffmpeg_available()
+
+
 class IntroVideoTest(unittest.TestCase):
     """آموزش استفاده باید ویدیوی واقعی با گوینده باشد و بعد از ثبت‌نام پخش شود."""
 
@@ -328,6 +339,7 @@ class IntroVideoTest(unittest.TestCase):
         self.assertGreater(self.VIDEO.stat().st_size, 200_000)
         self.assertTrue(self.POSTER.exists())
 
+    @unittest.skipUnless(_HAS_FFMPEG, "imageio-ffmpeg نصب نیست؛ بررسیِ باند صوتی رد شد")
     def test_video_has_audio_and_video_streams(self):
         """بدون باند صوتی، «گوینده» ادعای توخالی است."""
         import subprocess

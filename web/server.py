@@ -662,7 +662,10 @@ def _owner(request: Request) -> dict:
 
     کلید API و توکن Bearer وجود ندارند: هوش فقط از داخل همین سایت در دسترس است.
     """
-    user = store().session_user(request.cookies.get(SESSION_COOKIE, "") or _bearer(request))
+    user = store().session_user(request.cookies.get(SESSION_COOKIE, ""))
+    if not user:
+        # اگر کوکی نبود یا کهنه بود، توکنِ سرصفحه امتحان می‌شود (iframe/مرورگر سخت‌گیر)
+        user = store().session_user(_bearer(request))
     if user:
         return {"user_id": user["id"], "guest_id": None, "plan": user.get("plan", "free"), "user": user}
     guest = request.cookies.get(GUEST_COOKIE, "")

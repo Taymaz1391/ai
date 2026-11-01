@@ -234,3 +234,22 @@
 @media (max-width: 560px) {
   .mode-switch { grid-template-columns: 1fr; }
 }
+
+/* ── دانشنامه، کیفیت و گفتگوها ───────────────────────────────────────── */
+.chat-line {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  margin-top: 8px;
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1.9;
+}
+.chat-line b { color: var(--text-3); font-weight: 700; margin-left: 6px; }
+#kb-table td, #quality-table td, #chats-table td { vertical-align: top; }
+#kb-table .mono { font-family: "Vazirmatn", ui-monospace, monospace; font-size: 12px; color: var(--text-3); }
+#kb-form { margin: 14px 0; padding: 14px; border: 1px dashed var(--line); border-radius: 16px; }
+#quality-out { min-height: 24px; }
+.quality-good { color: var(--success-fg); font-weight: 700; }
+.admin-quick { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.admin-quick .btn { padding: 8px 12px; font-size: 13px; }

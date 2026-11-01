@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ورود · رایان</title>
+  <meta name="description" content="ورود به حساب رایان یا ساخت حساب رایگان برای تاریخچهٔ گفتگو و سهمیهٔ بیشتر.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="static/assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="static/assets/icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preload" href="static/assets/fonts/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="static/styles.css">
+  <link rel="stylesheet" href="static/pages.css">
+  <script src="static/theme-boot.js"></script>
+</head>
+<body class="page-body" data-mode="login">
+  <div class="backdrop" aria-hidden="true">
+    <div class="glow glow-a"></div>
+    <div class="glow glow-b"></div>
+  </div>
+
+  <div class="auth-shell">
+    <aside class="auth-aside">
+      <a class="brand" href="index.html">
+        <img class="brand-wordmark brand-motion wordmark-for-light" src="static/assets/brand/logo-motion.webp"
+             alt="رایان" width="640" height="320" decoding="async">
+        <img class="brand-wordmark brand-motion wordmark-for-dark" src="static/assets/brand/logo-motion-dark.webp"
+             alt="رایان" width="640" height="320" decoding="async">
+      </a>
+      <div class="auth-pitch">
+        <img src="static/assets/brand/orb-live.webp" alt="" width="104" height="104" class="auth-orb">
+        <h1>دستیار فارسی‌ات<br>همیشه همین‌جاست</h1>
+        <p>با ساخت یک حساب رایگان، گفتگوهایت می‌مانند، سهمیهٔ روزانه‌ات بیشتر می‌شود و می‌توانی پاسخ‌ها را با دیگران به اشتراک بگذاری.</p>
+        <ul class="auth-points">
+          <li><span>✓</span> تاریخچهٔ دائمی گفتگوها</li>
+          <li><span>✓</span> ۲۰۰ پیام در روز به‌جای ۲۵</li>
+          <li><span>✓</span> اشتراک‌گذاری و خروجی گرفتن</li>
+          <li><span>✓</span> بدون هزینه، بدون کارت بانکی</li>
+        </ul>
+      </div>
+      <p class="auth-fine">داده‌های تو فقط روی همین سرور نگه‌داری می‌شود. هیچ سرویس بیرونی به داده‌ات دسترسی ندارد.</p>
+    </aside>
+
+    <main class="auth-main">
+      <div class="auth-card card card-pad">
+        <div class="auth-head">
+          <h2 id="auth-title">ورود به <img class="wm-inline wordmark-for-light" src="static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> </h2>
+          <p id="auth-sub">خوش برگشتی! ادامه بده از همان‌جایی که بودی.</p>
+        </div>
+
+        <p class="auth-notice" id="auth-notice" role="status" hidden></p>
+
+        <form id="auth-form" class="auth-form" novalidate>
+          <div class="field" id="name-field" hidden>
+            <label for="name">نام نمایشی</label>
+            <input class="input" id="name" name="name" type="text" autocomplete="name" placeholder="مثلاً سارا">
+          </div>
+          <div class="field">
+            <label for="email" id="identifier-label">ایمیل</label>
+            <input class="input" id="email" name="identifier" type="text" autocomplete="username"
+                   placeholder="you@example.com" dir="auto" required>
+            <span class="field-hint" id="identifier-hint">با ایمیل یا نام کاربری وارد شو.</span>
+          </div>
+          <div class="field">
+            <label for="password">رمز عبور</label>
+            <div class="pw-wrap">
+              <input class="input" id="password" name="password" type="password" autocomplete="current-password" placeholder="حداقل ۸ نویسه" required>
+              <button type="button" class="pw-toggle" id="pw-toggle" aria-label="نمایش رمز">👁</button>
+            </div>
+            <span class="field-error" id="auth-error"></span>
+          </div>
+
+          <div class="human-slot" id="human-slot"></div>
+
+          <button class="btn btn-primary btn-lg" type="submit" id="auth-submit">
+            <span id="submit-label">ورود</span>
+          </button>
+
+          <div class="auth-divider"><span>یا</span></div>
+
+          <a class="btn btn-lg" href="chat.html" id="guest-link">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+            ادامه بدون حساب
+          </a>
+
+          <p class="auth-switch">
+            <span id="switch-text">حساب نداری؟</span>
+            <a href="signup.html" id="switch-link">ساخت حساب رایگان</a>
+          </p>
+        </form>
+
+        <div class="auth-legal">
+          با ادامه، <a href="about.html#terms">شرایط استفاده</a> و <a href="about.html#privacy">حریم خصوصی</a> را می‌پذیری.
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- نمایش نشان، بعد از ساخت حساب: تمام‌صفحه، سبک، بی‌ویدیو -->
+  <div id="welcome-reel" class="welcome-reel brand-reel" hidden role="dialog" aria-modal="true"
+       aria-label="آموزش استفاده از رایان با گوینده">
+    <video id="welcome-video" class="intro-video" playsinline preload="auto"
+           poster="/static/assets/video/intro-poster.jpg" controls
+           src="static/assets/video/intro.mp4"></video>
+    <div class="welcome-progress" aria-hidden="true"><i id="welcome-progress"></i></div>
+    <button class="welcome-skip-x" type="button" id="welcome-close" aria-label="بستن آموزش">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+    <div class="welcome-bar">
+      <div class="welcome-actions">
+        <button class="btn btn-sm" type="button" id="welcome-full" aria-pressed="false" title="تمام‌صفحهٔ واقعی">تمام‌صفحه</button>
+        <a class="btn btn-primary btn-sm" id="welcome-skip" href="chat.html">شروع گفتگو</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="static/session.js"></script>
+  <script src="static/config.js"></script>
+  <script src="static/ui.js"></script>
+  <script src="static/human.js"></script>
+  <script src="static/auth.js"></script>
+  <script src="static/scroll.js"></script>
+  <script src="static/perf.js"></script>
+</body>
+</html>

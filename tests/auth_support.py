@@ -11,11 +11,25 @@ import itertools
 _COUNTER = itertools.count(1)
 
 
+def _challenge(client) -> dict:
+    """چالش تازه؛ اگر محدودیتِ نرخ آزمون‌ها را گرفته باشد، یک‌بار آزاد می‌کند."""
+    from web import security
+
+    challenge = client.get("/api/captcha").json()
+    if "token" not in challenge:
+        with security.captcha_limiter.lock:
+            security.captcha_limiter.hits.clear()
+        challenge = client.get("/api/captcha").json()
+    if "token" not in challenge:
+        raise AssertionError(f"چالش امنیتی صادر نشد: {challenge}")
+    return challenge
+
+
 def human_proof(client) -> dict:
     """چالش «من ربات نیستم» را مثل مرورگر حل می‌کند."""
     from web import security
 
-    challenge = client.get("/api/captcha").json()
+    challenge = _challenge(client)
     return {"token": challenge["token"],
             "nonce": security.HumanCheck.solve(challenge["salt"], challenge["bits"]),
             "evidence": {"moves": 14, "keys": 7, "elapsed_ms": 2400}}
