@@ -182,6 +182,39 @@ _COMMON_EN_EXTRA = {
 }
 _EN_FA.update({k: (v, "phrase") for k, v in _COMMON_EN_EXTRA.items() if k not in _EN_FA})
 
+# واژه‌های پرکاربردِ روزمره (انگلیسی ↔ فارسی) — برای پرسشِ «معنی X» و ترجمهٔ کوتاه
+_EVERYDAY_EN = {
+    "ancient": "باستانی", "modern": "مدرن", "patience": "صبر", "wisdom": "خرد",
+    "knowledge": "دانش", "science": "علم", "history": "تاریخ", "culture": "فرهنگ",
+    "sentence": "جمله", "problem": "مسئله", "solution": "راه‌حل", "idea": "ایده",
+    "dream": "رؤیا", "hope": "امید", "fear": "ترس", "anger": "خشم", "joy": "شادی",
+    "sadness": "اندوه", "war": "جنگ", "family": "خانواده", "mother": "مادر",
+    "father": "پدر", "brother": "برادر", "sister": "خواهر", "child": "کودک",
+    "people": "مردم", "world": "جهان", "country": "کشور", "village": "روستا",
+    "road": "جاده", "mountain": "کوه", "river": "رود", "sea": "دریا",
+    "lake": "دریاچه", "forest": "جنگل", "desert": "بیابان", "rain": "باران",
+    "snow": "برف", "wind": "باد", "cloud": "ابر", "storm": "طوفان",
+    "weather": "هوا", "cool": "خنک", "fast": "سریع", "heavy": "سنگین",
+    "light": "سبک", "soft": "نرم", "difficult": "دشوار", "famous": "مشهور",
+    "common": "رایج", "rare": "کمیاب", "ready": "آماده", "sad": "غمگین",
+    "angry": "خشمگین", "afraid": "ترسیده", "proud": "سرافراز", "polite": "مؤدب",
+    "rude": "بی‌ادب", "noisy": "پرصدا", "safe": "امن", "expensive": "گران",
+    "cheap": "ارزان", "begin": "شروع کردن", "start": "شروع", "finish": "تمام کردن",
+    "end": "پایان", "buy": "خریدن", "sell": "فروختن", "give": "دادن",
+    "take": "گرفتن", "make": "ساختن", "build": "ساختن", "break": "شکستن",
+    "fix": "تعمیر کردن", "teach": "آموزش دادن", "study": "مطالعه", "play": "بازی",
+    "travel": "سفر", "sleep": "خواب", "eat": "خوردن", "drink": "نوشیدن",
+    "read": "خواندن", "write": "نوشتن", "speak": "صحبت کردن", "listen": "گوش دادن",
+    "see": "دیدن", "hear": "شنیدن", "think": "فکر کردن", "know": "دانستن",
+    "want": "خواستن", "need": "نیاز داشتن", "help": "کمک", "try": "تلاش کردن",
+    "win": "بردن", "lose": "باختن", "courage": "شجاعت", "truth": "حقیقت",
+    "justice": "عدالت", "freedom": "آزادی", "time": "زمان", "future": "آینده",
+    "past": "گذشته", "present": "اکنون", "success": "موفقیت", "failure": "شکست",
+}
+_EN_FA.update({k: (v, "") for k, v in _EVERYDAY_EN.items() if k not in _EN_FA})
+for _en, _fa in _EVERYDAY_EN.items():
+    _FA_EN.setdefault(_fa, (_en, ""))
+
 
 # ═══════════════════════════════════════════════════════ ۲) نرمال‌سازی
 def _norm(text: str) -> str:
@@ -392,6 +425,16 @@ def _en_pattern(source: str) -> dict | None:
         second = _fa_of(match["b"])
         if first and second:
             return {"text": f"{first} {_EN_PREPS_FA[match['prep'].lower()]} {second} است",
+                    "unknown": [], "complete": True}
+    # The weather is cold today  →  هوای امروز سرد است
+    match = re.match(r"^the\s+(?P<a>[\w ]+?)\s+(?:is|was)\s+(?P<adj>[\w ]+?)"
+                     r"(?:\s+(?P<when>today|now|tonight|this morning))?[.!]?$", low, re.I)
+    if match:
+        thing, adj = _fa_of(match["a"]), _fa_of(match["adj"])
+        if thing and adj:
+            when = {"today": "امروز", "now": "الان", "tonight": "امشب",
+                    "this morning": "امروز صبح"}.get((match["when"] or "").lower(), "")
+            return {"text": re.sub(r"\s+", " ", f"{thing} {when} {adj} است").strip(),
                     "unknown": [], "complete": True}
     match = re.match(r"^this\s+is\s+a\s+(?P<a>[\w ]+?)[.!]?$", low, re.I)
     if match:

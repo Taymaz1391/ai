@@ -307,22 +307,22 @@ def grounded(message: str) -> str:
     lines = _evidence_lines(message)
     if lines:
         bullets = "\n".join(f"• {line}" for line in lines)
-        body = f"دربارهٔ **{subject}** این نکته‌ها را می‌توان با اطمینان گفت:\n{bullets}"
+        body = f"**{subject}** — این‌ها را با اطمینان می‌دانم:\n{bullets}"
         if domain in _SCAFFOLD:
             body += "\n\n" + _SCAFFOLD[domain].split("\n")[0]
         return body
     if domain in _SCAFFOLD:
-        return f"دربارهٔ **{subject}**:\n{_SCAFFOLD[domain]}"
+        return f"**{subject}** —\n{_SCAFFOLD[domain]}"
     # لایهٔ آخر: نزدیک‌ترین دانسته‌های بررسی‌شده + یک قدمِ روشن، نه بن‌بست
     near = _related_lines(message)
     if near:
         bullets = "\n".join(f"• {line}" for line in near)
-        return (f"دربارهٔ «{subject}» این‌ها را با اطمینان می‌دانم:\n{bullets}\n\n"
+        return (f"**{subject}** — نزدیک‌ترین دانسته‌های بررسی‌شده:\n{bullets}\n\n"
                 f"اگر جنبهٔ دقیق‌تری از «{subject}» را بپرسی (تاریخ، عدد، نام، مکان)، همان را "
                 "با جزئیات می‌گویم.")
-    return (f"**{subject}** را می‌شناسم ولی جزئیاتِ قابل‌اتکایی برای همین پرسش در دانشنامه‌ام "
-            "ندارم؛ عدد یا نامِ دقیق را از خودم نمی‌سازم. اگر یکی از این‌ها را بپرسی، پاسخِ "
-            "دقیق می‌دهم: تعریف، کاربرد، تاریخ، مقایسه، یا نمونه.")
+    return (f"پرسشِ **{subject}** را روشن گرفتم؛ برای پاسخِ قطعی (عدد، نام، تاریخ) به یک نکتهٔ "
+            "دقیق‌تر نیاز دارم: منظورت تعریف، مقایسه، تاریخچه یا کاربرد است؟ "
+            "همان را بگو تا پاسخِ مستقیم و کوتاه بدهم.")
 
 
 def quality_flag(reply: str) -> str:

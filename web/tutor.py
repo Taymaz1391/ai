@@ -286,8 +286,8 @@ def _function_code(name: str, title: str, params: str, body: str, call: str) -> 
 def _code_answer_python(text: str) -> str | None:
     low = text
     programming = re.search(r"پایتون|python|(?<![\w\u200c])کد(?![\w\u200c])|برنامه|"
-                            r"جاوااسکریپت|javascript|حلقه|\bsql\b|select\s|insert\s|جدول",
-                            text, re.I)
+                            r"جاوااسکریپت|javascript|حلقه|\bsql\b|select\s|insert\s|جدول|"
+                            r"\bcss\b|\bhtml\b", text, re.I)
     # برعکس‌کردنِ رشته
     if re.search(r"برعکس|معکوس|reverse", low):
         return ("معکوس‌کردنِ رشته با برشِ گامِ منفی:\n\n"
@@ -362,8 +362,22 @@ def _code_answer_python(text: str) -> str | None:
                 "print([*a, *b])     # شیوهٔ بازکردن (unpacking)\n```\n\n"
                 "`+` فهرستِ نو می‌سازد، `extend` همان فهرست را تغییر می‌دهد.")
 
+    # انتخابِ تصادفی از فهرست (پیش از معرفیِ فهرست)
+    if re.search(r"تصادفی|random|قرعه", low) and re.search(r"فهرست|لیست|list|عنصر|آیتم", low):
+        return ("انتخابِ عنصرِ تصادفی از یک فهرست:\n\n"
+                "```python\nimport random\n\n"
+                "names = [\"سارا\", \"علی\", \"مینا\", \"رضا\"]\n"
+                "pick = random.choice(names)        # یک عنصر\n"
+                "print(pick)\n\n"
+                "sample = random.sample(names, 2)   # دو عنصرِ بی‌تکرار\n"
+                "random.shuffle(names)              # خودِ فهرست را به هم می‌ریزد\n"
+                "print(sample, names)\n```\n\n"
+                "`choice` یک عنصر می‌دهد، `sample` چند عنصرِ بدونِ تکرار، و `shuffle` درجا "
+                "ترتیبِ فهرست را عوض می‌کند.")
+
     # خواندنِ فایل (پیش از «نوشتن»، چون «بخوانم» و «بنویسم» در یک خانواده‌اند)
-    if "فایل" in low and re.search(r"بخوان|خواندن|read|محتوا", low):
+    if ("فایل" in low and "json" not in low.lower()
+            and re.search(r"بخوان|خواندن|read|محتوا", low)):
         return ("خواندنِ فایلِ متنی در پایتون:\n\n"
                 "```python\nwith open(\"data.txt\", encoding=\"utf-8\") as handle:\n"
                 "    text = handle.read()\n\n"
@@ -381,7 +395,8 @@ def _code_answer_python(text: str) -> str | None:
                 "`sorted` اصلِ فهرست را دست نمی‌زند؛ `sort()` همان فهرست را عوض می‌کند.")
 
     # نوشتنِ فایل متنی
-    if "فایل" in low and re.search(r"بنویسم|نوشتن|write|ذخیره|بسازم", low):
+    if ("فایل" in low and "json" not in low.lower()
+            and re.search(r"بنویسم|نوشتن|write|ذخیره|بسازم", low)):
         return ("نوشتنِ فایل متنی با `with` و حالت `w`:\n\n"
                 "```python\nwith open(\"out.txt\", \"w\", encoding=\"utf-8\") as handle:\n"
                 "    handle.write(\"سلام\\n\")\n\n"
@@ -605,8 +620,8 @@ def _code_answer_python(text: str) -> str | None:
                 "و بدنه با تورفتگی. `return` خروجی را برمی‌گرداند:\n\n"
                 f"```python\n{code}\n```")
     programming = re.search(r"پایتون|python|(?<![\w\u200c])کد(?![\w\u200c])|برنامه|"
-                            r"جاوااسکریپت|javascript|حلقه|\bsql\b|select\s|insert\s|جدول",
-                            text, re.I)
+                            r"جاوااسکریپت|javascript|حلقه|\bsql\b|select\s|insert\s|جدول|"
+                            r"\bcss\b|\bhtml\b", text, re.I)
     # طول رشته/فهرست
     if re.search(r"طول|len\b", low) and re.search(r"رشته|فهرست|لیست|متن|string", low):
         code = ("text = \"سلام دنیا\"\n"
@@ -743,6 +758,41 @@ def _sql_answer(text: str) -> str:
             "`LIMIT` و `OFFSET` را اضافه کن.")
 
 
+def _css_answer(text: str) -> str:
+    """نمونهٔ CSS بر اساسِ خواستهٔ پرسش."""
+    low = text.lower()
+    if re.search(r"وسط|مرکز|چین", low):
+        return ("وسط‌چین‌کردنِ متن با CSS:\n\n"
+                "```css\n.title {\n  text-align: center;   /* وسط‌چینِ افقی */\n}\n\n"
+                ".box {\n  display: flex;\n  justify-content: center; /* افقی */\n"
+                "  align-items: center;     /* عمودی */\n  height: 200px;\n}\n```\n\n"
+                "`text-align` برای متنِ داخلِ یک عنصر است؛ برای وسط‌چین‌کردنِ خودِ جعبه در صفحه "
+                "از `margin: 0 auto;` با عرضِ مشخص استفاده کن.")
+    if re.search(r"رنگ|پس‌زمینه|background", low):
+        return ("رنگ و پس‌زمینه در CSS:\n\n"
+                "```css\np {\n  color: #1f2937;            /* رنگِ متن */\n"
+                "  background-color: #f3f4f6; /* پس‌زمینه */\n}\n```\n\n"
+                "برای شفافیت از `rgba(0, 0, 0, 0.5)` و برای گرادیان از "
+                "`background: linear-gradient(...)` استفاده کن.")
+    if re.search(r"فونت|اندازه|size", low):
+        return ("فونت در CSS:\n\n"
+                "```css\nbody {\n  font-family: Vazirmatn, Tahoma, sans-serif;\n"
+                "  font-size: 16px;\n  line-height: 1.8;\n}\n\n"
+                "h1 { font-size: 2rem; font-weight: 700; }\n```\n\n"
+                "`rem` نسبت به فونتِ ریشه است و برای دسترس‌پذیری از `px` بهتر است.")
+    if re.search(r"حاشیه|فاصله|margin|padding", low):
+        return ("فاصله و حاشیه در CSS:\n\n"
+                "```css\n.card {\n  padding: 16px;          /* فاصلهٔ داخلی */\n"
+                "  margin: 24px auto;      /* فاصلهٔ بیرونی، وسط‌چین */\n"
+                "  border: 1px solid #e5e7eb;\n  border-radius: 12px;\n}\n```\n\n"
+                "`padding` داخلِ جعبه فاصله می‌دهد و `margin` بیرونِ آن.")
+    return ("چیدمان در CSS:\n\n"
+            "```css\n.container {\n  display: flex;\n  gap: 16px;\n"
+            "  justify-content: space-between;\n  align-items: center;\n"
+            "  flex-wrap: wrap;\n}\n```\n\n"
+            "برای چیدمانِ دو‌بعدی `display: grid` با `grid-template-columns` بهتر است.")
+
+
 def _js_answer(text: str) -> str:
     """پاسخِ جاوااسکریپت بر اساسِ نیتِ پرسش."""
     low = text.lower()
@@ -776,20 +826,24 @@ def code_answer(question: str) -> dict | None:
         return None
     if not re.search(r"(?<![\w\u200c])کد(?![\w\u200c])|برنامه|تابع|پایتون|python|"
                      r"جاوااسکریپت|javascript|حلقه|دیکشنری|فهرست|لیست|"
-                     r"\bsql\b|select\s|insert\s|جدول|پایگاه‌?داده", text, re.I):
+                     r"\bsql\b|select\s|insert\s|جدول|پایگاه‌?داده|\bcss\b|\bhtml\b",
+                     text, re.I):
         return None
     # ریاضی و ادبیات، کد نمی‌خواهند
     if re.search(r"ریاضی|ریاضیات|تابع خطی|تابع سهمی|مثلثاتی|صرف|نحو|شعر", text):
         return None
     # بدون بافت برنامه‌نویسی، فقط «تابع … بنویس» درخواست کد است
     programming = re.search(r"پایتون|python|(?<![\w\u200c])کد(?![\w\u200c])|برنامه|"
-                            r"جاوااسکریپت|javascript|حلقه|\bsql\b|select\s|insert\s|جدول",
-                            text, re.I)
+                            r"جاوااسکریپت|javascript|حلقه|\bsql\b|select\s|insert\s|جدول|"
+                            r"\bcss\b|\bhtml\b", text, re.I)
     if not programming and not re.search(r"تابع.*(بنویس|بده)", text):
         return None
     if re.search(r"حلقه", text) and not re.search(
             r"بنویس|بده|چطور|چگونه|چه دستور|دستور|مجموع|چاپ|نمایش|اعداد|بساز", text):
         return None
+    if re.search(r"\bcss\b|\bhtml\b", text, re.I) and re.search(
+            r"وسط|مرکز|چین|رنگ|فونت|حاشیه|فاصله|پس‌زمینه|اندازه|چیدمان|بچین", text):
+        return {"answer": _css_answer(text), "source": "کد", "engine": "code"}
     if re.search(r"\bsql\b|select\s|insert\s|پایگاه‌?داده", text, re.I):
         return {"answer": _sql_answer(text), "source": "کد", "engine": "code"}
     if re.search(r"جاوااسکریپت|javascript|\bjs\b", text, re.I):
@@ -799,6 +853,16 @@ def code_answer(question: str) -> dict | None:
                                "        // 4\nconst arr = [1, 2, 3];\n"
                                "console.log(arr.length);      // 3\n```\n\n"
                                "`length` ویژگی است، نه تابع؛ پرانتز ندارد."),
+                    "source": "کد", "engine": "code"}
+        if re.search(r"رشته|string|متن", text) and re.search(r"عدد|number|تبدیل|کردن", text):
+            return {"answer": ("تبدیلِ عدد به رشته در جاوااسکریپت:\n\n"
+                               "```javascript\nconst n = 42;\n"
+                               "String(n);        // \"42\"\n"
+                               "n.toString();     // \"42\"\n"
+                               "n.toString(2);    // \"101010\"  در مبنای ۲\n"
+                               "`${n}`;           // \"42\"  با قالبِ رشته‌ای\n```\n\n"
+                               "`String()` روی `null` و `undefined` هم بی‌خطا کار می‌کند، "
+                               "ولی `toString()` روی آن‌ها خطا می‌دهد."),
                     "source": "کد", "engine": "code"}
         if re.search(r"تصادفی|random", text):
             return {"answer": ("عدد تصادفی در جاوااسکریپت:\n\n"
