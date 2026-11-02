@@ -12,3 +12,5 @@
 {"step": 1350, "loss": 6.315, "lr": 0.0001659049327853552, "grad_norm": 0.766, "tokens": 2766848, "elapsed_s": 925.4, "tok_s": 776.8, "kind": "train"}
 {"step": 1400, "loss": 6.0902, "lr": 0.00013596883223722375, "grad_norm": 0.795, "tokens": 2869248, "elapsed_s": 1049.2, "tok_s": 782.7, "kind": "train"}
 {"step": 1450, "loss": 6.1309, "lr": 0.00010747612924378642, "grad_norm": 0.733, "tokens": 2971648, "elapsed_s": 1173.9, "tok_s": 786.8, "kind": "train"}
+{"step": 1500, "val_loss": 5.6227, "ppl": 276.62, "bits_per_char": 2.1954, "kind": "eval", "tokens": 3072000, "elapsed_s": 1300.3}
+{"step": 1500, "loss": 6.1297, "lr": 8.184344948691056e-05, "grad_norm": 0.73, "tokens": 3074048, "elapsed_s": 1307.7, "tok_s": 784.6, "kind": "train"}

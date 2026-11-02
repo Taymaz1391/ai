@@ -118,3 +118,15 @@ def test_word_lookup_phrasings():
         out = translate.answer(question)
         assert out, question
         assert want in out["answer"], (question, out["answer"])
+
+
+def test_rule_of_three_with_units():
+    """«اگر ۳ کیلو ۱۸۰ هزار تومان است، ۵ کیلو چند؟» با قاعدهٔ سه‌تایی حل شود."""
+    from web import mathword
+
+    out = mathword.answer("اگر ۳ کیلو برنج ۱۸۰ هزار تومان باشد، ۵ کیلو چند تومان است؟")
+    assert out and "۳۰۰" in out["answer"]
+    assert "کیلو" in out["answer"]
+    # درصدها هم دست‌نخورده بمانند
+    percent = mathword.answer("۱۵ درصد از ۲۰۰ چند است؟")
+    assert percent and "۳۰" in percent["answer"]
