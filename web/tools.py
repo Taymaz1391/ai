@@ -278,3 +278,48 @@ def detect(text: str) -> dict | None:
     if conv:
         return None
     return None
+
+
+# ── روزِ هفته پس از چند روز ────────────────────────────────────────────────
+_FA_WEEK = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"]
+_WEEK_ALIASES = {
+    "شنبه": 0, "یکشنبه": 1, "یک شنبه": 1, "یک‌شنبه": 1, "دوشنبه": 2, "دو شنبه": 2,
+    "دو‌شنبه": 2, "سه‌شنبه": 3, "سه شنبه": 3, "سه‌ شنبه": 3, "چهارشنبه": 4,
+    "چهار شنبه": 4, "پنجشنبه": 5, "پنج شنبه": 5, "پنج‌شنبه": 5, "جمعه": 6,
+}
+_DAY_WORDS = {"یک": 1, "دو": 2, "سه": 3, "چهار": 4, "پنج": 5, "شش": 6, "شیش": 6,
+              "هفت": 7, "هشت": 8, "نه": 9, "ده": 10, "یازده": 11, "دوازده": 12}
+
+
+def weekday_shift(question: str) -> dict | None:
+    """«اگر امروز سه‌شنبه باشد، پنج روز بعد چه روزی است؟» → پاسخِ دقیق با محاسبه."""
+    text = (question or "").translate(_FA_DIGIT_MAP) if "_FA_DIGIT_MAP" in globals() else (question or "")
+    text = text.replace("\u200c", "")
+    names = "|".join(sorted((n.replace("\u200c", "") for n in _WEEK_ALIASES), key=len, reverse=True))
+    hit = re.search(rf"(?P<start>{names})\s*(?:باشد|است|بود|هست)?[،,]?\s*"
+                    rf"(?P<count>[\d]+|{'|'.join(_DAY_WORDS)})\s*روز\s*"
+                    rf"(?P<dir>بعد|دیگر|بعدتر|قبل|پیش)", text)
+    if not hit or not re.search(r"روز|هفته", text) or "چه روز" not in text and "کدام روز" not in text:
+        return None
+    start_word = hit.group("start").strip()
+    start = next((idx for word, idx in _WEEK_ALIASES.items()
+                  if word.replace("\u200c", "") == start_word), None)
+    if start is None:
+        return None
+    raw = hit.group("count")
+    count = int(raw) if raw.isdigit() else _DAY_WORDS.get(raw)
+    if not count:
+        return None
+    step = -count if hit.group("dir") in ("قبل", "پیش") else count
+    target = (start + step) % 7
+    direction = "بعد" if step > 0 else "قبل"
+    return {
+        "engine": "tool",
+        "answer": (f"اگر امروز **{_FA_WEEK[start]}** باشد، {_fa_number(count)} روز {direction} "
+                   f"می‌شود **{_FA_WEEK[target]}**.\n\n"
+                   f"({_FA_WEEK[start]} + {_fa_number(count)} روز = {_FA_WEEK[target]})"),
+    }
+
+
+def _fa_number(value: int) -> str:
+    return str(value).translate(str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹"))

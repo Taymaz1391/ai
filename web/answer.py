@@ -30,7 +30,7 @@ _GREETING_OPEN = (
     "سلام{name}! آماده‌ام.",
 )
 _GREETING_NIGHT = (
-    "شب‌به‌خیر{name}! هنوز بیداری؟",
+    "سلام{name}! شب‌به‌خیر — هنوز بیداری؟",
     "سلام{name}! شب آرامی داشته باشی.",
 )
 _THANKS = (
@@ -317,7 +317,7 @@ def grounded(message: str) -> str:
     near = _related_lines(message)
     if near:
         bullets = "\n".join(f"• {line}" for line in near)
-        return (f"نزدیک‌ترین دانسته‌های بررسی‌شده دربارهٔ **{subject}**:\n{bullets}\n\n"
+        return (f"دربارهٔ «{subject}» این‌ها را با اطمینان می‌دانم:\n{bullets}\n\n"
                 f"اگر جنبهٔ دقیق‌تری از «{subject}» را بپرسی (تاریخ، عدد، نام، مکان)، همان را "
                 "با جزئیات می‌گویم.")
     return (f"**{subject}** را می‌شناسم ولی جزئیاتِ قابل‌اتکایی برای همین پرسش در دانشنامه‌ام "

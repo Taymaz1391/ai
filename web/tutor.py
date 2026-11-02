@@ -337,7 +337,7 @@ def _code_answer_python(text: str) -> str | None:
                 "`range` خودش فهرست نیست؛ برای دیدنش `list()` لازم است.")
 
     # نزدیک‌کردنِ عدد
-    if re.search(r"گرد|round", low):
+    if re.search(r"(?<!بر)گرد|\bround\b", low):          # «برگرداند» گردکردن نیست
         return ("گردکردنِ عدد در پایتون:\n\n"
                 "```python\nprint(round(3.7))       # 4\n"
                 "print(round(3.14159, 2))  # 3.14\n"
@@ -361,6 +361,24 @@ def _code_answer_python(text: str) -> str | None:
                 "a.extend(b)         # a درجا [1, 2, 3, 4]\n"
                 "print([*a, *b])     # شیوهٔ بازکردن (unpacking)\n```\n\n"
                 "`+` فهرستِ نو می‌سازد، `extend` همان فهرست را تغییر می‌دهد.")
+
+    # خواندنِ فایل (پیش از «نوشتن»، چون «بخوانم» و «بنویسم» در یک خانواده‌اند)
+    if "فایل" in low and re.search(r"بخوان|خواندن|read|محتوا", low):
+        return ("خواندنِ فایلِ متنی در پایتون:\n\n"
+                "```python\nwith open(\"data.txt\", encoding=\"utf-8\") as handle:\n"
+                "    text = handle.read()\n\n"
+                "print(text[:200])\n```\n\n"
+                "`with` فایل را بی‌خطا می‌بندد؛ برای فایلِ بزرگ سطر‌به‌سطر بخوان "
+                "(`for line in handle:`).")
+
+    # مرتب‌کردنِ فهرست
+    if re.search(r"مرتب|sort|سورت", low) and re.search(r"فهرست|لیست|list|آرایه|اعداد", low):
+        return ("مرتب‌کردنِ فهرست در پایتون:\n\n"
+                "```python\nnums = [5, 2, 9, 1]\nprint(sorted(nums))      # [1, 2, 5, 9]  فهرستِ تازه\n"
+                "nums.sort()               # درجا مرتب می‌کند\n"
+                "print(nums)               # [1, 2, 5, 9]\n"
+                "words = [\"b\", \"a\", \"c\"]\nprint(sorted(words, key=len))   # بر اساسِ طول\n```\n\n"
+                "`sorted` اصلِ فهرست را دست نمی‌زند؛ `sort()` همان فهرست را عوض می‌کند.")
 
     # نوشتنِ فایل متنی
     if "فایل" in low and re.search(r"بنویسم|نوشتن|write|ذخیره|بسازم", low):
@@ -563,6 +581,18 @@ def _code_answer_python(text: str) -> str | None:
                 "print(\"\".join(reversed(text)))  # همان نتیجه")
         return ("ساده‌ترین راه معکوس‌کردن رشته، برش با گام منفی است:\n\n"
                 f"```python\n{code}\n```")
+
+    # تابعی که فهرست برمی‌گرداند (پرسشِ صریحِ «تابعی بنویس که …»)
+    if (re.search(r"تابع|function", low)
+            and re.search(r"فهرست|لیست|list|آرایه|اعداد", low)
+            and re.search(r"برگرد|return|بساز|بنویس", low)):
+        return ("تابعی که یک فهرست می‌گیرد و فهرستِ تازه برمی‌گرداند:\n\n"
+                "```python\ndef double_all(numbers: list[int]) -> list[int]:\n"
+                "    \"\"\"هر عدد را دو برابر می‌کند و فهرستِ تازه می‌دهد.\"\"\"\n"
+                "    return [n * 2 for n in numbers]\n\n\n"
+                "print(double_all([1, 2, 3]))   # [2, 4, 6]\n```\n\n"
+                "`def` تابع را می‌سازد و `return` فهرست را برمی‌گرداند؛ تابعِ بدونِ `return` "
+                "`None` می‌دهد.")
 
     if ("تابع" in low and re.search(r"بنویس|بده|تعریف", low)
             and not re.search(r"جمع|تفریق|ضرب|تقسیم|باقیمانده|فاکتوریل|اول|زوج|فرد|"
