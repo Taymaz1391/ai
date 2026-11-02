@@ -105,6 +105,9 @@ _YEAR_ASK = re.compile(r"(?:در\s*)?چه\s*سالی?|سالِ?\s*چند|کدا�
 # گفت‌وگوی کوتاه، پرسش دانشی نیست
 # «شروع» یا «پایان»: دو پاسخِ متفاوت برای یک موضوع
 _SUMMARY_ASK = re.compile(r"درباره|موضوع|حکایت|داستان|قصه|محتوای|دربارهٔ")
+# «مرکز استان …»/«پایتخت …» پاسخِ جغرافیایی می‌خواهد، نه هر ورودی که آن نام را دارد
+_PLACE_ASK = re.compile(r"مرکز\s*استان|مرکزِ\s*استان|پایتخت|مرکز\s*کشور")
+_PLACE_KEY = re.compile(r"پایتخت|مرکز\s*استان|مرکز\s*کشور|استانِ|شهرِ")
 _START_ASK = re.compile(r"شروع|آغاز|اعلام|رخ داد|وقوع|به قدرت رسید")
 _END_ASK = re.compile(r"پایان|تمام شد|خاتمه|سقوط|فروپاش|شکست خورد")
 
@@ -151,6 +154,7 @@ def lookup(message: str, min_score: float = 0.62) -> dict | None:
     author_intent = bool(_AUTHOR_ASK.search(flat))
     year_intent = bool(_YEAR_ASK.search(flat))
     summary_intent = bool(_SUMMARY_ASK.search(flat))
+    place_intent = bool(_PLACE_ASK.search(flat))
     start_intent = bool(_START_ASK.search(flat))
     end_intent = bool(_END_ASK.search(flat)) and not start_intent
     subjects = _subjects(message)
@@ -179,6 +183,11 @@ def lookup(message: str, min_score: float = 0.62) -> dict | None:
             body = " ".join(keys) + " " + entry.get("q", "")
             if not re.search(r"سال|تاریخ|قرن", body):
                 continue
+            score += 0.4
+        if place_intent:
+            body = entry.get("q", "") + " " + " ".join(keys)
+            if not _PLACE_KEY.search(body):
+                continue            # پرسش از مرکز/پایتخت است؛ ورودیِ دریاچه پاسخ نیست
             score += 0.4
         if start_intent and not _START_ASK.search(entry.get("q", "") + " " + " ".join(keys)):
             continue                    # پرسش از شروع است؛ ورودیِ «پایان» پاسخ نیست
