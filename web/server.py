@@ -88,6 +88,11 @@ SIGNUP_GATE = ("برای استفاده از هوش رایان باید حساب
                "چند ثانیه طول می‌کشد؛ بعد از ثبت‌نام ویدیوی کوتاه آموزش را می‌بینی.")
 SESSION_DAYS = 30
 IS_PROD = os.environ.get("RAYAN_ENV", "dev").strip().lower() in ("prod", "production")
+# روی هاستِ اشتراکی ممکن است HTTPS نباشد؛ با RAYAN_COOKIE_SECURE=0 کوکیِ امن خاموش می‌شود.
+_COOKIE_SECURE_ENV = os.environ.get("RAYAN_COOKIE_SECURE", "").strip().lower()
+COOKIE_SECURE = (IS_PROD if not _COOKIE_SECURE_ENV
+                 else _COOKIE_SECURE_ENV in ("1", "true", "yes", "on"))
+BASE_PATH = os.environ.get("RAYAN_BASE_PATH", "").strip()
 
 STARTED = time.time()
 engine: Engine | None = None
@@ -281,12 +286,13 @@ def boot() -> None:
                 print(f"[rayan] model not loaded: {exc}", flush=True)
 
         threading.Thread(target=_load, name="rayan-loader", daemon=True).start()
-    if os.environ.get("RAYAN_WATCH", "1") != "0":
+    if os.environ.get("RAYAN_WATCH", "1") != "0" and not os.environ.get("RAYAN_HOST"):
         threading.Thread(target=watcher, args=(_SHUTDOWN,), name="rayan-watch", daemon=True).start()
     # کارگر تقویت تدریجی: پرسش‌های بی‌جواب را از وب یاد می‌گیرد و دانش را می‌گستراند
     try:
         from web import learn as learn_module
-        learn_module.start_worker(interval=float(os.environ.get("RAYAN_GROW_INTERVAL", "240")))
+        if not os.environ.get("RAYAN_HOST"):
+            learn_module.start_worker(interval=float(os.environ.get("RAYAN_GROW_INTERVAL", "240")))
     except Exception as exc:  # pragma: no cover
         print(f"[rayan] learn worker skipped: {exc}", flush=True)
 
@@ -301,6 +307,11 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="رایان", version="3.0.0", docs_url=None, redoc_url=None, lifespan=lifespan)
+if BASE_PATH:
+    # پیش از GZip اضافه می‌شود تا بدنهٔ HTML/CSS هنوز فشرده نشده باشد
+    from web.hosting import BasePathMiddleware  # noqa: PLC0415 - فقط در حالتِ زیرشاخه
+
+    app.add_middleware(BasePathMiddleware, base=BASE_PATH)
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 _PUBLIC_ORIGINS = {o.strip() for o in os.environ.get("RAYAN_ORIGINS", "").split(",") if o.strip()}
 app.add_middleware(
@@ -680,7 +691,7 @@ def _set_guest_cookie(response: Response, owner: dict) -> None:
     if owner.get("user_id") is None and owner.get("guest_id"):
         if _needs_guest_cookie(response, owner):
             response.set_cookie(GUEST_COOKIE, owner["guest_id"], max_age=180 * 86400,
-                                httponly=True, samesite="lax", secure=IS_PROD, path="/")
+                                httponly=True, samesite="lax", secure=COOKIE_SECURE, path="/")
 
 
 def _needs_guest_cookie(_response: Response, _owner: dict) -> bool:
@@ -689,7 +700,7 @@ def _needs_guest_cookie(_response: Response, _owner: dict) -> bool:
 
 def _set_session_cookie(response: Response, token: str) -> None:
     response.set_cookie(SESSION_COOKIE, token, max_age=SESSION_DAYS * 86400,
-                        httponly=True, samesite="lax", secure=IS_PROD, path="/")
+                        httponly=True, samesite="lax", secure=COOKIE_SECURE, path="/")
 
 
 def _quota(owner: dict, ip: str, kind: str) -> tuple[int, int]:
@@ -836,7 +847,7 @@ async def security_headers(request: Request, call_next):
     if (ctype.startswith("text/html") and "rayan_guest" not in request.cookies
             and SESSION_COOKIE not in request.cookies):
         response.set_cookie(GUEST_COOKIE, secrets.token_urlsafe(18), max_age=180 * 86400,
-                            httponly=True, samesite="lax", secure=IS_PROD, path="/")
+                            httponly=True, samesite="lax", secure=COOKIE_SECURE, path="/")
     return response
 
 
@@ -1479,7 +1490,7 @@ def _owner_login(req: LoginRequest, request: Request, response: Response, ident:
     admin_token = store().create_admin_session(admin_id, csrf, ip=ip,
                                                user_agent=request.headers.get("user-agent", ""))
     response.set_cookie(admin_module.ADMIN_COOKIE, admin_token, max_age=2 * 3600, httponly=True,
-                        samesite="strict", secure=os.environ.get("RAYAN_ENV") == "prod", path="/")
+                        samesite="strict", secure=COOKIE_SECURE, path="/")
     store().record_event("owner_login", user_id=admin_id, ip=ip)
     admin_module.audit("owner_login", request, target=str(admin_id))
     return {
@@ -1569,7 +1580,7 @@ def guest_session(request: Request, response: Response) -> dict:
     owner = _owner(request)
     if owner.get("user_id") is None:
         response.set_cookie(GUEST_COOKIE, owner["guest_id"], max_age=180 * 86400,
-                            httponly=True, samesite="lax", secure=IS_PROD, path="/")
+                            httponly=True, samesite="lax", secure=COOKIE_SECURE, path="/")
     return {"guest_id": owner.get("guest_id"), "plan": owner.get("plan")}
 
 
@@ -1616,7 +1627,7 @@ def create_conversation(req: ConversationCreate, request: Request, response: Res
     owner = _owner(request)
     if owner.get("user_id") is None:
         response.set_cookie(GUEST_COOKIE, owner["guest_id"], max_age=180 * 86400,
-                            httponly=True, samesite="lax", secure=IS_PROD, path="/")
+                            httponly=True, samesite="lax", secure=COOKIE_SECURE, path="/")
     conv = store().create_conversation(owner, req.title, req.model)
     return {"conversation": conv}
 
@@ -2526,6 +2537,10 @@ def _db_info() -> dict:
 
 def main() -> None:
     global engine, engine_error
+    if os.environ.get("RAYAN_HOST"):
+        from web.hosting import prepare_host_env  # noqa: PLC0415 - فقط در حالتِ هاست
+
+        prepare_host_env(ROOT)
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8000)

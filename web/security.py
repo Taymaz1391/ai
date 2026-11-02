@@ -21,7 +21,7 @@ import time
 from collections import deque
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SECRET_FILE = os.path.join(ROOT, "data", "secret.key")
+SECRET_FILE = os.environ.get("RAYAN_SECRET_FILE") or os.path.join(ROOT, "data", "secret.key")
 
 DEFAULT_BITS = int(os.environ.get("RAYAN_CAPTCHA_BITS", "15"))
 CAPTCHA_TTL = 15 * 60          # ثانیه

@@ -1,6 +1,6 @@
 PY ?= .venv/bin/python
 
-.PHONY: install corpus tokenizer train serve test eval clean
+.PHONY: install corpus tokenizer train serve test eval host host-index clean
 
 install:
 	python3 -m venv .venv
@@ -26,6 +26,12 @@ test:
 
 eval:
 	$(PY) scripts/evaluate.py --checkpoint checkpoints/rayan-1-small.npz
+
+host:
+	$(PY) scripts/build_host_package.py
+
+host-index:
+	$(PY) scripts/build_host_package.py --with-index
 
 clean:
 	rm -rf __pycache__ rayan/__pycache__ tests/__pycache__

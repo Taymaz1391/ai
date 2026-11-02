@@ -1,0 +1,24 @@
+# رایان روی VPS — بالا آوردن با یک فرمان:  docker compose up -d
+services:
+  rayan:
+    build: .
+    image: rayan:latest
+    container_name: rayan
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      RAYAN_ENV: production
+      RAYAN_PUBLIC_URL: ${RAYAN_PUBLIC_URL:-http://localhost:8000}
+      RAYAN_OWNER_PASSWORD: ${RAYAN_OWNER_PASSWORD:?گذرواژهٔ مدیر را در .env بگذار}
+      RAYAN_DATA_DIR: /app/var
+    volumes:
+      - rayan-data:/app/var
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/api/health',timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+
+volumes:
+  rayan-data:

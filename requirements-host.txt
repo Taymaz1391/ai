@@ -1,0 +1,6 @@
+# وابستگی‌های اجرای رایان روی هاست (مثل requirements.txt، بدون ابزار توسعه)
+numpy>=1.26,<3
+fastapi>=0.110,<1
+uvicorn[standard]>=0.29,<1
+pydantic>=2.6,<3
+email-validator>=2.1,<3

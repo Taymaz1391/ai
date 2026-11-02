@@ -69,3 +69,6 @@ reports/load-*.json
 # شناسهٔ فرایند سرور و صف دستورها (وضعیت اجرایی، قابل بازسازی)
 data/server.pid
 data/ops/
+
+# بستهٔ آپلود روی هاست (با scripts/build_host_package.py ساخته می‌شود)
+dist/

@@ -441,10 +441,27 @@ RAYAN_INDEX_URL=…/index.sqlite3 RAYAN_WIKI_URL=…/wiki.sqlite3 python scripts
 نمی‌آیند، ولی لایهٔ **یادگیری آنلاین** پرسش‌ها را از وب می‌خواند و در همان دیسک موقت
 ذخیره می‌کند. برای ایندکس ۸۶۵ مگابایتی به دیسک پایدار نیاز است.
 
-این پروژه عرضهٔ عمومی و میزبانی مستقل ندارد. اجرای نسخهٔ کامل فقط روی سرور
-خودِ پروژه انجام می‌شود؛ انتشار، بازنشر یا بالا آوردن آن روی سرویس دیگر بدون
-اجازهٔ کتبی ممنوع است (فایل `LICENSE`). برای راه‌اندازی روی سرور پروژه،
-`docs/DEPLOY_LIVE.md` را ببین.
+### آپلود روی هاست اشتراکی
+
+برای بالا آوردن سایت روی هاستِ خودِ پروژه (cPanel/Plesk/DirectAdmin با پایتون):
+
+```bash
+python scripts/build_host_package.py --with-index   # dist/rayan-host.zip
+```
+
+بسته شاملِ کد، مدل ۲۴ مگابایتی، دانش‌نامه، صفحه‌ها، `passenger_wsgi.py`،
+`deploy/host_check.py` و راهنمای فارسیِ `README-HOST.md` است. مراحل کامل در
+[`docs/HOSTING.md`](docs/HOSTING.md) آمده است؛ خلاصه:
+
+1. zip را در پوشهٔ برنامه آپلود و Extract کن.
+2. cPanel → **Setup Python App** → startup file: `passenger_wsgi.py`.
+3. **Run Pip Install** با `requirements.txt`.
+4. `RAYAN_OWNER_PASSWORD` و `RAYAN_PUBLIC_URL` را در متغیرهای محیطی بگذار.
+5. `python deploy/host_check.py` باید همه ✓ بدهد، سپس `/api/health` و `/admin`.
+
+هاستِ فقط-PHP این برنامه را اجرا نمی‌کند؛ برای آن `compose.yaml` (Docker) یا
+`render.yaml` را ببین. میزبانی روی سرورِ خودِ مالک مجاز است؛ انتشار عمومی یا
+بالا آوردن روی سرویسِ دیگران بدون اجازهٔ کتبی همچنان ممنوع است (فایل `LICENSE`).
 
 ---
 

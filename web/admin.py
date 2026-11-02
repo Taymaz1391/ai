@@ -552,7 +552,7 @@ def maintenance(request: Request, task: str = "vacuum") -> dict:
         result.update(store().purge(30))
     elif task == "backup":
         name = time.strftime("rayan-%Y%m%d-%H%M%S.sqlite3")
-        path = os.path.join(ROOT, "data", "backups", name)
+        path = os.path.join(BACKUP_DIR, name)
         store().backup_to(path)
         result["path"] = os.path.relpath(path, ROOT)
     else:
@@ -655,12 +655,12 @@ def start_scheduler(interval: int = 3600) -> None:
                 store().purge(30)
                 if now - last_backup > 86400:
                     name = time.strftime("rayan-%Y%m%d.sqlite3")
-                    store().backup_to(os.path.join(ROOT, "data", "backups", name))
+                    store().backup_to(os.path.join(BACKUP_DIR, name))
                     last_backup = now
-                    backups = sorted(os.listdir(os.path.join(ROOT, "data", "backups")))
+                    backups = sorted(os.listdir(BACKUP_DIR))
                     for old in backups[:-7]:
                         try:
-                            os.remove(os.path.join(ROOT, "data", "backups", old))
+                            os.remove(os.path.join(BACKUP_DIR, old))
                         except OSError:
                             pass
                 if now - last_vacuum > 7 * 86400:
@@ -753,6 +753,7 @@ def capacity(request: Request) -> dict:
 
 # ═══════════════════════════════════════════════ دانشنامهٔ بررسی‌شده (ویرایش)
 KNOWLEDGE_FILE = os.environ.get("RAYAN_KNOWLEDGE_FILE") or os.path.join(ROOT, "data", "knowledge.jsonl")
+BACKUP_DIR = os.environ.get("RAYAN_BACKUP_DIR") or os.path.join(ROOT, "data", "backups")
 
 
 def _read_knowledge() -> list[dict]:
