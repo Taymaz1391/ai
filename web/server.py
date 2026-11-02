@@ -51,6 +51,7 @@ from web import owner as owner_module  # noqa: E402
 from web import search as search_module  # noqa: E402
 from web import skills as skills_module
 from web import tutor as tutor_module  # noqa: E402
+from web import howto as howto_module  # noqa: E402
 from web import writer as writer_module  # noqa: E402
 from web import mailer as mailer_module  # noqa: E402
 from web import knowledge as knowledge_module  # noqa: E402
@@ -1961,6 +1962,15 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
     kwargs = _generation_kwargs(req)
 
     if req.mode == "chat":
+        # روزِ هفته پس از چند روز: پیش از ابزارِ تاریخ انجام می‌شود، چون واژهٔ «روز»
+        # ابزارِ تاریخ را هم فعال می‌کند.
+        try:
+            shifted_day = tools_module.weekday_shift(message)
+        except Exception:  # noqa: BLE001
+            shifted_day = None
+        if shifted_day:
+            return _instant_turn(owner, ip, req, response, conv_id, message,
+                                 shifted_day["answer"], None, started, "tool")
         # ابزار اول: هر محاسبه یا تاریخ، بدون مدل و بدون تأخیر پاسخ می‌گیرد.
         if tool_result and tool_result.get("ok"):
             spoken = tools_module.phrase(tool_result)
@@ -1978,6 +1988,13 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
                 return _instant_turn(owner, ip, req, response, conv_id, message,
                                      solved["answer"], tool_result, started,
                                      solved.get("engine", module_name))
+        # خلاصه‌سازی پیش از دانش‌نامه: «این سه نکته را خلاصه کن» نباید به یک مدخلِ
+        # دانشی دربارهٔ یکی از آن نکته‌ها تبدیل شود.
+        summary = writer_module.summarize(message)
+        if summary:
+            return _instant_turn(owner, ip, req, response, conv_id, message, summary,
+                                 tool_result, started, "write")
+
         # دانشنامهٔ بررسی‌شده پیش از لایه‌های نوشتاری و آموزشی: اگر پاسخِ قطعی
         # داریم، نباید لایهٔ دیگری موضوع را به خودش بگیرد.
         knowledge_hit = knowledge_module.answer(message)
@@ -1991,6 +2008,14 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
         # پرسشِ برنامه‌نویسی متن نمی‌خواهد؛ «چطور فایل بنویسم» کد می‌خواهد
         programming = re.search(r"پایتون|python|جاوااسکریپت|javascript|"
                                 r"(?<![\w\u200c])کد(?![\w\u200c])|\bsql\b", message, re.I)
+        # راهنمای عملی پیش از نویسنده: «چطور…» متن نمی‌خواهد، قدم می‌خواهد
+        guided = None if programming else howto_module.answer(message)
+        if guided:
+            return _instant_turn(owner, ip, req, response, conv_id, message, guided["answer"],
+                                 tool_result, started, guided["engine"],
+                                 {"guide": guided.get("guide"),
+                                  "sources": [{"title": "راهنمای رایان",
+                                               "source": "رایان", "score": 1.0}]})
         written = None if programming else writer_module.answer(message)
         if written:
             return _instant_turn(owner, ip, req, response, conv_id, message, written["answer"],
@@ -2125,17 +2150,25 @@ def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     if tool_result and tool_result.get("ok"):
         tool_answer = tools_module.phrase(tool_result)
     kb = None if (tool_answer or req.mode != "chat" or req.web) else knowledge_module.answer(message)
-    written = None if tool_answer or kb or req.mode != "chat" else writer_module.answer(message)
+    summary = (None if (tool_answer or req.mode != "chat" or req.web)
+               else writer_module.summarize(message))
+    guide = (None if (tool_answer or summary or kb or req.mode != "chat" or req.web)
+             else howto_module.answer(message))
+    written = (None if (tool_answer or kb or guide or req.mode != "chat")
+               else writer_module.answer(message))
     taught = None if (tool_answer or kb or written or req.mode != "chat") else tutor_module.answer(message)
     skill = None if (tool_answer or kb or taught or written) else (
         skills_module.match(message) if req.mode == "chat" else None)
     thought = None
     if req.mode == "chat" and not skill and not taught and not kb:
         thought = _think(message, req, history)
-    instant_answer = (tool_answer or (written or {}).get("answer") or (taught or {}).get("answer")
+    instant_answer = (tool_answer or summary or (guide or {}).get("answer")
+                      or (written or {}).get("answer") or (taught or {}).get("answer")
                       or (skill or {}).get("answer")
                       or (thought or {}).get("answer") or (kb or {}).get("answer") or "")
-    instant_engine = ("tool" if tool_answer else (written or {}).get("engine") or
+    instant_engine = ("tool" if tool_answer else ("write" if summary else None)
+                      or (guide or {}).get("engine")
+                      or (written or {}).get("engine") or
                       (taught or {}).get("engine") or
                       "skill" if skill else "think" if thought else
                       "knowledge" if kb else "")
@@ -2172,6 +2205,7 @@ def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
                 "conversation_id": new_conv, "message_id": msg_id,
                 "usage": {"used": used, "limit": limit}, "tool": tool_result,
                 "engine": instant_engine,
+                "guide": (guide or {}).get("guide"),
                 "skill": (skill or {}).get("skill"),
                 "knowledge": (kb or {}).get("knowledge"),
                 "thought": {"steps": (thought or {}).get("trace", []),
