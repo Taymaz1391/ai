@@ -104,6 +104,9 @@ def weak(message: str, reply: str, history: list[tuple[str, str]] | None = None)
         return True
     if degenerate(text):
         return True
+    # واژه‌های داخلی هرگز نباید در پاسخِ کاربر ظاهر شوند؛ اگر آمدند، پاسخ درهم است
+    if re.search(r"مدل زبانی|پیکرهٔ فارسی|پیکره فارسی|توکن\b|داده‌آموزی|وزن‌های مدل", text):
+        return True
     prev_user = ""
     for user_msg, _bot in reversed(history or []):
         if user_msg.strip():

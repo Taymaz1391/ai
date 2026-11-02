@@ -149,8 +149,12 @@ class ReasonTest(unittest.TestCase):
             self.assertIn(out["engine"], {"chat", "deep"})
         else:
             text = reason.honest("نظریهٔ ریسمان چیست؟", ["فیزیک", "کوانتوم"])
-            self.assertIn("شاهد مطمئنی", text)
-            self.assertIn("فیزیک", text)
+            self.assertIn("ریسمان", text)          # موضوع در پاسخ هست
+            self.assertIn("فیزیک", text)           # موضوع‌های نزدیک می‌آید
+            self.assertGreater(len(text), 60)
+            # پاسخِ پایانی نباید واژهٔ داخلی یا بن‌بست داشته باشد
+            for word in ("پیکره", "مدل زبانی", "شاهد مطمئنی", "نمی‌دانم"):
+                self.assertNotIn(word, text)
 
     def test_no_prewritten_answer_for_factual_question(self):
         """پرسشی که در دانشنامه نیست باید یا شاهد داشته باشد یا صریح بگوید نمی‌دانم."""

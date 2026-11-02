@@ -1994,6 +1994,12 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
                                      solved.get("engine", module_name))
         # خلاصه‌سازی پیش از دانش‌نامه: «این سه نکته را خلاصه کن» نباید به یک مدخلِ
         # دانشی دربارهٔ یکی از آن نکته‌ها تبدیل شود.
+        formal = (None if (tool_result and tool_result.get("ok")) or req.mode != "chat" or req.web
+                  else writer_module.formalize(message))
+        if formal:
+            return _instant_turn(owner, ip, req, response, conv_id, message, formal,
+                                 tool_result, started, "write")
+
         summary = writer_module.summarize(message)
         if summary:
             return _instant_turn(owner, ip, req, response, conv_id, message, summary,
@@ -2154,9 +2160,11 @@ def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     if tool_result and tool_result.get("ok"):
         tool_answer = tools_module.phrase(tool_result)
     kb = None if (tool_answer or req.mode != "chat" or req.web) else knowledge_module.answer(message)
-    summary = (None if (tool_answer or req.mode != "chat" or req.web)
+    formal = (None if (tool_answer or req.mode != "chat" or req.web)
+              else writer_module.formalize(message))
+    summary = (None if (tool_answer or formal or req.mode != "chat" or req.web)
                else writer_module.summarize(message))
-    guide = (None if (tool_answer or summary or kb or req.mode != "chat" or req.web)
+    guide = (None if (tool_answer or formal or summary or kb or req.mode != "chat" or req.web)
              else howto_module.answer(message))
     written = (None if (tool_answer or kb or guide or req.mode != "chat")
                else writer_module.answer(message))
@@ -2166,11 +2174,11 @@ def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     thought = None
     if req.mode == "chat" and not skill and not taught and not kb:
         thought = _think(message, req, history)
-    instant_answer = (tool_answer or summary or (guide or {}).get("answer")
+    instant_answer = (tool_answer or formal or summary or (guide or {}).get("answer")
                       or (written or {}).get("answer") or (taught or {}).get("answer")
                       or (skill or {}).get("answer")
                       or (thought or {}).get("answer") or (kb or {}).get("answer") or "")
-    instant_engine = ("tool" if tool_answer else ("write" if summary else None)
+    instant_engine = ("tool" if tool_answer else ("write" if (formal or summary) else None)
                       or (guide or {}).get("engine")
                       or (written or {}).get("engine") or
                       (taught or {}).get("engine") or

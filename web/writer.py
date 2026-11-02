@@ -373,6 +373,53 @@ def _split_items(payload: str) -> list[str]:
     return items
 
 
+_FORMAL_REPLACE = (
+    ("ببخشید", "پوزش می‌خواهم"), ("شرمنده", "پوزش می‌خواهم"), ("دیر شد", "تأخیر رخ داد"),
+    ("می‌خوام", "می‌خواهم"), ("میخوام", "می‌خواهم"), ("می‌تونم", "می‌توانم"),
+    ("نمی‌تونم", "نمی‌توانم"), ("می‌کنیم", "می‌کنیم"), ("یه", "یک"), ("الان", "اکنون"),
+    ("باشه", "باشد"), ("ممنون", "سپاسگزارم"), ("مرسی", "سپاسگزارم"),
+    ("تو", "شما"), ("باید بگم", "باید عرض کنم"), ("دادم", "ارسال کردم"),
+)
+
+
+def _formalize_sentence(sentence: str) -> str:
+    """جملهٔ محاوره‌ای را به لحنِ اداری/مؤدبانه برگردان می‌کند."""
+    text = sentence.strip().strip(".!؟?")
+    if re.search(r"ببخشید|شرمنده", text) and re.search(r"دیر|تأخیر", text):
+        return "از تأخیرِ پیش‌آمده پوزش می‌خواهم"
+    for casual, formal in _FORMAL_REPLACE:
+        text = text.replace(casual, formal)
+    text = re.sub(r"\bتو\b", "شما", text)
+    return text.replace("  ", " ").strip()
+
+
+def formalize(question: str) -> str | None:
+    """«این جمله را رسمی‌تر کن: …» → نسخهٔ رسمیِ همان جمله، نه توصیه."""
+    text = (question or "").strip()
+    if not re.search(r"رسمی|مؤدبانه|مودبانه|اداری", text):
+        return None
+    payload = ""
+    if ":" in text:
+        payload = text.split(":", 1)[1]
+    else:
+        quoted = re.search(r"[«\"](.+?)[»\"]", text)
+        if quoted:
+            payload = quoted.group(1)
+        else:
+            payload = re.sub(r"^(?:لطفا|لطفاً)?\s*(?:این|آن)?\s*(?:جمله|متن|پیام)?\s*(?:را)?\s*"
+                             r"(?:رسمی‌تر|مؤدبانه‌تر|مودبانه‌تر|اداری‌تر)\s*کن:?\s*", "", text)
+    payload = (payload or "").strip().strip("«»\"'")
+    if len(payload) < 3:
+        return None
+    pieces = [part for part in re.split(r"(?<=[.!؟])\s+", payload) if part.strip()]
+    formal = " ".join(_formalize_sentence(part) + "." for part in pieces)
+    formal = formal.replace("..", ".")
+    return ("**نسخهٔ رسمی**\n\n"
+            f"با سلام و احترام،\n\n{formal}\n\n"
+            "با سپاس" + "\n\n" +
+            "اگر مخاطب خاصی دارد (مدیر، استاد، مشتری) بگو تا همان لحن را دقیق‌تر کنم.")
+
+
 def summarize(question: str) -> str | None:
     """«این سه نکته را خلاصه کن: …» → خلاصهٔ ساختاریافته از همان نکته‌ها."""
     text = (question or "").strip()
@@ -400,6 +447,9 @@ def answer(question: str) -> dict | None:
     text = (question or "").strip()
     if not text:
         return None
+    formal = formalize(text)
+    if formal:
+        return {"answer": formal, "source": "بازنویسی", "engine": "write"}
     summary = summarize(text)
     if summary:
         return {"answer": summary, "source": "خلاصه", "engine": "write"}
