@@ -40,5 +40,22 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # اگر Pages در تنظیمات مخزن روشن نشده باشد، انتشار شکست نمی‌خورد؛
+      # فقط با یک پیامِ روشن رد می‌شود. روشن‌کردنش فقط دستِ مالکِ مخزن است:
+      # Settings → Pages → Source = GitHub Actions
+      - name: بررسیِ روشن‌بودنِ Pages
+        id: probe
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if curl -sf -H "Authorization: Bearer $GH_TOKEN" \
+               -H "Accept: application/vnd.github+json" \
+               "${{ github.api_url }}/repos/${{ github.repository }}/pages" > /dev/null; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Pages خاموش است::برای انتشار، Settings → Pages → Source را روی «GitHub Actions» بگذار و این کار را دوباره اجرا کن."
+          fi
       - id: deployment
+        if: steps.probe.outputs.enabled == 'true'
         uses: actions/deploy-pages@v4
