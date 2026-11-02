@@ -9,7 +9,8 @@
         request("/api/health"),
         request("/api/model").catch(() => null),
       ]);
-      const ev = model?.metrics?.best_eval || health.latest_eval;
+      // ارزیابی کاملِ مجموعهٔ اعتبارسنجی بر ارزیابی زیرمجموعهٔ آموزش اولویت دارد
+      const ev = model?.metrics?.final_eval || health.final_eval || health.latest_eval;
       if (ev) {
         const cells = document.querySelectorAll("#eval-table tbody tr");
         if (cells[0]) cells[0].children[1].textContent = `${nf(ev.val_loss, 2)} nats/token`;

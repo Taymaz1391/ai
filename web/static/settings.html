@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>تنظیمات · رایان</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/static/assets/icons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="preload" href="/static/assets/fonts/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/pages.css">
+  <link rel="stylesheet" href="/static/settings.css">
+  <script src="/static/theme-boot.js"></script>
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true"><div class="glow glow-a"></div><div class="glow glow-b"></div></div>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/" aria-label="رایان، خانه">
+        <img class="brand-wordmark wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="116" height="59">
+        <img class="brand-wordmark wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="116" height="59">
+      </a>
+      <nav class="nav-links" aria-label="پیمایش اصلی">
+        <a class="nav-link" href="/chat">گفتگو</a>
+        <a class="nav-link" href="/compare">میزان</a>
+        <a class="nav-link" href="/pricing">تعرفه</a>
+        <a class="nav-link" href="/support">پشتیبانی</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-ghost btn-sm" href="/chat" data-auth="guest">ورود</a>
+        <a class="btn btn-primary btn-sm" href="/chat">رفتن به گفتگو</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="section">
+    <div class="wrap">
+      <div class="section-head" style="text-align:right">
+        <h1 class="section-title">تنظیمات</h1>
+        <p class="section-sub">حساب، ایمیل، ظاهر، پیش‌فرض‌های گفتگو و داده‌هایت — همه در یک‌جا.</p>
+      </div>
+
+      <div class="panel" id="settings-panel">
+        <aside class="panel-side" aria-label="بخش‌ها">
+          <button class="panel-tab is-active" data-panel="account">
+            <span data-icon="user"></span> حساب
+          </button>
+          <button class="panel-tab" data-panel="email">
+            <span data-icon="mail"></span> ایمیل و تأیید
+          </button>
+          <button class="panel-tab" data-panel="chat">
+            <span data-icon="chat"></span> پیش‌فرض‌های گفتگو
+          </button>
+          <button class="panel-tab" data-panel="look">
+            <span data-icon="sun"></span> ظاهر و خوانایی
+          </button>
+          <button class="panel-tab" data-panel="data">
+            <span data-icon="shield"></span> داده و حریم خصوصی
+          </button>
+          <button class="panel-tab" data-panel="admin" id="tab-admin" hidden>
+            <span data-icon="settings"></span> مدیریت
+          </button>
+        </aside>
+
+        <div class="panel-body">
+          <!-- حساب -->
+          <section class="panel-pane is-active" data-pane="account">
+            <h2>حساب</h2>
+            <div class="id-card">
+              <span class="id-avatar" data-user-initials>؟</span>
+              <div>
+                <b data-user-name>مهمان</b>
+                <span class="muted" data-user-plan-note>وارد نشده‌ای</span>
+              </div>
+            </div>
+
+            <form class="field-grid" id="profile-form" autocomplete="off">
+              <label class="field">
+                <span>نام نمایشی</span>
+                <input class="input" id="profile-name" maxlength="60" placeholder="مثلاً سارا">
+              </label>
+              <label class="field">
+                <span>ایمیل</span>
+                <input class="input" id="profile-email" dir="ltr" disabled>
+              </label>
+              <div class="field-actions">
+                <button class="btn btn-primary btn-sm" type="submit" id="save-profile">ذخیرهٔ نام</button>
+                <span class="muted" id="profile-note"></span>
+              </div>
+            </form>
+
+            <h3>گذرواژه</h3>
+            <form class="field-grid" id="password-form" autocomplete="off">
+              <label class="field">
+                <span>گذرواژهٔ کنونی</span>
+                <input class="input" id="pw-current" type="password" autocomplete="current-password">
+              </label>
+              <label class="field">
+                <span>گذرواژهٔ تازه</span>
+                <input class="input" id="pw-new" type="password" minlength="8" autocomplete="new-password">
+                <em class="hint">دست‌کم ۸ نویسه؛ ترکیب حرف و رقم بهتر است.</em>
+              </label>
+              <div class="field-actions">
+                <button class="btn btn-sm" type="submit">تغییر گذرواژه</button>
+                <span class="muted" id="pw-note"></span>
+              </div>
+            </form>
+
+            <div class="row-actions">
+              <a class="btn btn-ghost btn-sm" href="/chat">رفتن به گفتگو</a>
+              <button class="btn btn-ghost btn-sm" id="logout-btn" type="button">خروج از حساب</button>
+            </div>
+          </section>
+
+          <!-- ایمیل -->
+          <section class="panel-pane" data-pane="email">
+            <h2>ایمیل و تأیید</h2>
+            <p class="muted" id="email-lead">
+              کد تأیید به ایمیل حسابت فرستاده می‌شود؛ با تأیید آن، بازیابی حساب و خبرهای مهم ممکن می‌شود.
+            </p>
+            <div class="verify-box">
+              <div class="verify-state">
+                <span class="badge" id="verify-badge">بررسی…</span>
+                <b id="verify-email" dir="ltr">—</b>
+              </div>
+              <button class="btn btn-primary btn-sm" id="send-code" type="button">ارسال کد تأیید</button>
+            </div>
+            <form class="field-grid" id="verify-form" autocomplete="off">
+              <label class="field">
+                <span>کد شش‌رقمی</span>
+                <input class="input code-input" id="verify-code" inputmode="numeric" maxlength="6"
+                       placeholder="— — — — — —" dir="ltr">
+              </label>
+              <div class="field-actions">
+                <button class="btn btn-sm" type="submit">تأیید ایمیل</button>
+                <span class="muted" id="verify-note"></span>
+              </div>
+            </form>
+            <p class="hint" id="mail-service"></p>
+          </section>
+
+          <!-- گفتگو -->
+          <section class="panel-pane" data-pane="chat">
+            <h2>پیش‌فرض‌های گفتگو</h2>
+            <p class="muted">این تنظیم‌ها فقط روی همین مرورگر اثر دارند و هر گفتگو را با همین حالت شروع می‌کنند.</p>
+
+            <label class="slider-row" for="set-temp">
+              <span>خلاقیت <em class="hint">پایین‌تر = دقیق‌تر</em></span>
+              <b id="temp-value">۰٫۸۲</b>
+            </label>
+            <input class="sp-range" id="set-temp" type="range" min="0.2" max="1.4" step="0.05" value="0.82">
+
+            <label class="slider-row" for="set-tokens">
+              <span>طول پاسخ</span>
+              <b id="tokens-value">۱۱۰ توکن</b>
+            </label>
+            <input class="sp-range" id="set-tokens" type="range" min="40" max="240" step="16" value="110">
+
+            <label class="slider-row" for="set-topp">
+              <span>دامنهٔ واژه‌ها (top-p)</span>
+              <b id="topp-value">۰٫۹۰</b>
+            </label>
+            <input class="sp-range" id="set-topp" type="range" min="0.5" max="1" step="0.01" value="0.9">
+
+            <div class="switch-row">
+              <div><b>ارسال با Enter</b><em class="hint">Shift+Enter خط تازه می‌سازد</em></div>
+              <label class="switch"><input type="checkbox" id="set-enter" checked><span></span></label>
+            </div>
+            <div class="switch-row">
+              <div><b>جست‌وجوی وب با هر پرسش</b><em class="hint">پاسخ با منبع؛ کمی کندتر</em></div>
+              <label class="switch"><input type="checkbox" id="set-web"><span></span></label>
+            </div>
+            <div class="row-actions">
+              <button class="btn btn-ghost btn-sm" id="reset-chat" type="button">بازنشانی پیش‌فرض‌ها</button>
+            </div>
+          </section>
+
+          <!-- ظاهر -->
+          <section class="panel-pane" data-pane="look">
+            <h2>ظاهر و خوانایی</h2>
+            <div class="switch-row">
+              <div><b>کاهش حرکت</b><em class="hint">انیمیشن‌ها و افکت‌ها کم می‌شوند</em></div>
+              <label class="switch"><input type="checkbox" id="set-reduce"><span></span></label>
+            </div>
+            <label class="slider-row" for="set-font">
+              <span>اندازهٔ متن</span>
+              <b id="font-value">۱۰۰٪</b>
+            </label>
+            <input class="sp-range" id="set-font" type="range" min="90" max="120" step="5" value="100">
+            <div class="row-actions">
+              <button class="btn btn-ghost btn-sm" id="reset-look" type="button">بازنشانی</button>
+            </div>
+          </section>
+
+          <!-- داده -->
+          <section class="panel-pane" data-pane="data">
+            <h2>داده و حریم خصوصی</h2>
+            <ul class="facts">
+              <li>گفتگوها روی همین سرویس ذخیره می‌شوند و به هیچ سرویس بیرونی فرستاده نمی‌شوند.</li>
+              <li>گذرواژه فقط درهم‌سازی‌شده نگه داشته می‌شود.</li>
+              <li>هر وقت بخواهی می‌توانی همهٔ گفتگوها یا کل حسابت را پاک کنی.</li>
+            </ul>
+            <div class="row-actions">
+              <button class="btn btn-sm" id="export-btn" type="button">خروجی گرفتن از گفتگوها</button>
+              <button class="btn btn-sm danger" id="delete-convs" type="button">پاک‌کردن همهٔ گفتگوها</button>
+            </div>
+            <p class="hint" id="data-note"></p>
+          </section>
+
+          <!-- مدیریت -->
+          <section class="panel-pane" data-pane="admin">
+            <h2>مدیریت</h2>
+            <p class="muted">این حساب مالک سرویس است؛ پنل کامل مدیریت در دسترس است.</p>
+            <a class="btn btn-primary btn-sm" href="/admin">باز کردن پنل مدیریت</a>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/static/session.js"></script>
+  <script src="/static/config.js"></script>
+  <script src="/static/ui.js"></script>
+  <script src="/static/settings.js"></script>
+</body>
+</html>

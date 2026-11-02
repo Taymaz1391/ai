@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>رایان | هوش مصنوعی فارسی، ساخته‌شده از صفر</title>
+  <meta name="description" content="رایان، دستیار هوش مصنوعی فارسی؛ سریع، دقیق و همیشه در دسترس — بدون فیلترشکن، بدون قطعی، با پاسخ فارسی روان.">
+  <meta name="theme-color" content="#ffffff">
+  <meta property="og:title" content="رایان | هوش مصنوعی فارسی">
+  <meta property="og:description" content="دستیار هوش مصنوعی فارسی؛ سریع، دقیق و همیشه در دسترس.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="static/assets/brand/og-image.png">
+  <meta property="og:locale" content="fa_IR">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="static/assets/brand/og-image.png">
+  <link rel="icon" href="static/assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="static/assets/icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preload" href="static/assets/fonts/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="static/assets/fonts/Vazirmatn-Black.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="static/styles.css">
+  <link rel="stylesheet" href="static/landing.css">
+  <script src="static/theme-boot.js"></script>
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true">
+    <div class="glow glow-a"></div>
+    <div class="glow glow-b"></div>
+    <div class="glow glow-c"></div>
+  </div>
+
+  <div class="demo-banner" id="demo-banner" hidden>
+    <b>نسخهٔ نمایشی</b>
+    <span>ارتباط با سرویس برقرار نیست؛ چند لحظه بعد صفحه را باز کنید.</span>
+  </div>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="index.html" aria-label="رایان، خانه">
+        <img class="brand-wordmark wordmark-for-light" src="static/assets/brand/mark-ink.png"
+             alt="رایان" width="116" height="59">
+        <img class="brand-wordmark wordmark-for-dark" src="static/assets/brand/mark-white.png"
+             alt="رایان" width="116" height="59">
+      </a>
+      <nav class="nav-links" aria-label="پیمایش اصلی">
+        <a class="nav-link" href="#features">قابلیت‌ها</a>
+        <a class="nav-link" href="#why">تفاوت رایان</a>
+        <a class="nav-link" href="models.html">مدل‌ها</a>
+        <a class="nav-link" href="pricing.html">تعرفه</a>
+        <a class="nav-link" href="support.html">پشتیبانی</a></nav>
+      <div class="nav-actions">
+        <a class="btn btn-ghost btn-sm" href="login.html" data-auth="guest">ورود</a>
+        <a class="btn btn-primary btn-sm" href="chat.html" data-auth="guest">شروع گفتگو</a>
+        <a class="btn btn-primary btn-sm" href="chat.html" data-auth="user" hidden>رفتن به گفتگو</a>
+        <a class="btn btn-ghost btn-sm" href="#" data-auth="user" data-action="logout" hidden>خروج</a>
+        <button class="nav-toggle" aria-label="منو" aria-expanded="false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap" style="padding-top:14px">
+      <div class="ad-slot" data-ad-slot="home-top" hidden></div>
+    </div>
+    <!-- ============================================================ هیرو -->
+    <section class="hero">
+      <div class="wrap">
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <div class="hero-orb-row">
+              <span class="orb-live hero-orb" data-size="72">
+                <img src="static/assets/brand/orb-live.webp" alt="رایان" width="72" height="72" loading="eager">
+                <i class="lid l"></i><i class="lid r"></i>
+              </span>
+              <span class="eyebrow">هوش مصنوعی فارسی · نسخهٔ ۳٫۰</span>
+            </div>
+            <h1 class="hero-title">بهترین دستیار فارسی<br>برای <span class="grad-text">هر روزِ شما</span><span class="dot">.</span></h1>
+            <p class="hero-sub">
+               <img class="wm-inline wordmark-for-light" src="static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> سریع‌تر از هر دستیاری که در ایران آزموده‌اید پاسخ می‌دهد: پرسش را می‌نویسید و
+              <em>در همان لحظه</em> جواب فارسیِ روشن می‌گیرید — بدون فیلترشکن، بدون قطعی، بدون معطلی.
+            </p>
+            <div class="hero-cta">
+              <a class="btn btn-primary btn-lg" href="chat.html">
+                گفتگو با <img class="wm-inline wordmark-for-light" src="static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> 
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+              </a>
+              <a class="btn btn-lg" href="login.html">ساخت حساب رایگان</a>
+            </div>
+            <p class="hero-note"><span class="dot-live"></span><span id="hero-status">در حال خواندن وضعیت مدل…</span></p>
+            <div class="hero-stats">
+              <div class="hero-stat"><b id="stat-latency">۰٫۳</b><span>ثانیه تا پاسخ</span></div>
+              <div class="hero-stat"><b>۲۴/۷</b><span>بدون قطعی و فیلتر</span></div>
+              <div class="hero-stat"><b>۱۰۰٪</b><span>فارسی و محلی</span></div>
+            </div>
+          </div>
+
+          <div class="preview reveal">
+            <div class="preview-frame">
+              <div class="preview-bar">
+                <i></i><i></i><i></i>
+                <span class="preview-brand">
+                  <img class="wordmark-for-light" src="static/assets/brand/mark-ink.png" alt="رایان" width="62" height="32" decoding="async">
+                  <img class="wordmark-for-dark" src="static/assets/brand/mark-white.png" alt="رایان" width="62" height="32" decoding="async">
+                  <em>گفتگوی تازه</em>
+                </span>
+              </div>
+              <div class="preview-body">
+                <div class="preview-msg user">
+                  <span class="who">ش</span>
+                  <div class="bubble">یک شعر بگو دربارهٔ عشق و شب</div>
+                </div>
+                <div class="preview-msg bot">
+                  <span class="who"><img src="static/assets/brand/orb-live-sm.webp" alt="" width="28" height="28"></span>
+                  <div class="bubble" id="preview-answer">شب است و پنجره باز؛<br>باران برایت شعر می‌گوید.</div>
+                </div>
+                <div class="preview-msg user">
+                  <span class="who">ش</span>
+                  <div class="bubble">خودت را معرفی کن</div>
+                </div>
+                <div class="preview-msg bot">
+                  <span class="who"><img src="static/assets/brand/orb-live-sm.webp" alt="" width="28" height="28"></span>
+                  <div class="bubble">من <img class="wm-inline wordmark-for-light" src="static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> هستم؛ دستیار فارسی شما. بپرسید، همان لحظه جواب می‌گیرید.</div>
+                </div>
+              </div>
+              <div class="preview-foot">
+                <div class="preview-input">پیام خود را بنویسید…</div>
+                <div class="preview-send" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+                </div>
+              </div>
+            </div>
+            <p class="preview-caption">تصویر رابط کاربری · پاسخ نمونه</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="wrap"><div class="logos">
+      <span>سریع</span><span>دقیق</span><span>همیشه در دسترس</span><span>حریم خصوصی</span>
+    </div></div>
+
+    <!-- ======================================================= قابلیت‌ها -->
+    <section class="section" id="features">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">قابلیت‌ها</span>
+          <h2 class="section-title">یک دستیار کامل، نه یک دمو</h2>
+          <p class="section-sub">
+            از حساب کاربری و تاریخچهٔ گفتگو تا اشتراک‌گذاری، خروجی گرفتن و اندیشهٔ ژرف؛
+            همه‌چیز داخل همین پروژه ساخته شده است.
+          </p>
+        </div>
+        <div class="grid-3">
+          <article class="feature reveal">
+            <div class="feature-icon">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.7 9.7 0 0 1-2.8-.4L3 21l1.6-4.7A8.4 8.4 0 1 1 21 11.5Z"/></svg>
+            </div>
+            <h3>گفتگوی جریانی</h3>
+            <p>پاسخ توکن‌به‌توکن ساخته و بی‌درنگ نمایش داده می‌شود؛ می‌توانید در میانه کار متوقفش کنید.</p>
+          </article>
+          <article class="feature reveal">
+            <div class="feature-icon">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="4.2"/></svg>
+            </div>
+            <h3>اندیشهٔ ژرف</h3>
+            <p>چند مسیر موازی تولید می‌شود و بهترین پاسخ با امتیاز واقعی مدل انتخاب می‌شود؛ استدلال انتخاب را می‌بینید.</p>
+          </article>
+          <article class="feature reveal">
+            <div class="feature-icon">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 6h16M4 12h10M4 18h13"/></svg>
+            </div>
+            <h3>تاریخچهٔ همیشگی</h3>
+            <p>همهٔ گفتگوها ذخیره می‌شوند: جست‌وجو، تغییر نام، سنجاق‌کردن و حذف، بدون از دست دادن چیزی.</p>
+          </article>
+          <article class="feature reveal">
+            <div class="feature-icon">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 12v7h16v-7"/><path d="M12 16V3M7 8l5-5 5 5"/></svg>
+            </div>
+            <h3>اشتراک و خروجی</h3>
+            <p>گفتگو را با یک لینک عمومی به اشتراک بگذارید یا به‌صورت متن و JSON خروجی بگیرید.</p>
+          </article>
+          <article class="feature reveal">
+            <div class="feature-icon">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18"/></svg>
+            </div>
+            <h3>دسترسی آزاد</h3>
+            <p>بدون حساب هم می‌توانید گفتگو کنید؛ با ساخت حساب رایگان، سهمیه و تاریخچهٔ دائمی می‌گیرید.</p>
+          </article>
+          <article class="feature reveal">
+            <div class="feature-icon">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3l8 4v6c0 4.2-3.2 7.3-8 8-4.8-.7-8-3.8-8-8V7l8-4Z"/><path d="M9 12l2 2 4-4"/></svg>
+            </div>
+            <h3>حریم خصوصی واقعی</h3>
+            <p>هیچ درخواستی به سرویس هوش مصنوعی بیرونی نمی‌رود. مدل، داده و پایگاه‌داده روی همان سروری است که سایت را اجرا می‌کند؛ برای دانشِ تازه فقط صفحهٔ عمومی وب خوانده می‌شود.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================== تفاوت رایان -->
+    <section class="section" id="why">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">تفاوت رایان</span>
+          <h2 class="section-title">چرا رایان را انتخاب می‌کنی؟</h2>
+          <p class="section-sub">چهار چیزی که در استفادهٔ روزمره حس می‌شود، نه در تبلیغ.</p>
+        </div>
+        <div class="steps">
+          <div class="step-row reveal">
+            <div class="step-num">۰۱ / سرعت</div>
+            <div class="step-body">
+              <h3>پاسخ در همان لحظه</h3>
+              <p>پرسش را که می‌نویسی، پاسخ واژه‌به‌واژه روی صفحه می‌آید؛ نه چرخیدن بی‌پایان، نه انتظار طولانی. سنجیده‌ایم: بیشتر پاسخ‌ها زیر یک ثانیه.</p>
+            </div>
+          </div>
+          <div class="step-row reveal">
+            <div class="step-num">۰۲ / دقت</div>
+            <div class="step-body">
+              <h3>جواب دقیق، نه جملهٔ کلی</h3>
+              <p>برای دانش عمومی از دانشِ درونی خودش، برای ریاضی از ماشین‌حساب دقیق، و برای پرسش تازه از وب استفاده می‌کند؛ چیزی که مطمئن نیست را به زبان خودش سرهم نمی‌کند.</p>
+            </div>
+          </div>
+          <div class="step-row reveal">
+            <div class="step-num">۰۳ / همیشه در دسترس</div>
+            <div class="step-body">
+              <h3>بدون فیلترشکن و بدون قطعی</h3>
+              <p>همهٔ صفحه، فونت، تصویر و پاسخ از خود سرویس می‌آید؛ حتی وقتی اینترنت بین‌المللی قطع است، رایان از دانش داخلی جواب می‌دهد.</p>
+            </div>
+          </div>
+          <div class="step-row reveal">
+            <div class="step-num">۰۴ / حریم خصوصی</div>
+            <div class="step-body">
+              <h3>گفتگو برای خودت می‌ماند</h3>
+              <p>هیچ گفتگویی به سرویس بیرونی فرستاده نمی‌شود. حساب، تاریخچه و داده‌ها روی همین سرویس نگه داشته می‌شوند و هر وقت بخواهی پاک می‌شوند.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================== میزان رایان -->
+    <section class="section" id="benchmark">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">میزان</span>
+          <h2 class="section-title">رایان در برابر دیگر هوش‌ها</h2>
+          <p class="section-sub">همان پرسش‌های فارسی، همان شرایط. این جدول از سنجش واقعی خودمان می‌آید.</p>
+        </div>
+        <div class="table-wrap">
+          <table class="plan-table" id="arena-table">
+            <thead>
+              <tr><th>معیار</th><th><img class="wm-inline wordmark-for-light" src="static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"></th><th>دستیارهای خارجی</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>دسترسی از ایران، بدون فیلترشکن</td><td><b>همیشه</b></td><td>نیازمند ابزار دور زدن فیلتر</td></tr>
+              <tr><td>زمان پاسخ</td><td><b id="arena-latency">زیر یک ثانیه</b></td><td>چند ثانیه تا نیم دقیقه</td></tr>
+              <tr><td>زبان و رسم‌الخط فارسی</td><td><b>فارسیِ روان و درست</b></td><td>ترجمه‌ای و گاه نادرست</td></tr>
+              <tr><td>ادامهٔ کار در قطعیِ اینترنت بین‌المللی</td><td><b>بله</b></td><td>خیر</td></tr>
+              <tr><td>هزینه در استفادهٔ روزمره</td><td><b>رایگان</b></td><td>پرداخت ارزی</td></tr>
+              <tr><td>ارسال گفتگو به سرویس بیرونی</td><td><b>هرگز</b></td><td>بله</td></tr>
+              <tr><td>آزمون فارسی ۵۸ پرسشی (سنجش خودمان)</td><td><b id="arena-score">—</b></td><td>عدد قابل بازبینی منتشر نکرده‌اند</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="showcase-note">
+          <span class="dot-live"></span>
+          <span id="arena-note">اعداد سرعت از سنجش همین سرویس می‌آید و در صفحهٔ «میزان» کامل آمده است.</span>
+          <a href="compare.html" class="link-arrow">جدول کامل میزان ←</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================== آمار -->
+    <section class="section-sm">
+      <div class="wrap">
+        <div class="stats-band card card-glow">
+          <div class="stat-cell"><b id="live-answers">۰</b><span>پاسخ تولیدشده</span></div>
+          <div class="stat-cell"><b id="live-users">۰</b><span>کاربر</span></div>
+          <div class="stat-cell"><b id="live-convs">۰</b><span>گفتگو</span></div>
+          <div class="stat-cell"><b id="live-uptime">—</b><span>زمان کار سرور</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================== نشانِ زندهٔ برند -->
+    <section class="section-sm motion-section" id="motion" aria-labelledby="motion-title">
+      <div class="wrap">
+        <h2 class="sr-only" id="motion-title">نشان زندهٔ رایان</h2>
+        <div class="motion-shell reveal">
+          <div class="motion-stage">
+            <span class="motion-halo" aria-hidden="true"></span>
+            <span class="motion-grid" aria-hidden="true"></span>
+            <img class="motion-logo motion-for-light" src="static/assets/brand/logo-motion.webp"
+                 alt="نشان رایان" width="640" height="320" loading="lazy" decoding="async">
+            <img class="motion-logo motion-for-dark" src="static/assets/brand/logo-motion-dark.webp"
+                 alt="" aria-hidden="true" width="640" height="320" loading="lazy" decoding="async">
+            <span class="motion-orb">
+              <img src="static/assets/brand/orb-live.webp" alt="" width="132" height="132" loading="lazy" decoding="async">
+            </span>
+            <span class="motion-vignette" aria-hidden="true"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= تعرفه -->
+    
+    <div class="wrap"><div class="ad-slot ad-inline" data-ad-slot="home-mid" hidden></div></div>
+
+    <section class="section" id="pricing">
+      <div class="wrap">
+        <div class="section-head center">
+          <span class="eyebrow">تعرفه</span>
+          <h2 class="section-title">رایگان شروع کن، هر وقت خواستی بیشتر</h2>
+          <p class="section-sub">همهٔ پلن‌ها روی همین سرور و با همین مدل اجرا می‌شوند. هیچ اشتراک پولی فعال نیست.</p>
+        </div>
+        <div class="plans">
+          <article class="plan reveal">
+            <div class="plan-head"><h3>مهمان</h3><span class="tag">بدون ثبت‌نام</span></div>
+            <div class="plan-price">۰ <small>تومان</small></div>
+            <p class="plan-desc">برای امتحان کردن. تاریخچه در همین دستگاه می‌ماند.</p>
+            <ul>
+              <li>۲۵ پیام در روز</li>
+              <li>۱۰ درخواست اندیشهٔ ژرف</li>
+              <li>گفتگو، شعر و ادامهٔ متن</li>
+              <li>بدون تاریخچهٔ دائمی</li>
+            </ul>
+            <a class="btn" href="chat.html">شروع بدون حساب</a>
+          </article>
+          <article class="plan is-featured reveal">
+            <div class="plan-head"><h3>رایگان</h3><span class="tag tag-blue">پیشنهادی</span></div>
+            <div class="plan-price">۰ <small>تومان</small></div>
+            <p class="plan-desc">حساب کامل با تاریخچهٔ همیشگی و سهمیهٔ بیشتر.</p>
+            <ul>
+              <li>۲۰۰ پیام در روز</li>
+              <li>۸۰ درخواست اندیشهٔ ژرف</li>
+              <li>تاریخچهٔ دائمی و جست‌وجو</li>
+              <li>اشتراک‌گذاری و خروجی گفتگو</li>
+            </ul>
+            <a class="btn btn-primary" href="signup.html">ساخت حساب رایگان</a>
+          </article>
+          <article class="plan reveal">
+            <div class="plan-head"><h3>حرفه‌ای</h3><span class="tag tag-amber">نقشهٔ راه</span></div>
+            <div class="plan-price">به‌زودی <small>—</small></div>
+            <p class="plan-desc">وقتی مدل‌های بزرگ‌تر آماده شوند.</p>
+            <ul>
+              <li>دسترسی زودهنگام به مدل متوسط</li>
+              <li>زمینهٔ بلندتر و پاسخ‌های بیشتر</li>
+              <li>خروجی گرفتن از داده‌ها</li>
+              <li>پشتیبانی از مسیر آموزش</li>
+            </ul>
+            <a class="btn" href="models.html">وضعیت مدل‌ها</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================== پرسش -->
+    <section class="section">
+      <div class="wrap-narrow">
+        <div class="section-head center">
+          <span class="eyebrow">پرسش‌های رایج</span>
+          <h2 class="section-title">پرسش‌هایی که همیشه پرسیده می‌شود</h2>
+        </div>
+        <div class="faq">
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">آیا <img class="wm-inline wordmark-for-light" src="static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> مثل ChatGPT است؟ <span class="chev">+</span></button>
+            <div class="faq-a"><p>رایان یک دستیار مستقل است، نه نسخهٔ کپی‌شده. تمرکزش فارسی است: پاسخ فارسیِ روان، در دسترس بودن از ایران بدون فیلترشکن، و سرعت بالا. برای کار روزمره — پرسش دانشی، نوشتن، ترجمه و ریاضی — همان کاری را می‌کند که از یک دستیار انتظار دارید.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">چرا پاسخ‌ها این‌قدر سریع می‌آیند؟ <span class="chev">+</span></button>
+            <div class="faq-a"><p>سه لایه با هم کار می‌کنند: پاسخ‌های پرتکرار همان لحظه از حافظه می‌آیند، پرسش‌های دانشی از دانشِ داخلی و بخشی از وب جواب داده می‌شوند، و تولید متن فقط جایی به کار می‌رود که لازم است. نتیجه این است که بیشتر پرسش‌ها زیر یک ثانیه جواب می‌گیرند.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">اگر جواب دقیق نبود چه کنم؟ <span class="chev">+</span></button>
+            <div class="faq-a"><p>دکمهٔ «وب» را روشن کنید تا پاسخ با منبع زنده بیاید، یا پرسش را باریک‌تر کنید. رایان وقتی مطمئن نیست، به‌جای ساختن جواب بی‌ربط، صریح می‌گوید و راه دقیق‌تری پیشنهاد می‌دهد.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">داده‌های من کجا ذخیره می‌شود؟ <span class="chev">+</span></button>
+            <div class="faq-a"><p>روی همین سرویس می‌ماند و به هیچ سرویس بیرونی فرستاده نمی‌شود. رمز عبور به‌صورت درهم‌سازی‌شده ذخیره می‌شود و هر وقت بخواهید می‌توانید گفتگوها و حساب خود را پاک کنید.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">چطور می‌توانم خودم اجرا کنم؟ <span class="chev">+</span></button>
+            <div class="faq-a"><p>مخزن عمومی است: کافی است <span class="mono">pip install -r requirements.txt</span> و سپس <span class="mono">python web/server.py</span>. همه‌چیز روی CPU کار می‌کند. راهنمای استقرار رایگان (Hugging Face Spaces و Render) هم در مستندات آمده است.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ CTA -->
+    <section class="section">
+      <div class="wrap">
+        <div class="cta-band reveal">
+          <img src="static/assets/brand/orb-256.png" alt="" width="72" height="72" class="cta-orb">
+          <h2>همین حالا با <img class="wm-inline wordmark-for-light" src="static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> حرف بزن</h2>
+          <p>بدون ثبت‌نام شروع کن. اگر خوشت آمد، حساب بساز تا گفتگوهایت بمانند.</p>
+          <div class="cta-actions">
+            <a class="btn btn-primary btn-lg" href="chat.html">شروع گفتگو</a>
+            <a class="btn btn-lg" href="models.html">مشاهدهٔ مدل</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap">
+      <div class="footer-grid">
+        <div class="footer-about">
+          <a href="index.html" aria-label="رایان، خانه">
+            <img class="lockup lockup-for-light" src="static/assets/brand/logotype-stack-ink.png" alt="رایان — هوش مصنوعی، به زبان فارسی" width="178" height="187" loading="lazy">
+            <img class="lockup lockup-for-dark" src="static/assets/brand/logotype-stack-white.png" alt="رایان — هوش مصنوعی، به زبان فارسی" width="178" height="187" loading="lazy">
+          </a>
+          <p>هوش مصنوعی فارسی، ساخته‌شده از صفر. همهٔ حقوق، کد و داده‌اش اختصاصی است.</p>
+        </div>
+        <div>
+          <h4>محصول</h4>
+          <ul>
+            <li><a href="chat.html">گفتگو</a></li>
+            <li><a href="models.html">مدل‌ها</a></li>
+            <li><a href="pricing.html">تعرفه</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>پروژه</h4>
+          <ul>
+            <li><a href="about.html">درباره</a></li>
+            <li><a href="support.html">پشتیبانی تجاری</a></li>
+            <li><a href="/api/health">وضعیت سرویس</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>قانونی</h4>
+          <ul>
+            <li><a href="about.html#license">حقوق و مالکیت</a></li>
+            <li><a href="about.html#privacy">حریم خصوصی</a></li>
+            <li><a href="about.html#terms">شرایط استفاده</a></li>
+            <li><a href="compare.html">میزان و مقایسه</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© ۱۴۰۵ <img class="wm-inline wordmark-for-light" src="static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> · دستیار هوش مصنوعی فارسی</span>
+        <div class="footer-social">
+          <a href="compare.html">میزان و مقایسه</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="static/session.js"></script>
+  <script src="static/config.js"></script>
+  <script src="static/ui.js"></script>
+  <script src="static/studio.js"></script>
+  <script src="static/ads.js"></script>
+  <script src="static/landing.js"></script>
+  <script src="static/speed.js"></script>
+  <script src="static/scroll.js"></script>
+  <script src="static/perf.js"></script>
+</body>
+</html>

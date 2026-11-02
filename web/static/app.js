@@ -306,8 +306,8 @@
   function renderModelMenu() {
     el.modelMenu.innerHTML = "";
     const list = state.models.length ? state.models : [{
-      id: "rayan-1-small", name: "۱ — کوچک", tagline: "مدل فعال", status: "ready",
-      desc: "مدل ۶٫۵۷ میلیون پارامتری روی CPU", context: 256,
+      id: "active", name: "رایان", tagline: "مدل فعال", status: "ready",
+      desc: "مدل فعال روی CPU", context: 256,
     }];
     list.forEach((model) => {
       const item = document.createElement("button");
@@ -661,18 +661,23 @@
     box.className = "msg-sources";
     const head = document.createElement("div");
     head.className = "sources-head";
-    head.innerHTML = `<span class="sources-badge">وب</span><span>${nf(sources.length)} منبع</span>`;
+    const local = sources.every((item) => !item.url);
+    const badge = local ? "دانش رایان" : "برخط";
+    head.innerHTML = `<span class="sources-badge">${badge}</span>` +
+      `<span>${nf(sources.length)} منبع</span>`;
     const list = document.createElement("div");
     list.className = "sources-list";
     sources.forEach((item, index) => {
-      const card = document.createElement("a");
+      const card = document.createElement(item.url ? "a" : "div");
       card.className = "source-card";
-      card.href = item.url;
-      card.target = "_blank";
-      card.rel = "noopener noreferrer nofollow";
+      if (item.url) {
+        card.href = item.url;
+        card.target = "_blank";
+        card.rel = "noopener noreferrer nofollow";
+      }
       card.innerHTML = `<span class="source-index">${nf(index + 1)}</span>
         <span class="source-body"><b>${escapeHtml(item.title || "منبع")}</b>
-        <em>${escapeHtml(item.domain || "")}</em></span>`;
+        <em>${item.url ? escapeHtml(item.domain || "") : "منبع داخلی"}</em></span>`;
       list.append(card);
     });
     box.append(head, list);
@@ -698,6 +703,27 @@
     }
     details.append(summary, body);
     return details;
+  }
+
+  function thinkEl(thought) {
+    const steps = (thought && thought.steps) || [];
+    if (!steps.length) return null;
+    const box = document.createElement("details");
+    box.className = "msg-think";
+    const seconds = steps.reduce((acc, step) => Math.max(acc, step.seconds || 0), 0);
+    const summary = document.createElement("summary");
+    summary.innerHTML = `<span class="think-dot"></span>` +
+      `<span>فکر کرد${seconds ? ` · ${nf(seconds, 2)} ثانیه` : ""}</span>`;
+    const list = document.createElement("ol");
+    list.className = "think-steps";
+    steps.forEach((step) => {
+      const item = document.createElement("li");
+      item.innerHTML = `<b>${escapeHtml(step.step || "")}</b>` +
+        `<span>${escapeHtml(step.detail || "")}</span>`;
+      list.append(item);
+    });
+    box.append(summary, list);
+    return box;
   }
 
   function toolsFor(msg) {
@@ -825,6 +851,39 @@
     }
   }
 
+  function restorePending() {
+    try {
+      const pending = localStorage.getItem("rayan.pending");
+      if (pending) {
+        el.prompt.value = pending;
+        localStorage.removeItem("rayan.pending");
+        resizePrompt();
+        el.prompt.focus({ preventScroll: true });
+      }
+    } catch { /* حالت خصوصی */ }
+  }
+
+  // ------------------------------------------------------ آموزش با گوینده
+  function openIntro() {
+    const player = $("\#intro-player");
+    const video = $("\#intro-video");
+    if (!player || !video) return;
+    player.hidden = false;
+    document.body.classList.add("reel-open");
+    const attempt = video.play();
+    if (attempt && attempt.catch) attempt.catch(() => { video.muted = true; video.play().catch(() => {}); });
+    const close = () => {
+      try { video.pause(); } catch { /* نادیده */ }
+      player.hidden = true;
+      document.body.classList.remove("reel-open");
+    };
+    $("\#intro-close")?.addEventListener("click", close, { once: true });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !player.hidden) close();
+    });
+  }
+  $("\#rewatch-intro")?.addEventListener("click", openIntro);
+
   async function send() {
     if (state.sending) return;
     const text = el.prompt.value.trim();
@@ -912,7 +971,9 @@
           const data = await response.json();
           if (typeof data.detail === "string") detail = data.detail;
         } catch { /* بدنهٔ غیر JSON */ }
-        throw new Error(detail);
+        const gateError = new Error(detail);
+        gateError.status = response.status;
+        throw gateError;
       }
       bubble.innerHTML = "";
       const reader = response.body.getReader();
@@ -943,6 +1004,10 @@
                 scrollToBottom(false);
               });
             }
+          } else if (event.type === "think") {
+            const block = thinkEl({ steps: event.steps });
+            if (block) { msg.meta = msg.meta || {}; msg.meta.thought = { steps: event.steps }; bubble.parentElement.append(block); }
+            scrollToBottom(false);
           } else if (event.type === "done") {
             msg.content = event.answer || answer;
             msg.id = event.message_id;
@@ -986,10 +1051,48 @@
     }
   }
 
+  // پردهٔ ثبت‌نام: به‌جای خطای خشک ۴۰۱، کارت دوستانه با دکمهٔ ثبت‌نام
+  function signupGate(message) {
+    if (document.getElementById("signup-gate")) return;
+    const gate = document.createElement("section");
+    gate.id = "signup-gate";
+    gate.className = "signup-gate";
+    gate.setAttribute("role", "dialog");
+    gate.setAttribute("aria-modal", "false");
+    gate.innerHTML = `
+      <div class="signup-gate-card">
+        <span class="signup-gate-orb" aria-hidden="true">
+          <img src="/static/assets/brand/orb-128.png" alt="" width="64" height="64">
+        </span>
+        <h2>برای گفتگو یک حساب بساز</h2>
+        <p class="signup-gate-text"></p>
+        <div class="signup-gate-actions">
+          <a class="btn btn-primary" href="/signup?next=/chat">ساخت حساب رایگان</a>
+          <a class="btn" href="/login?next=/chat">حساب دارم</a>
+        </div>
+        <p class="signup-gate-hint">بعد از ثبت‌نام، ویدیوی کوتاه آموزش استفاده نمایش داده می‌شود.</p>
+      </div>`;
+    gate.querySelector(".signup-gate-text").textContent =
+      message || "هوش رایان فقط از داخل سایت و با حساب کاربری در دسترس است.";
+    const host = el.composer?.closest(".composer-wrap") || el.composer;
+    if (host) host.parentElement.insertBefore(gate, host);
+    else el.messages.append(gate);
+    gate.scrollIntoView({ block: "center", behavior: "smooth" });
+    try { localStorage.setItem("rayan.pending", el.prompt.value || ""); } catch { /* حالت خصوصی */ }
+  }
+
   function failShell(bubble, err, partial = "") {
     bubble.classList.remove("streaming");
     if (state.streamOrb) { state.streamOrb.dataset.state = ""; state.streamOrb = null; }
     bubble.innerHTML = renderMarkdown(partial) || "";
+    if (err.status === 401) {
+      // پیام کاربر را نگه می‌داریم تا بعد از ورود دوباره از دست نرود
+      state.messages = state.messages.filter((m) => !m.pending);
+      bubble.closest(".msg")?.remove();
+      signupGate(err.message);
+      setBusy(false);
+      return;
+    }
     const alert = document.createElement("div");
     alert.className = "form-alert";
     alert.style.marginTop = "10px";
@@ -1297,9 +1400,12 @@
     try {
       const auth = await request("/api/auth/me");
       applyUser(auth);
+      // پردهٔ ثبت‌نام از همان ابتدا دیده می‌شود، نه بعد از ارسال پیام
+      if (auth.signup_required) signupGate();
     } catch {
       applyUser({ user: null, plan: "guest", usage: null });
     }
+    restorePending();
 
     const target = params.get("c");
     if (target) {
@@ -1315,7 +1421,7 @@
     }
     if (window.RAYAN.config.static) {
       el.prompt.disabled = true;
-      el.prompt.placeholder = "نسخهٔ نمایشی روی GitHub Pages — برای گفتگو سرور را اجرا کنید.";
+      el.prompt.placeholder = "ارتباط با سرویس برقرار نیست؛ چند لحظه بعد دوباره تلاش کنید.";
       const send = $("#send-btn");
       if (send) send.disabled = true;
       const hint = $("#composer-hint");

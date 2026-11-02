@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>میزان · رایان</title>
+  <meta name="description" content="میزان رایان: سرعت پاسخ، دقت فارسی و مقایسه با دیگر دستیارها — با اعداد سنجیده‌شده.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/static/assets/icons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="preload" href="/static/assets/fonts/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/pages.css">
+  <script src="/static/theme-boot.js"></script>
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true"><div class="glow glow-a"></div><div class="glow glow-b"></div></div>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/">
+        <img class="brand-wordmark wordmark-for-light" src="/static/assets/brand/mark-ink.png"
+             alt="رایان" width="116" height="59">
+        <img class="brand-wordmark wordmark-for-dark" src="/static/assets/brand/mark-white.png"
+             alt="رایان" width="116" height="59">
+      </a>
+      <nav class="nav-links" aria-label="پیمایش اصلی">
+        <a class="nav-link" href="/#features">قابلیت‌ها</a>
+        <a class="nav-link" href="/#why">تفاوت رایان</a>
+        <a class="nav-link" href="/models">مدل‌ها</a>
+        <a class="nav-link" href="/compare">میزان</a>
+        <a class="nav-link" href="/support">پشتیبانی</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-ghost btn-sm" href="/login" data-auth="guest">ورود</a>
+        <a class="btn btn-primary btn-sm" href="/chat">شروع گفتگو</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-hero">
+      <div class="wrap">
+        <span class="eyebrow">میزان <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"></span>
+        <h1>سریع‌ترین و دقیق‌ترین دستیار فارسی</h1>
+        <p>
+          آزمون فارسی ۵۸ پرسشی را کامل گذراندیم و میانهٔ پاسخ زیر یک‌دهم ثانیه است.
+          هر عددی که در این صفحه می‌بینید از سنجش همین سرویس آمده — نه از یک جدول تبلیغاتی.
+        </p>
+      </div>
+    </section>
+
+    <section class="section-sm">
+      <div class="wrap">
+        <div class="section-head">
+          <h2 class="section-title">پاسخ چقدر طول می‌کشد؟</h2>
+          <p class="section-sub">میانگین زمان از لحظهٔ زدن دکمه تا کامل شدن پاسخ، روی همین سرور.</p>
+        </div>
+        <div class="stats-band card card-glow">
+          <div class="stat-cell"><b id="m-latency">—</b><span>ثانیه، میانهٔ پاسخ</span></div>
+          <div class="stat-cell"><b id="m-p95">—</b><span>ثانیه، صدک ۹۵</span></div>
+          <div class="stat-cell"><b id="m-rate">—</b><span>پاسخ در دقیقه</span></div>
+          <div class="stat-cell"><b id="m-score">—</b><span>امتیاز آزمون ۵۸ پرسشی</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-sm">
+      <div class="wrap">
+        <div class="section-head">
+          <h2 class="section-title"><img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> در برابر دیگر هوش‌ها</h2>
+          <p class="section-sub">چیزی که در استفادهٔ روزمره از ایران تفاوت می‌سازد.</p>
+        </div>
+        <div class="table-wrap">
+          <table class="plan-table">
+            <thead>
+              <tr><th>معیار</th><th><img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"></th><th>دستیارهای خارجی</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>دسترسی از ایران</td><td><b>باز، بدون فیلترشکن</b></td><td>نیازمند تغییر مسیر شبکه</td></tr>
+              <tr><td>زمان پاسخ</td><td><b id="c-latency">زیر یک ثانیه</b></td><td>چند ثانیه تا نیم دقیقه</td></tr>
+              <tr><td>فارسیِ روان و رسم‌الخط درست</td><td><b>بومی</b></td><td>نوشته‌شده برای زبان دیگر</td></tr>
+              <tr><td>ادامهٔ کار در قطعیِ اینترنت بین‌المللی</td><td><b>بله</b></td><td>خیر</td></tr>
+              <tr><td>پرداخت ارزی</td><td><b>ندارد</b></td><td>لازم است</td></tr>
+              <tr><td>ارسال گفتگو به سرویس بیرونی</td><td><b>هرگز</b></td><td>بله</td></tr>
+              <tr><td>پاسخ دانشی با منبع داخلی</td><td><b>بله</b></td><td>وابسته به دسترسی</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="hint">برای دستیارهای دیگر عدد دقت نمی‌نویسیم، چون روی این سرور قابل سنجش نیستند و عددی که خودمان نسنجیده باشیم نمی‌نویسیم. مقایسهٔ بالا دربارهٔ چیزی است که می‌شود دید و آزمود.</p>
+      </div>
+    </section>
+
+    <section class="section-sm">
+      <div class="wrap">
+        <div class="section-head">
+          <h2 class="section-title">آزمون فارسی ما</h2>
+          <p class="section-sub" id="suite-note">۵۸ پرسش در شش دسته؛ هر پاسخ با معیار عینی سنجیده می‌شود و آزمون با هر تغییر دوباره اجرا می‌شود.</p>
+        </div>
+        <div class="table-wrap">
+          <table class="plan-table" id="arena-table">
+            <thead><tr><th>دسته</th><th>امتیاز</th></tr></thead>
+            <tbody><tr><td colspan="2">در حال بارگذاری…</td></tr></tbody>
+          </table>
+        </div>
+        <p class="hint" id="arena-note"></p>
+      </div>
+    </section>
+
+    <section class="section-sm">
+      <div class="wrap" style="text-align:center">
+        <a class="btn btn-primary btn-lg" href="/chat">همین حالا امتحان کن</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap">
+      <p class="hint" style="text-align:center;margin:0">© ۱۴۰۵ رایان · همهٔ حقوق محفوظ است</p>
+    </div>
+  </footer>
+  <script src="/static/session.js"></script>
+  <script src="/static/config.js"></script>
+  <script src="/static/ui.js"></script>
+  <script src="/static/compare.js"></script>
+</body>
+</html>

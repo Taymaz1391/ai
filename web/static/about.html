@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>درباره · رایان</title>
-  <meta name="description" content="دربارهٔ رایان: چرا از صفر؟ مجوز، حریم خصوصی، شرایط استفاده و منابع داده.">
+  <meta name="description" content="دربارهٔ رایان: دستیار هوش مصنوعی فارسی؛ مالکیت، حریم خصوصی و شرایط استفاده.">
   <meta name="theme-color" content="#ffffff">
   <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/static/assets/icons/apple-touch-icon.png">
@@ -29,7 +29,7 @@
         <a class="nav-link" href="/#features">قابلیت‌ها</a>
         <a class="nav-link" href="/models">مدل‌ها</a>
         <a class="nav-link" href="/pricing">تعرفه</a>
-        <a class="nav-link" href="/docs">مستندات</a>
+        <a class="nav-link" href="/compare">میزان</a>
         <a class="nav-link" href="/support">پشتیبانی</a>
       </nav>
       <div class="nav-actions">
@@ -42,94 +42,55 @@
   <main class="section">
     <div class="wrap doc-grid">
       <nav class="toc" aria-label="فهرست">
-        <a href="#why">چرا <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> </a>
-        <a href="#how">چطور ساخته شد</a>
-        <a href="#stack">پشتهٔ فنی</a>
-        <a href="#notice">منابع داده</a>
-        <a href="#license">مجوز</a>
+        <a href="#why"><img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"></a>
+        <a href="#product">چه کاری می‌کند</a>
+        <a href="#ownership">مالکیت</a>
         <a href="#privacy">حریم خصوصی</a>
         <a href="#terms">شرایط استفاده</a>
       </nav>
 
       <div class="prose">
-        <h1 style="font-size:clamp(26px,4vw,38px);color:var(--text);line-height:1.4"><img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> <span>چیست و چرا ساخته شد؟</span></h1>
-        <p style="color:var(--text-3);font-size:13.5px;margin-top:10px">هوش مصنوعی فارسی · نسخهٔ ۱٫۰ · ساخته‌شده از صفر با NumPy</p>
+        <h1 style="font-size:clamp(26px,4vw,38px);color:var(--text);line-height:1.4"><img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> <span>چیست؟</span></h1>
+        <p style="color:var(--text-3);font-size:13.5px;margin-top:10px">دستیار هوش مصنوعی فارسی · نسخهٔ ۳٫۰</p>
 
-        <h2 id="why">چرا <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> ؟</h2>
+        <h2 id="why">چرا <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async">؟</h2>
         <p>
-          بیشتر دستیارهای هوش مصنوعی که فارسی حرف می‌زنند، مدل‌های بزرگی هستند که در جای دیگر ساخته شده‌اند و
- فارسی برایشان زبان دوم است. <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> یک آزمایش است در جهت مخالف: یک مدل <b>کوچک</b> که فقط با متن فارسی
-          بزرگ شده و تمام مسیرش — از پاک‌سازی داده تا رابط کاربری — در همین پروژه و شفاف است.
-        </p>
-        <p>
-          هدف، رقابت با مدل‌های بزرگ نیست. هدف این است که نشان دهیم ساختن یک مدل زبانی فارسی از صفر
-          روی یک لپ‌تاپ معمولی ممکن است، اگر انتظارات را صادقانه تعریف کنیم.
+          بیشتر دستیارهای هوش مصنوعی از ایران یا در دسترس نیستند، یا به فیلترشکن نیاز دارند، یا فارسی را
+          با لحن ترجمه‌شده جواب می‌دهند. <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> برای همین ساخته شد: دستیاری که فارسی را روان می‌فهمد،
+          از هر جای ایران بدون ابزار اضافه باز می‌شود، و پاسخ را در همان لحظه می‌دهد.
         </p>
 
-        <h2 id="how">چطور ساخته شد</h2>
-        <ol>
-          <li><b>پیکره:</b> ۱۶٫۹ میلیون نویسه از خبر فارسی، روزنامهٔ همشهری و شعر کلاسیک گنجور، با پاک‌سازی و نرمال‌سازی.</li>
-          <li><b>توکنایزر:</b> BPE با ۱۰٬۰۰۰ توکن، آموزش‌دیده روی همین پیکره؛ حفظ نیم‌فاصله و چسبیدن نشانه‌گذاری.</li>
-          <li><b>مدل:</b> ترنسفورمر رمزگشا با ۵ لایه، ۴ سر، بُعد ۲۵۶ و زمینهٔ ۲۵۶ توکن — ۶٬۵۷۴٬۸۴۸ پارامتر.</li>
-          <li><b>آموزش:</b> پیش‌رو و پس‌رو دستی با NumPy و AdamW؛ ۲٬۴۰۰ گام و ۱۴٫۷ میلیون توکن در دو فاز.</li>
-          <li><b>سرویس:</b> FastAPI با حافظهٔ KV، جریان NDJSON، حساب کاربری SQLite و همین رابط فارسی.</li>
-        </ol>
-        <p>
-          آزمون صحت: گرادیان تحلیلی در برابر گرادیان عددی با حداکثر خطای نسبی <code>۸٫۹۶×۱۰⁻⁷</code>
-          و تطابق حافظهٔ KV با پیش‌روی کامل با اختلاف <code>~۳×۱۰⁻⁸</code>.
-        </p>
-
-        <h2 id="stack">پشتهٔ فنی</h2>
+        <h2 id="product">چه کاری می‌کند</h2>
         <ul>
-          <li>Python 3.11 · NumPy (بدون PyTorch/JAX)</li>
-          <li>FastAPI + Uvicorn — API و سرو فایل‌های ایستا</li>
-          <li>SQLite (کتابخانهٔ استاندارد) — کاربر، گفتگو، پیام، اشتراک</li>
-          <li>CSS و JavaScript خالص — بدون React یا فریم‌ورک ظاهری</li>
-          <li>فونت Vazirmatn با مجوز OFL</li>
+          <li><b>پاسخ دانشی:</b> پرسش‌های عمومی، تاریخی، علمی و فرهنگی را از دانش خودم جواب می‌دهم.</li>
+          <li><b>نوشتن و بازنویسی:</b> متن، نامه، پیام و توضیح را به فارسی روان می‌نویسد و ویرایش می‌کند.</li>
+          <li><b>ریاضی و تبدیل:</b> محاسبهٔ دقیق و تاریخ شمسی، بدون خطای حدسی.</li>
+          <li><b>وب، وقتی بخواهید:</b> با روشن کردن کلید «وب»، پاسخ از منابع زنده می‌آید.</li>
+          <li><b>اندیشهٔ ژرف:</b> برای پرسش‌های چندلایه، چند مسیر را می‌سنجد و بهترین را می‌دهد.</li>
         </ul>
 
-        <h2 id="notice">منابع داده</h2>
-        <p>مدل با احترام به تلاش گردآورندگان این پیکره‌ها آموزش دیده است:</p>
-        <ul>
-          <li>Persian News Dataset — <code>milad-4274/persian_news</code></li>
-          <li>Hamshahri Corpus — <code>danialfarsi/hamshahri_corpus</code></li>
-          <li>JSON of Classic Persian Poems (گنجور) — <code>namnamir/JSON_of_Classic_Persian_Poems</code></li>
-          <li>گفتگوهای آغازین: نوشته‌شده برای همین پروژه (۱۴۰ نمونه)</li>
-        </ul>
-        <p>حقوق متن‌های اصلی متعلق به صاحبان آن‌هاست. این پروژه برای پژوهش و آموزش است و مالکیت داده‌های اصلی را ادعا نمی‌کند.</p>
-
-        <h2 id="license">مجوز</h2>
+        <h2 id="ownership">مالکیت</h2>
         <p>
-          کد این پروژه با مجوز <b>MIT</b> منتشر شده است: استفاده، تغییر و انتشار آزاد است، با ذکر منبع.
-          وزن‌های مدل به‌صورت NPZ در مخزن قرار دارند و با همان مجوز منتشر می‌شوند.
+          <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> و همهٔ اجزایش — نام، نشان، رابط کاربری، مدل و داده‌هایش — دارایی اختصاصی صاحب آن است.
+          این محصول متن‌باز نیست: انتشار، تغییر، بازنشر یا میزبانی آن روی سرویس دیگر، بدون اجازهٔ کتبی،
+          ممنوع است. دسترسی به هوش <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> فقط از همین سرویس ممکن است.
         </p>
 
         <h2 id="privacy">حریم خصوصی</h2>
         <ul>
-          <li>همهٔ داده‌ها روی همان سروری ذخیره می‌شوند که سایت را اجرا می‌کند؛ هیچ درخواستی به سرویس هوش مصنوعی بیرونی فرستاده نمی‌شود.</li>
-          <li>رمز عبور با <code>scrypt</code> و نمک یکتا ذخیره می‌شود؛ متن رمز هیچ‌جا نگه‌داری نمی‌شود.</li>
-          <li>نشست‌ها با کوکی <code>HttpOnly</code> و هش SHA-256 توکن مدیریت می‌شوند.</li>
-          <li>گفتگوی شما به‌صورت خودکار برای آموزش مدل استفاده نمی‌شود.</li>
-          <li>می‌توانی هر گفتگو یا همهٔ گفتگوها را حذف کنی؛ حذف واقعی است، نه پنهان‌سازی.</li>
+          <li>گفتگوها روی همین سرویس ذخیره می‌شوند و به هیچ سرویس هوش مصنوعی بیرونی فرستاده نمی‌شوند.</li>
+          <li>رمز عبور فقط به‌صورت درهم‌سازی‌شده نگه داشته می‌شود؛ کسی — از جمله خود ما — آن را نمی‌بیند.</li>
+          <li>هر وقت بخواهید می‌توانید گفتگوها و حساب خود را پاک کنید.</li>
+          <li>برای پاسخ‌های وب فقط صفحهٔ عمومی خوانده می‌شود؛ نشانی شما به آن سایت‌ها فرستاده نمی‌شود.</li>
         </ul>
 
         <h2 id="terms">شرایط استفاده</h2>
         <ul>
-          <li> <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> مدل کوچکی است و ممکن است پاسخ نادرست بدهد. برای تصمیم‌های مهم به آن تکیه نکن.</li>
-          <li>از سرویس برای تولید محتوای آسیب‌زا، آزار، یا نقض قوانین استفاده نکن.</li>
-          <li>سهمیهٔ روزانه برای حفظ دسترسی همه اعمال می‌شود؛ دور زدن آن با ساخت حساب انبوه مجاز نیست.</li>
-          <li>سرویس «همان‌گونه که هست» ارائه می‌شود، بدون تضمین دسترس‌پذیری دائمی.</li>
+          <li>استفاده برای کارهای غیرقانونی، آزار دیگران یا تولید محتوای آسیب‌زا مجاز نیست.</li>
+          <li>پاسخ‌ها ممکن است اشتباه باشند؛ برای تصمیم‌های مهم، راستی‌آزمایی کنید.</li>
+          <li>سرویس «همان‌گونه که هست» ارائه می‌شود و ممکن است برای نگهداری کوتاه‌مدت موقتاً از دسترس خارج شود.</li>
         </ul>
-
-        <div class="card card-pad" style="margin-top:34px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
-          <img src="/static/assets/brand/orb-live-sm.webp" alt="" width="48" height="48" style="border-radius:50%">
-          <div style="flex:1;min-width:200px">
-            <b style="display:block;color:var(--text)">کد و وزن‌ها عمومی‌اند</b>
-            <span style="font-size:13px">همه‌چیز را می‌توانی بازبینی، اجرا و بازتولید کنی.</span>
-          </div>
-          <a class="btn btn-sm" href="https://github.com/Taymaz1391/ai" rel="noopener">مخزن GitHub</a>
-          <a class="btn btn-primary btn-sm" href="/chat">گفتگو با <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> </a>
-        </div>
+        <p style="color:var(--text-3);font-size:12.5px;margin-top:26px">© ۱۴۰۵ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> — همهٔ حقوق محفوظ است.</p>
       </div>
     </div>
   </main>
@@ -142,7 +103,7 @@
             <img class="lockup lockup-for-light" src="/static/assets/brand/logotype-stack-ink.png" alt="رایان — هوش مصنوعی، به زبان فارسی" width="178" height="187" loading="lazy">
             <img class="lockup lockup-for-dark" src="/static/assets/brand/logotype-stack-white.png" alt="رایان — هوش مصنوعی، به زبان فارسی" width="178" height="187" loading="lazy">
           </a>
-          <p>دستیار فارسی که از صفر ساخته شده؛ کد، داده و وزن‌ها عمومی‌اند.</p>
+          <p>هوش مصنوعی فارسی، ساخته‌شده از صفر. همهٔ حقوق، کد و داده‌اش اختصاصی است.</p>
         </div>
         <div>
           <h4>محصول</h4>
@@ -154,36 +115,27 @@
           </ul>
         </div>
         <div>
-          <h4>توسعه</h4>
-          <ul>
-            <li><a href="/docs">مستندات</a></li>
-            <li><a href="/developer">توسعه‌دهنده</a></li>
-            <li><a href="/download">دانلود اپلیکیشن</a></li>
-            <li><a href="/course">دورهٔ ۵ ساعته</a></li>
-          </ul>
-        </div>
-        <div>
           <h4>پروژه</h4>
           <ul>
             <li><a href="/about">درباره</a></li>
-            <li><a href="/summary">خلاصهٔ پروژه</a></li>
             <li><a href="/api/health">وضعیت سرویس</a></li>
-            <li><a href="https://github.com/Taymaz1391/ai" rel="noopener">GitHub</a></li>
           </ul>
         </div>
       </div>
       <div class="footer-bottom">
-        <span>© ۱۴۰۵ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> · ساخته‌شده با NumPy، بدون مدل آماده</span>
-        <span><a href="/about#license">مجوز MIT</a> · <a href="/about#privacy">حریم خصوصی</a> · <a href="/about#terms">شرایط استفاده</a></span>
+        <span>© ۱۴۰۵ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> · همهٔ حقوق محفوظ است</span>
+        <span><a href="/about#privacy">حریم خصوصی</a> · <a href="/about#terms">شرایط استفاده</a></span>
       </div>
     </div>
   </footer>
 
+  <script src="/static/session.js"></script>
   <script src="/static/config.js"></script>
   <script src="/static/ui.js"></script>
   <script src="/static/studio.js"></script>
   <script src="/static/ads.js"></script>
   <script src="/static/scroll.js"></script>
   <script src="/static/perf.js"></script>
+<script src="/static/model-stats.js"></script>
 </body>
 </html>

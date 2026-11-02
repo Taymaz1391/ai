@@ -11,7 +11,6 @@ corpora/
 *.tar.gz
 
 # checkpointهای موقت (نسخهٔ نهایی در مخزن می‌ماند)
-checkpoints/last.npz
 checkpoints/*.tmp
 checkpoints/*.npz.tmp
 
@@ -49,3 +48,28 @@ data/scale_stats.json
 # رویدادهای سد تهاجم (زمان اجرا)
 data/security_events.jsonl
 data/security_events.jsonl.1
+
+# پیکرهٔ توکن‌شده و checkpointهای در جریان آموزش (با اسکریپت بازسازی می‌شوند)
+data/*.u16
+checkpoints/*.tmp.npz
+# وزن‌های نهایی (last.npz) عمداً در مخزن می‌مانند تا سایت بدون آموزش هم بالا بیاید
+# گزارش کامل اجرای نسخهٔ ۲ به‌عنوان شاهد آموزش در مخزن می‌ماند
+
+# عکس مرحله‌های هم‌ترازسازی (با scripts/train_align.py بازتولید می‌شوند)
+checkpoints/stages/
+
+# ابزار ساخت ویدیوی آموزش (فقط برای بازسازی ویدیو لازم است)
+data/intro/fonts/
+data/intro/voice/_track.wav
+
+# وضعیت اجراییِ حالت شبکه (مدیر از پنل انتخاب می‌کند، در زمان اجرا نوشته می‌شود)
+data/network.json
+# خروجی سنجش بار (با scripts/load_test.py بازتولید می‌شود)
+reports/load-*.json
+# شناسهٔ فرایند سرور و صف دستورها (وضعیت اجرایی، قابل بازسازی)
+data/server.pid
+data/ops/
+
+# بستهٔ آپلود روی هاست (با scripts/build_host_package.py ساخته می‌شود)
+dist/
+release/

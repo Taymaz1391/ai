@@ -17,46 +17,56 @@
   const identifierInput = $("#email");
 
 
-  // ------------------------------------------------ نمایش نشان پس از ثبت‌نام
+  // --------------------------------------- آموزش با گوینده پس از ثبت‌نام
   function playWelcomeReel(next) {
-    const reel = $("#welcome-reel");
-    const skip = $("#welcome-skip");
-    const close = $("#welcome-close");
-    const full = $("#welcome-full");
-    const progress = $("#welcome-progress");
-    const hooks = [...document.querySelectorAll(".reel-hook")];
-    if (!reel || !isSignup) {
+    const reel = $("\#welcome-reel");
+    const video = $("\#welcome-video");
+    const skip = $("\#welcome-skip");
+    const close = $("\#welcome-close");
+    const full = $("\#welcome-full");
+    const progress = $("\#welcome-progress");
+    if (!reel || !isSignup || !video) {
       location.replace(next);
       return;
     }
-    // ثانیه؛ همان ریتمی که نشان و کره حرکت می‌کنند (قابل تنظیم برای آزمون)
-    const TOTAL = Number(window.RAYAN_REEL_MS || 8200) / 1000;
     let done = false;
-    let started = 0;
-    let raf = 0;
     const go = () => {
       if (done) return;
       done = true;
-      cancelAnimationFrame(raf);
+      try { video.pause(); } catch { /* نادیده */ }
       try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch { /* نادیده */ }
+      // یک‌بار دیده شد؛ دفعهٔ بعد مستقیم می‌رود سر گفتگو
+      try { localStorage.setItem("rayan.introSeen", "1"); } catch { /* حالت خصوصی */ }
       location.replace(next);
     };
 
     reel.hidden = false;
     document.body.classList.add("reel-open");
     reel.classList.add("is-playing");
-    started = performance.now();
-    const tick = () => {
-      const t = (performance.now() - started) / 1000;
-      if (progress) progress.style.width = `${Math.min(100, (t / TOTAL) * 100).toFixed(1)}%`;
-      hooks.forEach((hook) => {
-        const at = Number(hook.dataset.at || 0);
-        hook.classList.toggle("is-on", t >= at && t < at + 2.6);
+    // صدای گوینده: پخش خودکار با صدا ممکن است مسدود شود؛ آن‌وقت دکمهٔ شروع می‌ماند
+    const attempt = video.play();
+    if (attempt && attempt.catch) {
+      attempt.catch(() => {
+        video.muted = true;
+        video.play().catch(() => {});
+        const hint = document.createElement("button");
+        hint.type = "button";
+        hint.className = "btn btn-sm welcome-sound";
+        hint.textContent = "روشن‌کردن صدا";
+        hint.addEventListener("click", () => {
+          video.muted = false;
+          video.volume = 1;
+          hint.remove();
+        });
+        reel.append(hint);
       });
-      if (t >= TOTAL) { go(); return; }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
+    }
+    video.addEventListener("timeupdate", () => {
+      if (progress && video.duration) {
+        progress.style.width = `${Math.min(100, (video.currentTime / video.duration) * 100).toFixed(1)}%`;
+      }
+    });
+    video.addEventListener("ended", go);
 
     if (skip) {
       skip.setAttribute("href", next);
@@ -144,6 +154,91 @@
     } catch { /* آفلاین */ }
   }
 
+
+  // ------------------------------------------------------ تأیید ایمیل (ثبت‌نام)
+  function showVerifyStep(email, verification, next) {
+    const form = $("\#auth-form");
+    if (!form) { location.replace(next); return; }
+    const card = document.createElement("form");
+    card.className = "auth-form verify-step";
+    card.id = "verify-step";
+    card.noValidate = true;
+    card.innerHTML = [
+      '<div class="verify-head">',
+      '  <b>کد تأیید را از ایمیل بردار</b>',
+      '  <span class="muted" dir="ltr">' + email + "</span>",
+      "</div>",
+      '<div class="field">',
+      '  <label for="verify-code">کد شش‌رقمی</label>',
+      '  <input class="input code-input" id="verify-code" inputmode="numeric" maxlength="6"',
+      '         autocomplete="one-time-code" placeholder="— — — — — —" dir="ltr">',
+      '  <span class="field-error" id="verify-error"></span>',
+      "</div>",
+      '<button class="btn btn-primary btn-lg" type="submit" id="verify-submit">تأیید و ادامه</button>',
+      '<div class="verify-links">',
+      '  <button type="button" class="link-btn" id="verify-resend">ارسال دوبارهٔ کد</button>',
+      '  <button type="button" class="link-btn" id="verify-skip">فعلاً رد کن</button>',
+      "</div>",
+      '<p class="field-hint" id="verify-hint">اگر ایمیل را نمی‌بینی، پوشهٔ هرزنامه را هم ببین.</p>',
+    ].join("");
+    form.replaceWith(card);
+
+    if (verification.dev_code) {
+      const hint = $("#verify-hint");
+      if (hint) hint.textContent = "حالت آزمایشی سرور: کد " + verification.dev_code;
+      const input = $("#verify-code");
+      if (input) input.value = verification.dev_code;
+    }
+
+    const err = $("#verify-error");
+    card.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const code = ($("#verify-code").value || "").replace(/\D/g, "");
+      if (code.length !== 6) { err.textContent = "کد شش‌رقمی را کامل بنویس."; return; }
+      const btn = $("#verify-submit");
+      btn.disabled = true;
+      btn.textContent = "در حال بررسی…";
+      try {
+        await request("/api/auth/verification/confirm", { method: "POST", body: { code } });
+        toast("ایمیلت تأیید شد.", "ok");
+        playWelcomeReel(next);
+      } catch (e) {
+        err.textContent = e.message || "کد پذیرفته نشد.";
+        btn.disabled = false;
+        btn.textContent = "تأیید و ادامه";
+      }
+    });
+
+    const resend = $("#verify-resend");
+    if (resend) {
+      resend.addEventListener("click", async () => {
+        const btn = $("#verify-submit");
+        resend.disabled = true;
+        try {
+          const res = await request("/api/auth/verification/send", { method: "POST", body: {} });
+          if (res.dev_code) {
+            $("#verify-code").value = res.dev_code;
+            $("#verify-hint").textContent = "حالت آزمایشی سرور: کد " + res.dev_code;
+          } else {
+            err.textContent = "کد تازه فرستاده شد.";
+          }
+        } catch (e) {
+          err.textContent = e.message || "ارسال نشد.";
+        }
+        let left = 45;
+        const t = setInterval(() => {
+          left -= 1;
+          if (left <= 0) { clearInterval(t); resend.disabled = false; resend.textContent = "ارسال دوبارهٔ کد"; return; }
+          resend.textContent = "ارسال دوباره تا " + left + " ثانیه";
+        }, 1000);
+        if (btn) btn.disabled = false;
+      });
+    }
+
+    const skip = $("#verify-skip");
+    if (skip) skip.addEventListener("click", () => playWelcomeReel(next));
+  }
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     errorEl.textContent = "";
@@ -189,12 +284,22 @@
         ? { name, email: identifier, password, captcha: proof }
         : { identifier, password, captcha: proof };
       const data = await request(path, { method: "POST", body });
+      // توکن در حافظهٔ محلی هم ذخیره می‌شود تا اگر کوکی ذخیره نشد، نشست بماند
+      if (window.RAYAN_SESSION) window.RAYAN_SESSION.save(data);
       toast(isSignup ? "حسابت ساخته شد. خوش آمدی!" : `خوش برگشتی ${data.user.name || ""}!`, "ok");
       const next = new URLSearchParams(location.search).get("next");
       const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
       if (data.admin) {
         toast("دسترسی مدیریت فعال شد.", "ok");
         setTimeout(() => location.replace(safeNext || "/admin"), 420);
+        return;
+      }
+      // کد تأیید واقعی: مرحلهٔ کوتاه تأیید ایمیل پیش از ورود به گفتگو
+      const verification = data.verification || {};
+      if (isSignup && verification.required) {
+        submit.disabled = false;
+        label.textContent = original;
+        showVerifyStep(identifier, verification, safeNext || "/chat");
         return;
       }
       if (isSignup && !safeNext) {
@@ -204,6 +309,14 @@
       setTimeout(() => location.replace(safeNext || "/chat"), 420);
     } catch (err) {
       const detail = err && err.data && err.data.detail;
+      if (!isSignup && detail && typeof detail === "object" && detail.code === "unknown_username") {
+        // راهنمای ورودِ مدیر، سرِ همان فرم و بدون رفتن به صفحهٔ دیگر
+        fail(detail.message || "با این نام کاربری حسابی نیست.");
+        submit.disabled = false;
+        label.textContent = original;
+        if (humanWidget) humanWidget.reset();
+        return;
+      }
       if (!isSignup && detail && typeof detail === "object" && detail.code === "account_not_found") {
         // حساب ساخته نشده است؛ مستقیم به پنل ثبت‌نام می‌رویم و ایمیل را از پیش پر می‌کنیم.
         const target = new URLSearchParams({ email: detail.email || identifier, from: "login" });
@@ -223,10 +336,10 @@
   if (staticMode) {
     if (notice) {
       notice.hidden = false;
-      notice.textContent = "این نسخهٔ نمایشی روی GitHub Pages است؛ ورود و ساخت حساب فقط روی سرور فعال است.";
+      notice.textContent = "ارتباط با سرویس برقرار نیست؛ چند لحظه بعد دوباره تلاش کنید.";
     }
     submit.disabled = true;
-    label.textContent = "نسخهٔ نمایشی";
+    label.textContent = "در دسترس نیست";
     $("#password").disabled = true;
     identifierInput.disabled = true;
   }

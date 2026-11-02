@@ -14,22 +14,26 @@
   <script src="/static/theme-boot.js"></script>
 </head>
 <body class="admin-body">
-  <!-- ورود -->
+  <!-- ورود مالک: همان حساب سایت، بدون رمز دوم -->
   <section class="admin-login" id="admin-login">
-    <form class="admin-login-card" id="login-form" autocomplete="off">
+    <div class="admin-login-card">
       <img class="brand-wordmark wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="116" height="59">
       <img class="brand-wordmark wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="116" height="59">
-      <h1>پنل مدیریت</h1>
-      <p class="hint">این بخش فقط برای مدیر سیستم است. گذرواژه در فایل <code>data/admin.json</code> یا متغیر محیطی نگه‌داری می‌شود.</p>
-      <label class="field"><span>گذرواژهٔ مدیریت</span>
-        <input id="admin-password" type="password" required minlength="6" autocomplete="current-password" placeholder="••••••••">
-      </label>
-      <p class="form-error" id="login-error" hidden></p>
-      <button class="btn btn-primary btn-block" type="submit" id="login-btn">ورود امن</button>
-      <p class="hint" style="margin-top:12px">
-        اگر اولین بار است، گذرواژهٔ تصادفی هنگام راه‌اندازی سرور در ترمینال چاپ می‌شود.
+      <h1>اتاق فرمان</h1>
+      <p class="hint">این بخش مالِ خودت است. با <b>نام کاربری</b> و گذرواژهٔ خودت وارد شو؛ رمز مدیریت جداگانه لازم نیست. اگر از قبل وارد سایت شده باشی، همین‌جا مستقیم باز می‌شود.</p>
+      <a class="btn btn-primary btn-block" id="owner-login-link" href="/login?next=/admin">ورود با حساب مالک</a>
+      <p class="hint" style="margin-top:14px">
+        <button class="link-btn" type="button" id="quick-toggle">ورود سریع با گذرواژه</button>
       </p>
-    </form>
+      <form id="login-form" autocomplete="off" hidden>
+        <label class="field"><span>گذرواژه</span>
+          <input id="admin-password" type="password" required minlength="6" autocomplete="current-password" placeholder="••••••••">
+        </label>
+        <p class="form-error" id="login-error" hidden></p>
+        <button class="btn btn-block" type="submit" id="login-btn">ورود</button>
+      </form>
+      <p class="hint" style="margin-top:12px">اگر نام کاربری را فراموش کردی، همان نامِ نمایشیِ مالک است. گذرواژهٔ مالک را می‌توانی از همین‌جا یا از پنل مدیریت عوض کنی.</p>
+    </div>
   </section>
 
   <!-- پنل -->
@@ -42,6 +46,9 @@
       <nav class="admin-nav" id="admin-nav">
         <button class="is-active" data-tab="overview"><span data-icon="chart" data-size="18"></span> نمای کلی</button>
         <button data-tab="users"><span data-icon="users" data-size="18"></span> کاربران</button>
+        <button data-tab="knowledge"><span data-icon="book" data-size="18"></span> دانشنامه</button>
+        <button data-tab="quality"><span data-icon="target" data-size="18"></span> کیفیت</button>
+        <button data-tab="chats"><span data-icon="chat" data-size="18"></span> گفتگوها</button>
         <button data-tab="ads"><span data-icon="megaphone" data-size="18"></span> تبلیغات</button>
         <button data-tab="settings"><span data-icon="settings" data-size="18"></span> تنظیمات</button>
         <button data-tab="guard"><span data-icon="shield" data-size="18"></span> سد تهاجم</button>
@@ -71,6 +78,33 @@
         <span>تا وقتی آن را عوض نکنی، هر کسی که این مخزن را بخواند می‌تواند وارد شود.</span>
         <button class="btn btn-sm" id="owner-change-pw" type="button">همین حالا عوض کن</button>
       </div>
+
+      <!-- اتاق فرمان: دستور مستقیم به سازندهٔ سایت -->
+      <section class="admin-tab" data-panel="orders">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>به سازندهٔ سایت دستور بده</h3>
+            <span class="pill" id="ops-pending">—</span>
+          </div>
+          <p class="hint">هر چه می‌خواهی این‌جا بنویس؛ همان لحظه ثبت می‌شود و در نشست بعدی سازنده اجرا و پاسخش همین‌جا سبز می‌شود. سایت در این فاصله بدون وقفه کار می‌کند.</p>
+          <form id="ops-form">
+            <label class="field"><span>متن دستور</span>
+              <textarea id="ops-text" rows="4" maxlength="2000" placeholder="مثال: رنگ دکمهٔ گفتگو را آبی‌تر کن و صفحهٔ تعرفه را ساده‌تر کن"></textarea>
+            </label>
+            <div class="inline-form">
+              <button class="btn btn-primary" type="submit" id="ops-send">ثبت دستور</button>
+              <button class="btn btn-sm" type="button" id="ops-refresh">به‌روزرسانی</button>
+              <button class="btn btn-sm" type="button" id="ops-reload" title="مدل و کش‌ها را بی‌وقفه نو می‌کند">بارگذاری دوبارهٔ مدل</button>
+              <button class="btn btn-sm" type="button" id="ops-restart" title="کارگرها یکی‌یکی نو می‌شوند؛ سرویس قطع نمی‌شود">راه‌اندازی دوبارهٔ بی‌وقفه</button>
+            </div>
+            <p class="form-ok" id="ops-ok" hidden></p>
+          </form>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>تاریخچهٔ دستورها</h3><span class="hint">وضعیت: در انتظار · در حال انجام · انجام‌شده</span></div>
+          <div id="ops-list" class="ops-list"><p class="hint">هنوز دستوری ثبت نشده.</p></div>
+        </div>
+      </section>
 
       <!-- نمای کلی -->
       <section class="admin-tab is-active" data-panel="overview">
@@ -109,6 +143,91 @@
       </section>
 
       <!-- تبلیغات -->
+      <!-- دانشنامهٔ بررسی‌شده -->
+      <section class="admin-tab" data-panel="knowledge">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>دانشنامهٔ پاسخ‌های قطعی</h3>
+            <span class="pill" id="kb-total">—</span>
+          </div>
+          <p class="hint">هر ردیف یک پاسخِ بررسی‌شده است. «کلیدها» جمله‌هایی‌اند که کاربر ممکن است بپرسد؛ هر چه بیشتر، پیدا شدن آسان‌تر. تغییرها بی‌درنگ در گفتگو اثر می‌کند.</p>
+          <div class="inline-form">
+            <input id="kb-search" type="search" placeholder="جست‌وجو در دانش…">
+            <button class="btn btn-sm" id="kb-refresh" type="button">جست‌وجو</button>
+            <button class="btn btn-sm btn-primary" id="kb-new" type="button">ردیف تازه</button>
+          </div>
+          <form id="kb-form" hidden>
+            <label class="field"><span>شناسه</span>
+              <input id="kb-id" maxlength="80" placeholder="مثلاً sci-water">
+            </label>
+            <label class="field"><span>پرسشِ نمونه</span>
+              <input id="kb-q" maxlength="300" placeholder="آب از چه چیزی ساخته شده است؟">
+            </label>
+            <label class="field"><span>کلیدها (با ویرگول جدا کن)</span>
+              <input id="kb-keys" placeholder="فرمول آب، آب از چه، H2O">
+            </label>
+            <label class="field"><span>پاسخ</span>
+              <textarea id="kb-answer" rows="5" maxlength="2000"></textarea>
+            </label>
+            <div class="inline-form">
+              <button class="btn btn-primary" type="submit" id="kb-save">ذخیره</button>
+              <button class="btn btn-sm" type="button" id="kb-cancel">انصراف</button>
+              <button class="btn btn-sm" type="button" id="kb-delete" hidden>حذف</button>
+            </div>
+            <p class="form-ok" id="kb-ok" hidden></p>
+          </form>
+          <div class="table-wrap"><table class="table" id="kb-table">
+            <thead><tr><th>شناسه</th><th>پرسش</th><th>کلیدها</th><th>پاسخ</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- کیفیت -->
+      <section class="admin-tab" data-panel="quality">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>سنجشِ کیفیت</h3>
+            <span class="hint">آخرین اجرای مجموعه‌های آزمون روی همین موتور</span>
+          </div>
+          <div class="kpi-grid" id="quality-grid"></div>
+          <div class="table-wrap"><table class="table" id="quality-table">
+            <thead><tr><th>مجموعه</th><th>درصد</th><th>موفق</th><th>کل</th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>سنجشِ زنده</h3><span class="hint">چند پرسش از مجموعهٔ انتخابی، همین حالا</span></div>
+          <div class="inline-form">
+            <select id="quality-set">
+              <option value="probe">پایه</option>
+              <option value="holdout">کنارگذاشته</option>
+              <option value="hard">سخت</option>
+              <option value="blind">دیده‌نشده ۱</option>
+              <option value="blind2">دیده‌نشده ۲</option>
+              <option value="all">همه</option>
+            </select>
+            <button class="btn btn-sm" type="button" id="quality-run">اجرای سنجش</button>
+          </div>
+          <pre class="hint" id="quality-out" style="white-space:pre-wrap"></pre>
+        </div>
+      </section>
+
+      <!-- گفتگوها -->
+      <section class="admin-tab" data-panel="chats">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>گفتگوهای تازه</h3>
+            <button class="btn btn-sm" id="chats-refresh" type="button">به‌روزرسانی</button>
+          </div>
+          <div class="table-wrap"><table class="table" id="chats-table">
+            <thead><tr><th>عنوان</th><th>کاربر</th><th>پیام</th><th>آخرین</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table></div>
+          <div id="chat-view" class="hint"></div>
+        </div>
+      </section>
+
       <section class="admin-tab" data-panel="ads">
         <div class="panel">
           <div class="panel-head"><h3>تبلیغ تازه</h3><span class="hint">جایگاه‌ها: home-top · home-mid · chat-empty · chat-inline · share-bottom · docs-top</span></div>
@@ -180,6 +299,43 @@
           <p class="hint">بدون تنظیم درگاه، پلن حرفه‌ای فقط نمایش داده می‌شود و هیچ پرداختی انجام نمی‌شود.</p>
         </div>
         <div class="panel">
+          <div class="panel-head"><h3>ارسال ایمیل و کد تأیید</h3>
+            <span class="hint" id="mail-state">در حال بررسی…</span>
+          </div>
+          <p class="hint">با هر سرویس SMTP کار می‌کند. سرویس‌های رایگان مثل Brevo یا Gmail
+            (با «گذرواژهٔ برنامه») چند صد ایمیل در روز می‌دهند؛ همین‌جا واردش کن تا
+            کد تأیید واقعاً برای کاربران فرستاده شود.</p>
+          <div class="grid-2">
+            <label class="field"><span>میزبان SMTP</span>
+              <input id="mail-host" dir="ltr" maxlength="120" placeholder="smtp.gmail.com">
+            </label>
+            <label class="field"><span>درگاه</span>
+              <input id="mail-port" type="number" min="1" max="65535" dir="ltr" placeholder="587">
+            </label>
+            <label class="field"><span>نام کاربری</span>
+              <input id="mail-user" dir="ltr" maxlength="160" placeholder="you@gmail.com">
+            </label>
+            <label class="field"><span>گذرواژه (خالی = بدون تغییر)</span>
+              <input id="mail-pass" type="password" dir="ltr" maxlength="200" autocomplete="new-password">
+            </label>
+            <label class="field"><span>فرستنده</span>
+              <input id="mail-from" dir="ltr" maxlength="200" placeholder="رایان &lt;you@gmail.com&gt;">
+            </label>
+            <label class="field"><span>امنیت</span>
+              <select id="mail-mode">
+                <option value="starttls">STARTTLS (۵۸۷)</option>
+                <option value="ssl">SSL (۴۶۵)</option>
+                <option value="none">بدون رمزنگاری</option>
+              </select>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" id="save-mail">ذخیرهٔ پیکربندی</button>
+            <button class="btn" id="test-mail">ارسال ایمیل آزمایشی</button>
+          </div>
+          <p class="hint" id="mail-note"></p>
+        </div>
+        <div class="panel">
           <div class="panel-head"><h3>گذرواژهٔ مدیریت</h3></div>
           <label class="field"><span>گذرواژهٔ تازه (حداقل ۱۰ نویسه)</span>
             <input id="new-password" type="password" minlength="10" autocomplete="new-password">
@@ -193,7 +349,7 @@
             <input id="owner-new-password" type="password" minlength="8" autocomplete="new-password">
           </label>
           <div class="form-actions"><button class="btn btn-primary" id="save-owner-password">ذخیرهٔ گذرواژهٔ مالک</button></div>
-          <p class="hint">این گذرواژه فقط به‌صورت هش scrypt در <code>data/owner.json</code> ذخیره می‌شود و در Git نمی‌رود.</p>
+          <p class="hint">این گذرواژه فقط به‌صورت هشِ scrypt روی همین سرور نگه داشته می‌شود و جایی منتشر نمی‌شود.</p>
         </div>
       </section>
 
@@ -236,6 +392,23 @@
           <p class="hint" id="system-result"></p>
         </div>
         <div class="panel">
+          <div class="panel-head"><h3>اینترنت و حالت ملی</h3></div>
+          <p class="hint">اگر اینترنت بین‌المللی قطع شد، گزینهٔ «فقط ملی» را بزنید؛ سایت بدون هیچ درخواست بیرونی کار می‌کند و پاسخ‌ها از دانش داخلی می‌آید.</p>
+          <div class="mode-switch" id="network-mode" role="group" aria-label="حالت شبکه">
+            <button data-mode="auto">خودکار <small>تشخیص قطعی</small></button>
+            <button data-mode="global">بین‌المللی <small>جست‌وجوی وب</small></button>
+            <button data-mode="national">فقط ملی <small>بدون تماس بیرونی</small></button>
+          </div>
+          <div id="network-info" class="check-list"></div>
+          <p class="hint" id="network-result"></p>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>ظرفیت سنجیده‌شده</h3></div>
+          <p class="hint">عددها از خود سرور می‌آیند؛ هیچ عددی از پیش نوشته نشده است.</p>
+          <div id="capacity-info" class="check-list"></div>
+          <p class="hint" id="capacity-note"></p>
+        </div>
+        <div class="panel">
           <div class="panel-head"><h3>مشخصات سامانه</h3></div>
           <div id="system-info" class="check-list"></div>
         </div>
@@ -245,6 +418,7 @@
 
   <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
 
+  <script src="/static/session.js"></script>
   <script src="/static/config.js"></script>
   <script src="/static/ui.js"></script>
   <script src="/static/admin.js"></script>

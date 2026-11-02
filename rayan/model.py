@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 from dataclasses import asdict, dataclass, field
 
 import numpy as np
@@ -277,7 +278,10 @@ def save_checkpoint(path: str, cfg: GPTConfig, params: dict, meta: dict | None =
     arrays = {k: v for k, v in params.items()}
     arrays["__config__"] = np.array(json.dumps(cfg.to_dict(), ensure_ascii=False))
     arrays["__meta__"] = np.array(json.dumps(meta or {}, ensure_ascii=False))
-    np.savez_compressed(path, **arrays)
+    # نوشتن در فایل موقت و جای‌گزینی اتمیک: وب‌سرور ممکن است همین لحظه در حال خواندن باشد
+    tmp = f"{path}.{os.getpid()}.tmp.npz"  # پسوند .npz لازم است وگرنه numpy یکی اضافه می‌کند
+    np.savez_compressed(tmp, **arrays)
+    os.replace(tmp, path)
 
 
 def load_checkpoint(path: str):

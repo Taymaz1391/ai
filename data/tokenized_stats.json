@@ -1,0 +1,28 @@
+{
+  "tokenizer": "tokenizer/rayan_bpe_16k.json",
+  "tokenizer_stats": {
+    "vocab_size": 16000,
+    "merges": 15138,
+    "special_tokens": 5
+  },
+  "train": {
+    "input": "/home/user/ai/data/train.txt",
+    "output": "/home/user/ai/data/train.u16",
+    "chars": 93928305,
+    "tokens": 25183485,
+    "bytes": 50366970,
+    "chars_per_token": 3.73,
+    "kchar_per_s": 998,
+    "seconds": 94.2
+  },
+  "val": {
+    "input": "/home/user/ai/data/val.txt",
+    "output": "/home/user/ai/data/val.u16",
+    "chars": 975244,
+    "tokens": 263941,
+    "bytes": 527882,
+    "chars_per_token": 3.695,
+    "kchar_per_s": 1027,
+    "seconds": 0.9
+  }
+}

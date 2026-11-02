@@ -26,9 +26,11 @@ class QualityTest(unittest.TestCase):
 
 class EnhanceTest(unittest.TestCase):
     def test_offtopic_gets_grounded_answer(self):
+        """پاسخِ جایگزین باید موضوع را نام ببرد و جملهٔ کامل باشد، نه حلقهٔ تکراری."""
         out = answer.enhance("ابوعلی سینا که بود؟", "خب خب خب خب خب خب خب خب خب خب خب خب")
         self.assertIn("ابوعلی سینا", out)
-        self.assertIn("وب", out)
+        self.assertFalse(answer.degenerate(out))
+        self.assertGreater(len(out), 40)
 
     def test_good_answer_is_kept(self):
         text = "پاریس پایتخت فرانسه است و در شمال این کشور قرار دارد."

@@ -1,0 +1,47 @@
+{
+  "model": "رایان ۲",
+  "checkpoint": "checkpoints/rayan-2-last.npz",
+  "params": 16889856,
+  "config": {
+    "vocab_size": 16000,
+    "block_size": 256,
+    "n_layer": 6,
+    "n_head": 6,
+    "n_embd": 384
+  },
+  "independent_evaluation": {
+    "val_loss": 6.343,
+    "ppl": 568.5,
+    "tokens_evaluated": 250112,
+    "top1_accuracy": 0.1286,
+    "top5_accuracy": 0.2458,
+    "eval_seconds": 130.05,
+    "tokens_per_second": 1923.2,
+    "bits_per_char": 2.4806,
+    "chars_per_token": 3.689,
+    "chars": 923456
+  },
+  "training_metrics": {
+    "last_eval": {
+      "step": 3700,
+      "val_loss": 6.1868,
+      "ppl": 486.28,
+      "bits_per_char": 2.4195,
+      "kind": "eval",
+      "tokens": 7577600,
+      "elapsed_s": 1653.4
+    },
+    "best_eval": {
+      "step": 3000,
+      "val_loss": 6.178,
+      "ppl": 482.02,
+      "bits_per_char": 2.4161,
+      "kind": "eval",
+      "tokens": 6144000,
+      "elapsed_s": 6454.8
+    },
+    "steps_logged": 148,
+    "tokens_seen": 7577600,
+    "seconds": 1582.9
+  }
+}

@@ -25,12 +25,8 @@ PAGES = {
     "pricing.html": "pricing.html",
     "models.html": "models.html",
     "about.html": "about.html",
-    "docs.html": "docs.html",
-    "download.html": "download.html",
-    "course.html": "course.html",
+    "compare.html": "compare.html",
     "offline.html": "offline.html",
-    "summary.html": "summary.html",
-    "developer.html": "developer.html",
     "support.html": "support.html",
 }
 
@@ -41,14 +37,10 @@ ROUTES = {
     "/pricing": "pricing.html",
     "/models": "models.html",
     "/about": "about.html",
-    "/docs": "docs.html",
-    "/download": "download.html",
-    "/course": "course.html",
+    "/compare": "compare.html",
     "/login": "login.html",
     "/signup": "signup.html",
     "/offline": "offline.html",
-    "/summary": "summary.html",
-    "/developer": "developer.html",
     "/support": "support.html",
 }
 
@@ -67,10 +59,9 @@ border-radius:26px;padding:40px 30px;box-shadow:var(--shadow-lg)}
 <body><main class="nf">
 <img src="static/assets/brand/mark-ink.png" alt="رایان" width="109" height="55">
 <h1>این صفحه پیدا نشد</h1>
-<p>نشانی اشتباه است یا صفحه جابه‌جا شده. از خانه یا مستندات شروع کن؛ دورهٔ ۵ ساعته هم همان‌جاست.</p>
+<p>نشانی اشتباه است یا صفحه جابه‌جا شده. از خانه یا میزان شروع کن.</p>
 <div class="row"><a class="btn btn-primary" href="index.html">بازگشت به خانه</a>
-<a class="btn btn-ghost" href="course.html">دورهٔ ۵ ساعته</a>
-<a class="btn btn-ghost" href="docs.html">مستندات</a></div>
+<a class="btn btn-ghost" href="compare.html">میزان</a></div>
 </main></body></html>"""
 
 RUNTIME_CONFIG = """/* ساخته‌شده به‌صورت خودکار برای نسخهٔ استاتیک (GitHub Pages). */

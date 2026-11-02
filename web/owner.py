@@ -49,7 +49,12 @@ def matches_username(value: str) -> bool:
     candidate = normalize(value)
     if not candidate:
         return False
-    names = {normalize(display_name())}
+    # نامِ نمایشی مالک + نام‌های رایجِ مدیر، تا ورود به پنل هیچ‌وقت به خاطرِ
+    # نوشتنِ «admin» به‌جای نامِ کامل رد نشود.
+    # نامِ نمایشیِ مالک + نام‌های لاتینِ متعارفِ مدیر؛ «مدیر» عمداً پذیرفته
+    # نمی‌شود چون واژهٔ روزمره است و ممکن است اشتباهی تایپ شود.
+    names = {normalize(display_name()), normalize("admin"), normalize("owner"),
+             normalize("manager"), normalize("rayan"), normalize("administrator")}
     for extra in (os.environ.get("RAYAN_OWNER_ALIASES") or "").split(","):
         if extra.strip():
             names.add(normalize(extra))

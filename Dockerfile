@@ -13,13 +13,20 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY rayan ./rayan
 COPY web ./web
 COPY tokenizer ./tokenizer
-COPY data/corpus_stats.json ./data/corpus_stats.json
+# دانشنامه بخشی از برنامه است؛ بدون این دو فایل، پاسخ‌ها بی‌پشتوانه می‌شوند.
+COPY data/knowledge.jsonl data/knowledge-pack.jsonl data/corpus_stats.json ./data/
 COPY configs ./configs
 COPY logs ./logs
 COPY checkpoints/rayan-1-small.npz ./checkpoints/rayan-1-small.npz
+COPY deploy ./deploy
+COPY README-HOST.md ./
 
-RUN useradd -m -u 1000 rayan && chown -R rayan:rayan /app
+# داده‌های نوشتنی جدا از کد می‌مانند تا با volume پایدار شوند.
+ENV RAYAN_DATA_DIR=/app/var \
+    RAYAN_ENV=production
+RUN mkdir -p /app/var && useradd -m -u 1000 rayan && chown -R rayan:rayan /app
 USER rayan
+VOLUME ["/app/var"]
 
 EXPOSE 8000
 

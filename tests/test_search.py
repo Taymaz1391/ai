@@ -14,7 +14,10 @@ sys.path.insert(0, ROOT)
 
 from web import search  # noqa: E402
 
-CHECKPOINT = os.path.join(ROOT, "checkpoints", "rayan-1-small.npz")
+# سایت هر checkpointی را که موجود باشد بار می‌کند؛ آزمون هم همان را می‌سنجد.
+CHECKPOINTS = [os.path.join(ROOT, "checkpoints", name) for name in
+               ("last.npz", "rayan-2-base.npz", "rayan-1-small.npz")]
+CHECKPOINT = next((p for p in CHECKPOINTS if os.path.exists(p)), CHECKPOINTS[-1])
 
 try:
     from fastapi.testclient import TestClient
@@ -121,7 +124,9 @@ class SearchApiTest(unittest.TestCase):
         os.chdir(ROOT)
         cls.server = server
         cls.client = TestClient(server.app)
-        cls.client.get("/chat")  # کوکی مهمان برای دسترسی به مدل
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from auth_support import signup
+        signup(cls.client)  # هوش فقط با حساب ثبت‌نام‌شده
 
     @classmethod
     def tearDownClass(cls):

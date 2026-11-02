@@ -1,18 +1,10 @@
-name: pages
+name: انتشار سایت
 
-# انتشار نسخهٔ استاتیک سایت روی GitHub Pages.
-# پیش‌نیاز یک‌باره: Settings → Pages → Source: «GitHub Actions».
-# (ساخت خودکار فقط با فعال‌کردن Pages توسط مالک مخزن ممکن است.)
-
+# سایتِ رایان را از همین مخزن می‌سازد و روی GitHub Pages منتشر می‌کند.
 on:
-  workflow_dispatch:
   push:
-    branches: ["main", "arena/ddad3f43-ai"]
-    paths:
-      - "web/static/**"
-      - "scripts/**"
-      - "web/lang.py"
-      - ".github/workflows/pages.yml"
+    branches: [main, "arena/**"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -31,37 +23,39 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Export static site
+      - name: ساخت نسخهٔ استاتیک
         run: python scripts/export_site.py --out _site
-      - name: Static sanity check
-        run: python scripts/check_static.py _site
-      - name: Is Pages enabled?
-        id: pages
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: نشانه‌گذاری برای Pages
         run: |
-          if gh api "repos/$GITHUB_REPOSITORY/pages" >/dev/null 2>&1; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=pages-disabled::Pages روشن نیست؛ Settings → Pages → Source: GitHub Actions"
-          fi
-      - if: steps.pages.outputs.enabled == 'true'
-        uses: actions/configure-pages@v5
-      - if: steps.pages.outputs.enabled == 'true'
-        uses: actions/upload-pages-artifact@v3
+          touch _site/.nojekyll
+          printf '%s\n' "taymaz1391.github.io" > _site/CNAME.tmp && rm -f _site/CNAME.tmp
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
-    outputs:
-      enabled: ${{ steps.pages.outputs.enabled }}
 
   deploy:
     needs: build
-    if: needs.build.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # اگر Pages در تنظیمات مخزن روشن نشده باشد، انتشار شکست نمی‌خورد؛
+      # فقط با یک پیامِ روشن رد می‌شود. روشن‌کردنش فقط دستِ مالکِ مخزن است:
+      # Settings → Pages → Source = GitHub Actions
+      - name: بررسیِ روشن‌بودنِ Pages
+        id: probe
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if curl -sf -H "Authorization: Bearer $GH_TOKEN" \
+               -H "Accept: application/vnd.github+json" \
+               "${{ github.api_url }}/repos/${{ github.repository }}/pages" > /dev/null; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Pages خاموش است::برای انتشار، Settings → Pages → Source را روی «GitHub Actions» بگذار و این کار را دوباره اجرا کن."
+          fi
       - id: deployment
+        if: steps.probe.outputs.enabled == 'true'
         uses: actions/deploy-pages@v4

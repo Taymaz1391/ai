@@ -53,6 +53,8 @@
   async function request(path, options = {}) {
     const url = `${apiBase}${path}`;
     const opts = Object.assign({ credentials: "include", headers: {} }, options);
+    // وضعیت حساب هرگز از کش خوانده نشود (باگ «هنوز می‌گوید حساب بساز»)
+    if (!opts.method || opts.method === "GET") opts.cache = "no-store";
     if (opts.body && typeof opts.body !== "string") {
       opts.body = JSON.stringify(opts.body);
       opts.headers["Content-Type"] = "application/json";
@@ -192,8 +194,9 @@
     $$("[data-auth='guest']").forEach((el) => { el.hidden = !!state.user; });
     $$("[data-auth='user']").forEach((el) => { el.hidden = !state.user; });
     $$("[data-admin-link]").forEach((node) => {
-      node.hidden = !(state.user && state.user.plan === "admin");
+      node.hidden = !(state.user && (state.user.plan === "admin" || state.user.role === "owner"));
     });
+    ensureSettingsLink(!!state.user);
     if (state.user) {
       const display = state.user.name || state.user.email.split("@")[0];
       $$("[data-user-name]").forEach((el) => { el.textContent = display; });
@@ -206,6 +209,23 @@
       });
     }
     return state;
+  }
+
+  // پیوند «تنظیمات» در نوار بالا برای کاربرِ واردشده ساخته می‌شود تا در همهٔ
+  // صفحه‌ها یک‌جا و بی‌تکرار باشد.
+  function ensureSettingsLink(signedIn) {
+    let link = document.querySelector("[data-settings-link]");
+    if (!link) {
+      const host = document.querySelector(".nav-actions") || document.querySelector(".nav-inner");
+      if (!host) return;
+      link = document.createElement("a");
+      link.className = "btn btn-ghost btn-sm";
+      link.setAttribute("data-settings-link", "");
+      link.href = "/settings";
+      link.textContent = "تنظیمات";
+      host.appendChild(link);
+    }
+    link.hidden = !signedIn;
   }
 
   async function logout() {
@@ -414,6 +434,11 @@
     users: '<circle cx="9" cy="8.5" r="3.5"/><path d="M3.5 20c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5"/><path d="M16 5.2a3.5 3.5 0 0 1 0 6.6M17.5 14.8c1.8.7 3 2.5 3 5.2"/>',
     chart: '<path d="M4 20V4m0 16h16"/><path d="M8 16v-5M12.5 16V7M17 16v-3"/>',
     megaphone: '<path d="M4 10.5v3a2 2 0 0 0 2 2h1.5l7 4V4.5l-7 4H6a2 2 0 0 0-2 2Z"/><path d="M18 8.5a4.5 4.5 0 0 1 0 7"/>',
+    book: '<path d="M5 4.5h9.5A2.5 2.5 0 0 1 17 7v12H7.5A2.5 2.5 0 0 0 5 21.5V4.5Z"/><path d="M17 8h2v11h-2"/>',
+    target: '<circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+    chat: '<path d="M20 12a7.5 7.5 0 0 1-11 6.6L4 20l1.4-4.4A7.5 7.5 0 1 1 20 12Z"/>',
+    database: '<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>',
+    refresh: '<path d="M4 12a8 8 0 0 1 13.7-5.6L20 8"/><path d="M20 4v4h-4"/><path d="M20 12a8 8 0 0 1-13.7 5.6L4 16"/><path d="M4 20v-4h4"/>',
     gift: '<rect x="3.5" y="8.5" width="17" height="12" rx="2.5"/><path d="M3.5 12.5h17M12 8.5V20"/><path d="M12 8.5C10 8.5 7 8 7 5.8A2.3 2.3 0 0 1 9.3 3.5C11.5 3.5 12 6.5 12 8.5Zm0 0c2 0 5-.5 5-2.7a2.3 2.3 0 0 0-2.3-2.3C12.5 3.5 12 6.5 12 8.5Z"/>',
   };
 
@@ -441,8 +466,7 @@
     const bar = document.createElement("div");
     bar.id = "static-banner";
     bar.className = "static-banner";
-    bar.innerHTML = 'نسخهٔ نمایشی روی GitHub Pages — گفتگو به سرور نیاز دارد. ' +
-      '<a href="https://github.com/Taymaz1391/ai#%D8%B4%D8%B1%D9%88%D8%B9-%D8%B3%D8%B1%DB%8C%D8%B9" rel="noopener">اجرا در چند دقیقه</a>';
+    bar.textContent = "ارتباط با سرویس برقرار نیست؛ چند لحظه بعد دوباره تلاش کنید.";
     document.body.prepend(bar);
   }
 
@@ -479,7 +503,20 @@
     if ((window.RAYAN_CONFIG || {}).static) return;
     if (location.protocol !== "https:" && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") return;
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js").catch(() => { /* اختیاری */ });
+      navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" })
+        .then((reg) => {
+          reg.update().catch(() => {});
+          if (reg.waiting) reg.waiting.postMessage({ type: "skip-waiting" });
+        })
+        .catch(() => { /* اختیاری */ });
+      // اگر نسخهٔ تازه‌ای از کد آمد، یک‌بار خودکار تازه‌سازی می‌کنیم تا کدِ
+      // قدیمی در تبِ باز نماند (منبعِ خطاهای «ورود کار نمی‌کند»).
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (reloaded) return;
+        reloaded = true;
+        location.reload();
+      });
     });
   }
 

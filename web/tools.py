@@ -180,6 +180,37 @@ def catalog() -> list[dict]:
     return [{"name": item["name"], "desc": item["desc"], "example": item["args"]} for item in CATALOG]
 
 
+def phrase(result: dict) -> str:
+    """نتیجهٔ ابزار را به یک جملهٔ فارسیِ آمادهٔ نمایش تبدیل می‌کند."""
+    if not result or not result.get("ok"):
+        return ""
+    fa = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
+    tool = result.get("tool")
+    if tool == "calc":
+        value = result.get("value")
+        if isinstance(value, float) and value == int(value):
+            value = int(value)
+        expr = str(result.get("expression") or "").replace("*", "×").replace("/", "÷")
+        line = f"{expr} = **{value}**".translate(fa)
+        pair = re.fullmatch(r"(-?\d+(?:\.\d+)?)\s*([+\-*/×÷])\s*(-?\d+(?:\.\d+)?)", expr.strip())
+        check = ""
+        if pair and value not in (0, None):
+            left, op, right = float(pair.group(1)), pair.group(2), float(pair.group(3))
+            if op in ("+",):
+                check = f"{left + right:g} − {right:g} = {left:g}"
+            elif op in ("-", "−"):
+                check = f"{left:g} + {right:g} = {left + right:g}"
+            elif op in ("×", "*"):
+                check = f"{value:g} ÷ {right:g} = {left:g}"
+            elif op in ("÷", "/"):
+                check = f"{value:g} × {right:g} = {left:g}"
+        return line + ((f"\nبازبینی: {check}".translate(fa)) if check else "")
+    if tool == "now":
+        parts = [str(result.get(k)) for k in ("weekday", "jalali", "time") if result.get(k)]
+        return " — ".join(parts).translate(fa) if parts else ""
+    return ""
+
+
 def run(name: str, args: dict) -> dict:
     if name not in _INDEX:
         return {"ok": False, "error": f"ابزار ناشناخته: {name}"}
@@ -212,9 +243,20 @@ def normalize_math(text: str) -> str:
     return t
 
 
+_PERCENT = re.compile(r"(\d+(?:\.\d+)?)\s*(?:٪|%|درصد)\s*(?:از|از مبلغ|از عدد)?\s*(\d+(?:\.\d+)?)")
+
+
 def detect(text: str) -> dict | None:
     """تشخیص خودکار ابزار از متن کاربر (بدون هزینه و بدون مدل)."""
     raw = text.strip()
+    # درصد: «۲۵ ٪ از ۸۰» یا «۲۵ درصد ۸۰»
+    pct = _PERCENT.search(raw.translate(_DIGITS))
+    if pct:
+        part, whole = float(pct.group(1)), float(pct.group(2))
+        value = part * whole / 100
+        return {"ok": True, "tool": "calc",
+                "expression": f"{part:g}% * {whole:g}",
+                "value": round(value, 10) if value != int(value) else int(value)}
     t = normalize_math(raw)
     # عبارت ریاضی می‌تواند داخل جمله هم باشد: «۱۲*۳ چند است؟»
     for match in re.finditer(r"[0-9][0-9\s+\-*/%^().]{1,120}", t):
@@ -225,7 +267,9 @@ def detect(text: str) -> dict | None:
         if out.get("ok"):
             out["tool"] = "calc"
             return out
-    if re.search(r"(ساعت چند|تاریخ امروز|چه روزی|امروز چندم|امروز چندمه)", raw):
+    asks_time = re.search(r"(ساعت چند|تاریخ امروز|چه روزی|امروز چندم|امروز چندمه)", raw)
+    unrelated = re.search(r"کیلومتر|متر|تومان|درصد|٪|مسافت|سرعت|ضرب|تقسیم", raw)
+    if asks_time and not unrelated:
         out = now_tool()
         if out.get("ok"):
             out["tool"] = "now"

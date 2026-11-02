@@ -14,7 +14,10 @@ from pathlib import Path
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-CHECKPOINT = os.path.join(ROOT, "checkpoints", "rayan-1-small.npz")
+# سایت هر checkpointی را که موجود باشد بار می‌کند؛ آزمون هم همان را می‌سنجد.
+CHECKPOINTS = [os.path.join(ROOT, "checkpoints", name) for name in
+               ("last.npz", "rayan-2-base.npz", "rayan-1-small.npz")]
+CHECKPOINT = next((p for p in CHECKPOINTS if os.path.exists(p)), CHECKPOINTS[-1])
 
 try:
     from fastapi.testclient import TestClient

@@ -70,10 +70,9 @@
             <a href="/signup" data-auth="guest" role="menuitem">ساخت حساب</a>
             <a href="/login" data-auth="guest" role="menuitem">ورود</a>
             <a href="/pricing" role="menuitem">تعرفه و سهمیه</a>
+            <button type="button" role="menuitem" id="rewatch-intro">تماشای دوبارهٔ آموزش</button>
             <a href="/models" role="menuitem">مدل‌ها</a>
-            <a href="/download" role="menuitem">دانلود اندروید و ویندوز</a>
-            <a href="/developer" role="menuitem">توسعه‌دهنده و دسترسی</a>
-            <a href="/support" role="menuitem">پشتیبانی تجاری</a>
+                                    <a href="/support" role="menuitem">پشتیبانی تجاری</a>
             <button type="button" data-action="studio" role="menuitem">استودیو تصویر</button>
             <a href="/admin" role="menuitem" data-admin-link hidden>پنل مدیریت</a>
             <a href="/about" role="menuitem">دربارهٔ <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> </a>
@@ -128,11 +127,11 @@
             </span>
           </div>
           <h1 id="empty-title">چطور می‌توانم کمکت کنم؟</h1>
-          <p class="empty-sub" id="empty-sub">هر چیزی بپرسی، همین‌جا جواب می‌گیری — فارسی، روی همین سرور، بدون ارسال داده به بیرون.</p>
+          <p class="empty-sub" id="empty-sub">هر چیزی بپرسی، اول در دانش خودم می‌گردم و بی‌معطلی جواب می‌دهم؛ اگر چیزی را ندانم، صریح می‌گویم.</p>
           <div class="suggestions" id="suggestions"></div>
           <div class="ad-slot ad-inline" data-ad-slot="chat-empty" hidden></div>
           <div class="empty-foot">
-            <button class="chip" data-scroll="models">مدل چطور ساخته شده؟</button>
+            <button class="chip" data-scroll="models">قدرت‌های رایان چه هستند؟</button>
             <button class="chip" data-scroll="pricing">سهمیه‌ام چقدر است؟</button>
             <a class="chip" href="/#motion">نشان متحرک</a>
           </div>
@@ -143,7 +142,7 @@
 
       <div class="composer-wrap">
         <form class="composer" id="composer" autocomplete="off">
-          <textarea id="prompt" rows="1" placeholder="پیامت را بنویس…" aria-label="پیام" maxlength="2000"></textarea>
+          <textarea id="prompt" rows="1" placeholder="هر سؤالی داری بپرس…" aria-label="پیام" maxlength="2000"></textarea>
           <div class="composer-row">
             <div class="composer-left">
               <button type="button" class="tool-plus" id="tools-btn" aria-expanded="false" aria-controls="composer-tools"
@@ -187,7 +186,7 @@
             </div>
           </div>
         </form>
-        <p class="disclaimer"> <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> مدل کوچکی است و ممکن است اشتباه کند. پاسخ‌های مهم را بررسی کن.</p>
+        <p class="disclaimer"> <img class="wm-inline wordmark-for-light" src="/static/assets/brand/mark-ink.png" alt="رایان" width="1026" height="520" decoding="async"><img class="wm-inline wordmark-for-dark" src="/static/assets/brand/mark-white.png" alt="رایان" width="1026" height="520" decoding="async"> ممکن است اشتباه کند؛ پاسخ‌های مهم را بررسی کن.</p>
       </div>
     </div>
   </div>
@@ -229,7 +228,8 @@
         <button class="btn btn-ghost btn-sm" id="reset-settings" type="button">بازنشانی</button>
         <button class="btn btn-primary btn-sm" data-close="settings-modal" type="button">ذخیره</button>
       </div>
-      <p class="sp-note">همه‌چیز محلی است؛ تنظیمات فقط در همین مرورگر ذخیره می‌شود.</p>
+      <p class="sp-note">همه‌چیز محلی است؛ تنظیمات فقط در همین مرورگر ذخیره می‌شود.
+        <a href="/settings" class="link-btn">تنظیمات کامل حساب</a></p>
     </div>
   </div>
 
@@ -267,6 +267,17 @@
     </div>
   </div>
 
+  <div id="intro-player" class="welcome-reel" hidden role="dialog" aria-modal="true"
+       aria-label="آموزش استفاده از رایان با گوینده">
+    <video id="intro-video" class="intro-video" playsinline preload="none" controls
+           poster="/static/assets/video/intro-poster.jpg"
+           src="/static/assets/video/intro.mp4"></video>
+    <button class="welcome-skip-x" type="button" id="intro-close" aria-label="بستن آموزش">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+
+  <script src="/static/session.js"></script>
   <script src="/static/config.js"></script>
   <script src="/static/ui.js"></script>
   <script src="/static/voice.js"></script>

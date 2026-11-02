@@ -129,9 +129,17 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "0.0.0.0"
 
 
+ADMIN_HEADER = "x-rayyan-admin"
+
+
 def current_admin(request: Request) -> dict | None:
+    """نشستِ مدیر از کوکی یا سرصفحهٔ اختصاصی؛ دومی وقتی کوکی مسدود است."""
     token = request.cookies.get(ADMIN_COOKIE, "")
-    return store().admin_session(token)
+    session = store().admin_session(token) if token else None
+    if session:
+        return session
+    header = (request.headers.get(ADMIN_HEADER) or "").strip()
+    return store().admin_session(header) if header else None
 
 
 def require_admin(request: Request, csrf: bool = False) -> dict:
@@ -139,9 +147,11 @@ def require_admin(request: Request, csrf: bool = False) -> dict:
     if session is None:
         raise HTTPException(401, "دسترسی مدیریت لازم است.")
     user = session["user"]
-    if user.get("plan") != "admin" and str(user.get("id")) not in admin_ids():
+    if (user.get("plan") != "admin" and user.get("role") != "owner"
+            and str(user.get("id")) not in admin_ids()):
         raise HTTPException(403, "این حساب دسترسی مدیریت ندارد.")
-    if csrf:
+    # با احرازِ سرصفحه‌ای، CSRF معنا ندارد (مرورگر آن سرصفحه را خودبه‌خود نمی‌فرستد)
+    if csrf and not (request.headers.get(ADMIN_HEADER) or "").strip():
         sent = request.headers.get(CSRF_HEADER, "")
         if not sent or not hmac.compare_digest(sent, session["csrf"]):
             raise HTTPException(403, "توکن امنیتی نامعتبر است؛ صفحه را دوباره بارگذاری کنید.")
@@ -159,6 +169,20 @@ def audit(action: str, request: Request, target: str = "", detail: str = "", act
 # ------------------------------------------------------------------- مدل‌ها
 class AdminLogin(BaseModel):
     password: str = Field(min_length=1, max_length=200)
+
+
+class MailConfig(BaseModel):
+    """پیکربندیِ سرویس ایمیل از پنل؛ گذرواژه خالی یعنی «همان قبلی بماند»."""
+    host: str = Field(default="", max_length=120)
+    port: int = Field(default=587, ge=1, le=65535)
+    user: str = Field(default="", max_length=160)
+    password: str = Field(default="", max_length=200)
+    sender: str = Field(default="", max_length=200)
+    mode: str = Field(default="starttls", max_length=12)
+
+
+class MailTest(BaseModel):
+    to: str = Field(min_length=3, max_length=160)
 
 
 class AdPayload(BaseModel):
@@ -183,6 +207,11 @@ class AdPatch(BaseModel):
     active: bool | None = None
     starts_at: float | None = None
     ends_at: float | None = None
+
+
+class OpsOrder(BaseModel):
+    text: str = Field(min_length=2, max_length=2000)
+    kind: str = Field(default="order", pattern="^(order|note)$")
 
 
 class SettingsPayload(BaseModel):
@@ -218,6 +247,34 @@ def session_info(request: Request) -> dict:
     }
 
 
+@router.post("/elevate")
+def elevate(request: Request, response: Response) -> dict:
+    """مالکِ واردشده در سایت، بدون گذرواژهٔ دوم وارد پنل می‌شود.
+
+    فقط حسابی که نقش «owner» دارد می‌تواند این کار را بکند؛ هیچ راه دیگری برای
+    دور زدن گذرواژهٔ مدیریت وجود ندارد.
+    """
+    cookie = request.cookies.get(os.environ.get("RAYAN_SESSION_COOKIE", "rayan_session"), "")
+    if not cookie:
+        raw = (request.headers.get("authorization") or "").strip()
+        if raw.lower().startswith("bearer "):
+            cookie = raw[7:].strip()
+    user = store().session_user(cookie)
+    if not user:
+        raise HTTPException(401, "برای ورود به پنل، اول با حساب مالک وارد سایت شو.")
+    if (user.get("role") != "owner" and user.get("plan") != "admin"
+            and str(user.get("id")) not in admin_ids()):
+        raise HTTPException(403, "این حساب دسترسی مدیریت ندارد.")
+    csrf = secrets.token_urlsafe(24)
+    token = store().create_admin_session(int(user["id"]), csrf, ip=_client_ip(request),
+                                         user_agent=request.headers.get("user-agent", ""))
+    response.set_cookie(ADMIN_COOKIE, token, max_age=2 * 3600, httponly=True,
+                        samesite="strict", secure=os.environ.get("RAYAN_ENV") == "prod", path="/")
+    store().record_event("admin_elevate", user_id=int(user["id"]), ip=_client_ip(request))
+    audit("admin_elevate", request, target=str(user["id"]))
+    return {"authenticated": True, "csrf": csrf, "admin_token": token}
+
+
 @router.post("/login")
 def admin_login(req: AdminLogin, request: Request, response: Response) -> dict:
     ip = _client_ip(request)
@@ -225,11 +282,18 @@ def admin_login(req: AdminLogin, request: Request, response: Response) -> dict:
     if attempts > MAX_ATTEMPTS:
         audit("login_locked", request, detail=f"attempts={attempts}")
         raise HTTPException(429, "تلاش‌های ناموفق زیاد؛ ۱۵ دقیقه بعد دوباره امتحان کنید.")
+    # یک گذرواژه برای همه‌چیز: گذرواژهٔ مالک (همان که در /login وارد می‌شود)
+    # هم در این‌جا پذیرفته است، تا مالک هیچ‌وقت دو رمز جدا نداشته باشد.
     creds = admin_credentials()
-    candidate = _hash(req.password, creds["pw_salt"])
-    if not hmac.compare_digest(candidate, creds["pw_hash"]):
+    ok = hmac.compare_digest(_hash(req.password, creds["pw_salt"]), creds["pw_hash"])
+    if not ok:
+        from web import owner as owner_module
+        if owner_module.verify(req.password):
+            ok = True
+            creds = {**creds, "email": owner_module.credentials().get("name", creds.get("email"))}
+    if not ok:
         audit("login_failed", request, detail=f"attempt={attempts}")
-        raise HTTPException(401, "گذرواژهٔ مدیریت نادرست است.")
+        raise HTTPException(401, "گذرواژه نادرست است. همان گذرواژهٔ ورود به سایت را بزنید.")
 
     store().clear_attempts(f"admin:{ip}")
     admin_id = _ensure_admin_user(creds.get("email", "admin@rayan.local"))
@@ -238,7 +302,7 @@ def admin_login(req: AdminLogin, request: Request, response: Response) -> dict:
     response.set_cookie(ADMIN_COOKIE, token, max_age=2 * 3600, httponly=True, samesite="strict",
                         secure=os.environ.get("RAYAN_ENV") == "prod", path="/")
     audit("login", request, target=str(admin_id))
-    return {"ok": True, "csrf": csrf, "expires_in": 7200}
+    return {"ok": True, "csrf": csrf, "admin_token": token, "expires_in": 7200}
 
 
 @router.post("/logout")
@@ -248,6 +312,50 @@ def admin_logout(request: Request, response: Response) -> dict:
     response.delete_cookie(ADMIN_COOKIE, path="/")
     audit("logout", request)
     return {"ok": True}
+
+
+@router.get("/mail")
+def mail_status(request: Request) -> dict:
+    """وضعیتِ سرویس ایمیل؛ گذرواژه هرگز برنمی‌گردد."""
+    require_admin(request)
+    from web import mailer as mailer_module
+    data = mailer_module.status()
+    data["from_env"] = bool(os.environ.get("RAYAN_SMTP_HOST"))
+    return data
+
+
+@router.post("/mail")
+def mail_save(req: MailConfig, request: Request) -> dict:
+    """ذخیرهٔ پیکربندی SMTP از رابط مدیریت — بدون ویرایش فایل یا متغیر محیطی."""
+    require_admin(request, csrf=True)
+    from web import mailer as mailer_module
+    mode = req.mode if req.mode in ("starttls", "ssl", "none") else "starttls"
+    if req.host and not mailer_module.valid_address(req.sender.split("<")[-1].strip(" >") or ""):
+        raise HTTPException(400, "نشانی فرستنده معتبر نیست؛ مثلاً «رایان <you@example.com>».")
+    values = {"host": req.host.strip(), "port": str(req.port), "user": req.user.strip(),
+              "from": req.sender.strip(), "tls": mode}
+    if req.password:
+        values["pass"] = req.password
+    for key, value in values.items():
+        store().set_setting(f"mail.{key}", value)
+    audit("mail_config", request, detail=f"host={req.host[:40]} mode={mode}")
+    return {"saved": True, "status": mailer_module.status()}
+
+
+@router.post("/mail/test")
+def mail_test(req: MailTest, request: Request) -> dict:
+    """ارسالِ ایمیل آزمایشی با همین پیکربندی؛ خطا صادقانه برمی‌گردد."""
+    require_admin(request, csrf=True)
+    from web import mailer as mailer_module
+    if not mailer_module.configured():
+        raise HTTPException(503, "اول پیکربندیِ ایمیل را ذخیره کن.")
+    try:
+        mailer_module.send_test(req.to.strip())
+    except mailer_module.MailError as exc:
+        audit("mail_test_failed", request)
+        raise HTTPException(502, str(exc)) from exc
+    audit("mail_test", request, detail=req.to.strip()[-40:])
+    return {"sent": True}
 
 
 @router.get("/overview")
@@ -374,6 +482,66 @@ def settings_set(req: SettingsPayload, request: Request) -> dict:
     return {"settings": store().all_settings()}
 
 
+class LearnPayload(BaseModel):
+    url: str = Field(default="", max_length=2000)
+    query: str = Field(default="", max_length=200)
+    pages: int = Field(default=2, ge=1, le=5)
+
+
+@router.get("/knowledge")
+def knowledge(request: Request) -> dict:
+    """وضعیت دانشِ آنلاین: چند صفحه خوانده شده و چند پرسش در انتظار است."""
+    from web import learn as learn_module
+    require_admin(request)
+    stats = learn_module.stats()
+    rows: list[dict] = []
+    try:
+        with learn_module._connect() as db:  # noqa: SLF001 - همان ماژول داخلی
+            rows = [
+                {"title": title, "url": url, "chars": len(body or ""), "learned_at": stamp}
+                for title, url, body, stamp in db.execute(
+                    "SELECT title, url, body, learned_at FROM pages ORDER BY learned_at DESC "
+                    "LIMIT 25").fetchall()
+            ]
+    except Exception:  # noqa: BLE001 - فهرست نباید صفحه را بشکند
+        rows = []
+    return {"stats": stats, "recent": rows,
+            "waiting": learn_module.pending(20)}
+
+
+@router.post("/knowledge/learn")
+def knowledge_learn(req: LearnPayload, request: Request) -> dict:
+    """آموختن از یک نشانی یا گشتن دربارهٔ یک موضوع و خواندن نتیجه‌ها."""
+    from web import learn as learn_module
+    require_admin(request, csrf=True)
+    if req.url:
+        page = learn_module.learn_url(req.url)
+        if not page:
+            raise HTTPException(422, "خواندن این نشانی ممکن نشد.")
+        audit("knowledge_learn_url", request, detail=req.url[:160])
+        return {"ok": True, "page": {"title": page["title"], "url": page["url"],
+                                     "chars": len(page["body"]),
+                                     "stored": page["stored"]}}
+    if not req.query:
+        raise HTTPException(422, "نشانی یا موضوع لازم است.")
+    pages = learn_module.learn_query(req.query, pages=req.pages)
+    audit("knowledge_learn_query", request, detail=req.query[:160])
+    return {"ok": bool(pages), "learned": [
+        {"title": page["title"], "url": page["url"], "chars": len(page["body"])}
+        for page in pages
+    ]}
+
+
+@router.post("/knowledge/grow")
+def knowledge_grow(request: Request, limit: int = 3) -> dict:
+    """اجرای دستی کارگر تقویت تدریجی روی صف کنجکاوی."""
+    from web import learn as learn_module
+    require_admin(request, csrf=True)
+    result = learn_module.grow(max(1, min(int(limit), 10)))
+    audit("knowledge_grow", request, detail=str(result))
+    return result
+
+
 @router.post("/maintenance")
 def maintenance(request: Request, task: str = "vacuum") -> dict:
     require_admin(request, csrf=True)
@@ -384,7 +552,7 @@ def maintenance(request: Request, task: str = "vacuum") -> dict:
         result.update(store().purge(30))
     elif task == "backup":
         name = time.strftime("rayan-%Y%m%d-%H%M%S.sqlite3")
-        path = os.path.join(ROOT, "data", "backups", name)
+        path = os.path.join(BACKUP_DIR, name)
         store().backup_to(path)
         result["path"] = os.path.relpath(path, ROOT)
     else:
@@ -429,6 +597,7 @@ def flags() -> dict:
         "studio_enabled": raw.get("studio_enabled", "1") == "1",
         "maintenance": raw.get("maintenance", "0") == "1",
         "web_search": raw.get("web_search", "1") == "1",
+        "auto_learn": raw.get("auto_learn", "1") == "1",
         "announcement": raw.get("announcement", ""),
     }
 
@@ -451,18 +620,22 @@ _started = False
 
 
 def _ensure_admin_user(email: str) -> int:
+    """حساب مالک را تضمین می‌کند: نقشِ owner و طرح admin.
+
+    فقط همین حساب نقش مالک می‌گیرد؛ ثبت‌نام‌های عادی همیشه کاربر معمولی‌اند.
+    """
     user = store()._one("SELECT id FROM users WHERE email=?", (email,))  # noqa: SLF001
-    if user:
-        store().set_plan(int(user["id"]), "admin")
-        return int(user["id"])
-    created = store().create_user(email, secrets.token_urlsafe(24), "مدیر رایان")
-    if created is None:
-        user = store()._one("SELECT id FROM users WHERE email=?", (email,))  # noqa: SLF001
-        assert user is not None
-        store().set_plan(int(user["id"]), "admin")
-        return int(user["id"])
-    store().set_plan(created["id"], "admin")
-    return int(created["id"])
+    if user is None:
+        created = store().create_user(email, secrets.token_urlsafe(24), "مدیر رایان")
+        if created is not None:
+            user = {"id": created["id"]}
+        else:
+            user = store()._one("SELECT id FROM users WHERE email=?", (email,))  # noqa: SLF001
+    assert user is not None
+    user_id = int(user["id"])
+    store().set_plan(user_id, "admin")
+    store().set_owner(user_id)
+    return user_id
 
 
 # ------------------------------------------------------------- زمان‌بند خودکار
@@ -482,12 +655,12 @@ def start_scheduler(interval: int = 3600) -> None:
                 store().purge(30)
                 if now - last_backup > 86400:
                     name = time.strftime("rayan-%Y%m%d.sqlite3")
-                    store().backup_to(os.path.join(ROOT, "data", "backups", name))
+                    store().backup_to(os.path.join(BACKUP_DIR, name))
                     last_backup = now
-                    backups = sorted(os.listdir(os.path.join(ROOT, "data", "backups")))
+                    backups = sorted(os.listdir(BACKUP_DIR))
                     for old in backups[:-7]:
                         try:
-                            os.remove(os.path.join(ROOT, "data", "backups", old))
+                            os.remove(os.path.join(BACKUP_DIR, old))
                         except OSError:
                             pass
                 if now - last_vacuum > 7 * 86400:
@@ -498,3 +671,284 @@ def start_scheduler(interval: int = 3600) -> None:
             time.sleep(interval)
 
     threading.Thread(target=loop, name="rayan-scheduler", daemon=True).start()
+
+
+# --------------------------------------------------------------- اتاق فرمان
+@router.get("/ops")
+def ops_list(request: Request, limit: int = 40) -> dict:
+    """دستورها و پیام‌های مالک به عاملِ سازنده (فقط خواندن)."""
+    require_admin(request)
+    from web import ops as ops_module
+    return {"orders": ops_module.listing(limit), "stats": ops_module.stats()}
+
+
+@router.post("/ops")
+def ops_add(req: OpsOrder, request: Request) -> dict:
+    """ثبت دستور تازه؛ اجرای واقعی در نشست بعدی عامل انجام و پاسخ ثبت می‌شود."""
+    session = require_admin(request, csrf=True)
+    from web import ops as ops_module
+    row = ops_module.add(req.text, kind=req.kind,
+                         author=(session.get("user") or {}).get("name", "owner"))
+    audit("ops_order", request, target=row["id"], detail=req.kind)
+    return {"ok": True, "order": row}
+
+
+@router.get("/ops/pending")
+def ops_pending(request: Request) -> dict:
+    require_admin(request)
+    from web import ops as ops_module
+    rows = ops_module.pending()
+    return {"pending": len(rows), "orders": rows[:20]}
+
+
+@router.post("/reload")
+def reload_runtime(request: Request) -> dict:
+    """بارگذاری دوبارهٔ مدل و پاک‌سازی حافظه‌های میانگیر — بدون قطع سرویس."""
+    require_admin(request, csrf=True)
+    from web import server as server_module
+    info = server_module.soft_reload()
+    audit("reload", request, detail=json.dumps(info, ensure_ascii=False)[:180])
+    return {"ok": True, **info}
+
+
+@router.post("/restart")
+def restart_workers(request: Request) -> dict:
+    """راه‌اندازی دوبارهٔ کارگرها با SIGHUP؛ درخواست‌های جاری کامل می‌شوند."""
+    require_admin(request, csrf=True)
+    from web import server as server_module
+    info = server_module.restart_workers()
+    audit("restart", request, detail=json.dumps(info, ensure_ascii=False)[:180])
+    return {"ok": bool(info.get("signalled")), **info}
+
+
+# ------------------------------------------------------------ شبکه و ظرفیت
+class NetworkMode(BaseModel):
+    mode: str = Field(pattern="^(auto|national|global)$")
+
+
+@router.get("/network")
+def network_state(request: Request) -> dict:
+    """وضعیت خروج به اینترنت و ساختن امنیت در حالت ملی."""
+    require_admin(request)
+    from web import network
+    return {"ok": True, **network.stats()}
+
+
+@router.post("/network")
+def network_set(req: NetworkMode, request: Request) -> dict:
+    require_admin(request, csrf=True)
+    from web import network
+    value = network.set_mode(req.mode)
+    audit("network_mode", request, detail=value)
+    return {"ok": True, **network.stats()}
+
+
+@router.get("/capacity")
+def capacity(request: Request) -> dict:
+    """ظرفیت واقعی همین ماشین: کارگرها، صف، کش و میانگین پاسخ‌گویی."""
+    require_admin(request)
+    from web import server as server_module
+    return {"ok": True, **server_module.capacity_report()}
+
+
+# ═══════════════════════════════════════════════ دانشنامهٔ بررسی‌شده (ویرایش)
+KNOWLEDGE_FILE = os.environ.get("RAYAN_KNOWLEDGE_FILE") or os.path.join(ROOT, "data", "knowledge.jsonl")
+BACKUP_DIR = os.environ.get("RAYAN_BACKUP_DIR") or os.path.join(ROOT, "data", "backups")
+
+
+def _read_knowledge() -> list[dict]:
+    rows: list[dict] = []
+    try:
+        with open(KNOWLEDGE_FILE, encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if line:
+                    try:
+                        rows.append(json.loads(line))
+                    except ValueError:
+                        continue
+    except OSError:
+        return []
+    return rows
+
+
+def _write_knowledge(rows: list[dict]) -> None:
+    tmp = KNOWLEDGE_FILE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as handle:
+        for row in rows:
+            handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+    os.replace(tmp, KNOWLEDGE_FILE)
+    # حافظهٔ ماژول دانش پاک شود تا ویرایش‌ها بی‌درنگ دیده شوند
+    try:
+        from web import knowledge as knowledge_module
+        knowledge_module._ENTRIES = None  # noqa: SLF001 - همان ماژول داخلی
+    except Exception:  # noqa: BLE001 - نباید پنل را بشکند
+        pass
+
+
+class KnowledgeRow(BaseModel):
+    id: str = Field(default="", max_length=80)
+    q: str = Field(default="", max_length=300)
+    keys: list[str] = Field(default_factory=list)
+    a: str = Field(min_length=1, max_length=2000)
+
+
+class KnowledgeDelete(BaseModel):
+    id: str = Field(min_length=1, max_length=80)
+
+
+@router.get("/knowledge/entries")
+def knowledge_entries(request: Request, q: str = "", limit: int = 100) -> dict:
+    require_admin(request)
+    rows = _read_knowledge()
+    needle = (q or "").strip().lower()
+    if needle:
+        rows = [r for r in rows if needle in json.dumps(r, ensure_ascii=False).lower()]
+    total = len(_read_knowledge())
+    return {"total": total, "rows": rows[: max(1, min(int(limit), 400))]}
+
+
+@router.post("/knowledge/entries")
+def knowledge_upsert(req: KnowledgeRow, request: Request) -> dict:
+    """افزودن یا ویرایشِ یک ردیفِ دانش؛ پاسخ بی‌درنگ در گفتگو دیده می‌شود."""
+    require_admin(request, csrf=True)
+    rows = _read_knowledge()
+    rid = (req.id or "").strip() or "kb-" + secrets.token_hex(4)
+    entry = {"id": rid, "q": req.q.strip(), "keys": [k.strip() for k in req.keys if k.strip()],
+             "a": req.a.strip(), "source": None}
+    replaced = False
+    for index, row in enumerate(rows):
+        if row.get("id") == rid:
+            rows[index] = entry
+            replaced = True
+            break
+    if not replaced:
+        rows.append(entry)
+    _write_knowledge(rows)
+    audit("knowledge_upsert", request, target=rid)
+    try:
+        from web import retrieval as retrieval_module
+        retrieval_module.reload_knowledge()  # type: ignore[attr-defined]
+    except Exception:  # noqa: BLE001
+        pass
+    return {"ok": True, "entry": entry, "total": len(rows)}
+
+
+@router.delete("/knowledge/entries/{entry_id}")
+def knowledge_delete(entry_id: str, request: Request) -> dict:
+    require_admin(request, csrf=True)
+    rows = _read_knowledge()
+    kept = [row for row in rows if row.get("id") != entry_id]
+    if len(kept) == len(rows):
+        raise HTTPException(404, "چنین ردیفی نیست.")
+    _write_knowledge(kept)
+    audit("knowledge_delete", request, target=entry_id)
+    return {"ok": True, "total": len(kept)}
+
+
+@router.get("/quality")
+def quality(request: Request) -> dict:
+    """آخرین نتیجهٔ سنجشِ کیفیت بر اساس گزارش‌های ذخیره‌شده."""
+    require_admin(request)
+    report_dir = os.path.join(ROOT, "reports")
+    sets: dict[str, dict] = {}
+    try:
+        for name in sorted(os.listdir(report_dir)):
+            if not (name.startswith("quality-") and name.endswith(".json")):
+                continue
+            key = name[len("quality-"):-len(".json")]
+            try:
+                with open(os.path.join(report_dir, name), encoding="utf-8") as handle:
+                    data = json.load(handle)
+            except (OSError, ValueError):
+                continue
+            sets[key] = {"score": data.get("score"), "passed": data.get("passed"),
+                         "cases": data.get("cases"), "set": data.get("set", key)}
+    except OSError:
+        sets = {}
+    return {"sets": sets, "reports": sorted(sets)}
+
+
+@router.get("/conversations")
+def conversations(request: Request, limit: int = 40) -> dict:
+    """گفتگوهای تازهٔ همهٔ کاربران برای بازبینی (بدون دادهٔ حساس)."""
+    require_admin(request)
+    rows = store()._all(  # noqa: SLF001 - گزارشِ داخلی پنل
+        "SELECT c.id, c.title, c.updated_at, u.email, c.guest_id,"
+        " (SELECT COUNT(*) FROM messages m WHERE m.conv_id = c.id) AS messages"
+        " FROM conversations c LEFT JOIN users u ON u.id = c.user_id"
+        " ORDER BY c.updated_at DESC LIMIT ?",
+        (max(1, min(int(limit), 200)),))
+    return {"conversations": [dict(row) for row in rows]}
+
+
+@router.get("/conversations/{conv_id}")
+def conversation_detail(conv_id: str, request: Request) -> dict:
+    require_admin(request)
+    meta = store().get_conversation_meta(conv_id)
+    if not meta:
+        raise HTTPException(404, "گفتگو پیدا نشد.")
+    return {"conversation": meta, "messages": store().get_messages(conv_id, limit=100)}
+
+
+@router.get("/backup")
+def backup(request: Request) -> dict:
+    """نسخهٔ پشتیبانِ خوانا (بدون هشِ گذرواژه) برای گرفتنِ فایل."""
+    require_admin(request)
+    users = [{"id": u["id"], "email": u["email"], "name": u["name"], "plan": u["plan"],
+              "created_at": u["created_at"]} for u in store().list_users(limit=500)]
+    return {"exported_at": time.time(), "users": users,
+            "knowledge": _read_knowledge(),
+            "settings": store().all_settings()}
+
+
+@router.post("/quality/run")
+def quality_run(request: Request, set: str = "probe") -> dict:
+    """اجرای واقعیِ سنجش روی همین سرور: پرسش‌ها از API خودمان پرسیده می‌شوند."""
+    session = require_admin(request, csrf=True)
+    allowed = {"probe", "holdout", "hard", "blind", "blind2", "blind3", "blind4", "blind5",
+               "blind6", "all"}
+    if set not in allowed:
+        raise HTTPException(400, "مجموعهٔ نامعتبر است.")
+    script = os.path.join(ROOT, "scripts", "quality_probe.py")
+    if not os.path.exists(script):
+        raise HTTPException(404, "سنجش نصب نیست.")
+    import subprocess
+    import sys
+
+    # حسابِ مخصوصِ سنجش: سهمیهٔ روزانهٔ کاربرِ واقعی را مصرف نمی‌کند
+    probe_email = "quality@rayan.local"
+    probe_user = store().user_by_email(probe_email)
+    if probe_user is None:
+        probe_user = store().create_user(probe_email, secrets.token_urlsafe(24), "سنجش کیفیت")
+    probe_id = int(probe_user["id"])
+    store().set_plan(probe_id, "pro")
+    store()._exec("DELETE FROM events WHERE user_id=? AND kind='chat'", (probe_id,))  # noqa: SLF001
+    token = store().create_session(user_id=probe_id, user_agent="quality-run", ip="127.0.0.1")
+    port = request.url.port or 8000
+    base = f"http://127.0.0.1:{port}"
+    report = os.path.join(ROOT, "reports", f"quality-live-{int(time.time())}.json")
+    try:
+        subprocess.run(
+            [sys.executable, script, "--api", base, "--cookie", f"rayan_session={token}",
+             "--set", set, "--json", "--delay", "0", "--write", "--out", report],
+            capture_output=True, text=True, timeout=600, cwd=ROOT)
+    except subprocess.TimeoutExpired:
+        raise HTTPException(504, "سنجش بیش از حد طول کشید.")
+    finally:
+        store().delete_session(token)
+    try:
+        with open(report, encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, ValueError):
+        raise HTTPException(500, "گزارشِ سنجش ساخته نشد؛ یک بار دیگر اجرا کن.")
+    finally:
+        try:
+            os.remove(report)
+        except OSError:
+            pass
+    audit("quality_run", request, target=set,
+          detail=f"{data.get('score')}% ({data.get('passed')}/{data.get('cases')})")
+    return {"set": set, "score": data.get("score"), "passed": data.get("passed"),
+            "cases": data.get("cases"),
+            "missed": [row.get("q") for row in data.get("rows", []) if not row.get("ok")][:20]}

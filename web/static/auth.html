@@ -99,17 +99,12 @@
 
   <!-- نمایش نشان، بعد از ساخت حساب: تمام‌صفحه، سبک، بی‌ویدیو -->
   <div id="welcome-reel" class="welcome-reel brand-reel" hidden role="dialog" aria-modal="true"
-       aria-label="معرفی کوتاه رایان">
-    <div class="reel-aurora" aria-hidden="true"></div>
-    <div class="reel-stage">
-      <img class="reel-logo reel-for-light" src="/static/assets/brand/logo-motion.webp"
-           alt="رایان" width="640" height="320" decoding="async">
-      <img class="reel-logo reel-for-dark" src="/static/assets/brand/logo-motion-dark.webp"
-           alt="" aria-hidden="true" width="640" height="320" decoding="async">
-      <span class="reel-orb"><img src="/static/assets/brand/orb-live.webp" alt="" width="168" height="168"></span>
-    </div>
+       aria-label="آموزش استفاده از رایان با گوینده">
+    <video id="welcome-video" class="intro-video" playsinline preload="auto"
+           poster="/static/assets/video/intro-poster.jpg" controls
+           src="/static/assets/video/intro.mp4"></video>
     <div class="welcome-progress" aria-hidden="true"><i id="welcome-progress"></i></div>
-    <button class="welcome-skip-x" type="button" id="welcome-close" aria-label="بستن معرفی">
+    <button class="welcome-skip-x" type="button" id="welcome-close" aria-label="بستن آموزش">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg>
     </button>
     <div class="welcome-bar">
@@ -120,6 +115,7 @@
     </div>
   </div>
 
+  <script src="/static/session.js"></script>
   <script src="/static/config.js"></script>
   <script src="/static/ui.js"></script>
   <script src="/static/human.js"></script>

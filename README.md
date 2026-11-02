@@ -8,15 +8,12 @@
 
 <sub>یک محصول کامل و یک مدل زبانی فارسی، هر دو ساخته‌شده از صفر — بدون API، بدون وزن آماده، بدون PyTorch</sub>
 
-`۶٬۵۷۴٬۸۴۸ پارامتر` · `توکنایزر BPE فارسی` · `ترنسفورمر با پس‌انتشار دستی در NumPy` · `آموزش واقعی روی CPU`
+`۱۶٬۸۸۹٬۸۵۶ پارامتر` · `توکنایزر BPE فارسی ۱۶هزارتایی` · `ترنسفورمر ۶ لایه با پس‌انتشار دستی در NumPy` · `آموزش واقعی روی CPU`
 
 [![tests](https://github.com/Taymaz1391/ai/actions/workflows/tests.yml/badge.svg)](https://github.com/Taymaz1391/ai/actions/workflows/tests.yml)
-[![pages](https://github.com/Taymaz1391/ai/actions/workflows/pages.yml/badge.svg)](https://github.com/Taymaz1391/ai/actions/workflows/pages.yml)
-[![license](https://img.shields.io/badge/license-MIT-2e8bff)](LICENSE)
+[![license](https://img.shields.io/badge/license-Proprietary-2e8bff)](LICENSE)
 
-[راه‌اندازی و انتشار عمومی](docs/DEPLOY_LIVE.md) · [دورهٔ ۵ ساعته](web/static/course.html) · [بستهٔ تبلیغات گوگل](docs/ADS.md) · [مستندات](docs/) · [کارت مدل](docs/MODEL_CARD.md) · [معماری](docs/ARCHITECTURE.md) · [استقرار رایگان](docs/DEPLOY_FREE.md)
-
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Taymaz1391/ai)
+[مستندات](docs/) · [کارت مدل](docs/MODEL_CARD.md) · [معماری](docs/ARCHITECTURE.md) · [ظرفیت](docs/CAPACITY.md)
 
 </div>
 
@@ -31,7 +28,7 @@
 
 هیچ‌کدام از این‌ها به سرویس بیرونی وصل نیست: نه OpenAI، نه Anthropic، نه هیچ API دیگری. توکنایزر، ترنسفورمر، پس‌انتشار دستی، بهینه‌ساز، استنتاج با حافظهٔ KV، سرور و رابط کاربری همه در همین مخزن نوشته شده‌اند.
 
-> این پروژه ادعای رقابت با مدل‌های میلیاردپارامتری را ندارد. مدلی با ۶٫۵ میلیون پارامتر در سطح توان زبانی آن‌ها نیست. اما کل مسیر ساخت — از نرمال‌سازی متن فارسی تا دکمهٔ «ارسال» — خوانا، آزمون‌پذیر و قابل بازتولید است.
+> این پروژه ادعای رقابت با مدل‌های میلیاردپارامتری را ندارد. مدلی با ۱۷ میلیون پارامتر در سطح توان زبانی آن‌ها نیست. اما کل مسیر ساخت — از نرمال‌سازی متن فارسی تا دکمهٔ «ارسال» — خوانا، آزمون‌پذیر و قابل بازتولید است.
 
 ---
 
@@ -44,7 +41,6 @@
 | ورود / ثبت‌نام | `/login` · `/signup` | حساب با ایمیل و گذرواژه (scrypt)، نشست ۳۰ روزه |
 | تعرفه | `/pricing` | مقایسهٔ پلن‌ها و سهمیه‌ها |
 | مدل‌ها | `/models` | مشخصات مدل، سنجه‌های آموزش و سخت‌افزار |
-| دورهٔ ۵ ساعته | `/course` | ده درس کامل: پیکره، توکنایزر، ترنسفورمر، آموزش، استنتاج، امنیت و استقرار — با پیشرفت ذخیره‌شده و خواندن با صدای مرورگر |
 | مستندات | `/docs` | شروع سریع، جدول API، معماری، استقرار |
 | درباره | `/about` | چرا، چگونه، مجوز داده‌ها، حریم خصوصی و شرایط استفاده |
 | دانلود | `/download` | APK اندروید، EXE ویندوز و نسخهٔ وب — هر سه کلاینت نازکِ همان سرور |
@@ -84,18 +80,11 @@ RAYAN_SKIP_ORB=1 .venv/bin/python scripts/build_brand_motion.py  # فقط نشا
 
 فونت‌های سایت woff2 هستند؛ `scripts/fontcache.py` همان فایل‌ها را برای Pillow به TTF تبدیل می‌کند (بدون دانلود).
 
-### دانلود و کلاینت‌ها
+### دسترسی کاربر
 
-نسخهٔ اندروید (APK) و ویندوز (EXE) در صفحهٔ `/download` هستند و در GitHub Actions
-از همین مخزن ساخته و به انتشار `clients` پیوست می‌شوند:
-
-* `https://github.com/Taymaz1391/ai/releases/latest/download/rayan-android.apk`
-* `https://github.com/Taymaz1391/ai/releases/latest/download/rayan-windows.exe`
-
-این فایل‌ها هیچ مدل و هیچ سهمیه‌ای در خود ندارند؛ صفحهٔ همان سرور را نشان می‌دهند و
-نشست، نقش مدیر و مصرف روزانه سمت سرور بررسی می‌شود. پس دست‌کاری فایل نصب، کاربر را
-«آنلاین» یا «ویژه» نمی‌کند و آفلاین هیچ پاسخی از خودش نمی‌سازد. جزئیات ساخت در
-`clients/README.md` است.
+تنها راه رسیدن به هوش، همین سرویس است: سایت در مرورگر (قابل نصب به‌صورت PWA) و
+اپ نازک اندروید که خودش چیزی اجرا نمی‌کند. هیچ نسخهٔ مستقل و هیچ بستهٔ قابل نصب
+آفلاینی عرضه نمی‌شود؛ نشست، نقش و سهمیه سمت سرور بررسی می‌شود.
 
 ### ورود مالک با نام کاربری
 
@@ -111,12 +100,80 @@ python scripts/set_owner.py            # پرسش تعاملی
 python scripts/set_owner.py --from-env # از RAYAN_OWNER_PASSWORD
 ```
 
-### دانشنامه و مهارت‌های قطعی
+### دانش، نه جواب آماده
 
-برای چیزهایی که «جواب درست و ثابت» دارند، مدل حدس نمی‌زند: `web/skills.py` (سلام و
-خوش‌آمد، معرفی، نصب، تعرفه، درخواست کد) و `web/knowledge.py` (۳۷ ورودی بررسی‌شده در
-`data/knowledge.jsonl`: جغرافیا، شعر، علم، اصطلاحات) پاسخ آماده می‌دهند. همه از یک مسیر
-`/api/chat` می‌آیند و در پاسخ، `engine` برابر `skill` یا `knowledge` است.
+پاسخ سؤال‌های دانشی از پیش نوشته نشده است. برای هر پرسش:
+
+1. موضوع از جمله بیرون کشیده می‌شود (`web/retrieval.py: question_subject`)؛
+2. در **دانشنامه** (۵۶۵٬۶۶۵ مقالهٔ ویکی‌پدیای فارسی + ۳۱۲٬۴۶۳ تغییرمسیر، ایندکس FTS5)
+   و **پیکرهٔ فارسی** (۹۳٫۱ میلیون نویسه در ۱۳۴٬۳۶۷ قطعه) جست‌وجو می‌شود؛
+3. جملهٔ شاهد اعتبارسنجی می‌شود (موضوع نزدیک آغاز + فعل اسنادی + هم‌خوانی با نوع پرسش)؛
+4. اگر شاهدی نبود، **از وب یاد می‌گیرد**: صفحه خوانده، متن استخراج و در
+   `data/learned.sqlite3` ذخیره می‌شود (`web/learn.py`)؛
+5. اگر هیچ‌چیز نبود، صریح می‌گوید و جمله‌های نزدیک را نقل می‌کند.
+
+مراحل و منبع هر پاسخ در همان گفتگو نشان داده می‌شود (`engine` یکی از `think`، `learn`،
+`wiki`، `skill` یا `chat` است). سنجش صادقانه روی ۳۰ پرسش دانشی:
+`python scripts/eval_qa.py` → ۲۹ پاسخ درست از ۳۰ (`reports/qa.json`).
+
+مهارت‌های متنی محدود و آگاهانه‌اند: سلام/خوش‌آمد، معرفی خود، نصب، تعرفه، درخواست کد؛
+این‌ها دربارهٔ خودِ محصول‌اند، نه دانش عمومی.
+
+### یادگیری خودکار و تقویت تدریجی
+
+- هر سؤالی که شاهدی برایش پیدا نشود در صف کنجکاوی ثبت می‌شود
+  (`curiosity` در `data/learned.sqlite3`).
+- کارگر پس‌زمینه هر `RAYAN_GROW_INTERVAL` ثانیه (پیش‌فرض ۲۴۰) چند پرسش از صف را از وب
+  می‌آموزد؛ دانش بزرگ می‌شود، وزن‌ها نه.
+- فرمان‌های مدیر: `POST /api/admin/knowledge/learn` (نشانی یا موضوع)،
+  `POST /api/admin/knowledge/grow`، `GET /api/admin/knowledge`.
+- محدودیت‌های امنیتی: فقط http/https، بلوک شبکه‌های داخلی (SSRF)، سقف حجم، مهلت کوتاه.
+
+سند توضیحی: [`docs/CHATGPT-HOW-BUILT.md`](docs/CHATGPT-HOW-BUILT.md) — چت‌جی‌پی‌تی
+واقعاً چطور ساخته شده و رایان کجای آن نقشه است.
+
+### سه مرحلهٔ ساخت چت‌جی‌پی‌تی، این‌بار پیاده‌شده
+
+چت‌جی‌پی‌تی از سه مرحله ساخته شد: پیش‌آموزش روی متن خام، تنظیم دستورمحور روی زوج
+پرسش–پاسخ، و بهینه‌سازی ترجیح با پاداش انسانی (PPO با جریمهٔ KL). رایان همان خط لوله
+را با ابزار خودش و بدون هیچ سرویس بیرونی اجرا می‌کند؛ تفاوت RLHF فقط در گام آخر است:
+این‌جا به‌جای PPO از DPO استفاده می‌شود که همان هدف را با گرادیان مستقیم و بدون
+مدلِ سیاستِ دوم بهینه می‌کند.
+
+| مرحله | فایل | چه می‌کند | نتیجهٔ سنجیده |
+|---|---|---|---|
+| ۱. پیش‌آموزش | `rayan/train.py` | پیش‌بینی توکن بعدی روی ۹۳٫۴ میلیون نویسه (۲۵٫۲ میلیون توکن) فارسی | مدل پایه، بدون مهارت گفتگو |
+| ۲. SFT | `rayan/align.py` → `sft_step` | زیان فقط روی توکن‌های پاسخ (مثل InstructGPT)، ۱۷۰ نمونهٔ گفتگو، ۱۵۰ گام، ۳۱ ثانیه | سرگشتگی گفتگو روی دادهٔ کنارگذاشته: **۳۶٫۰۷ → ۳۱٫۸۸** |
+| ۳. مدل پاداش | `rayan/align.py` → `RewardModel` | رگرسیون لجستیک روی ویژگی‌های لایهٔ آخر، زیان Bradley–Terry، ۵۸ زوج آموزش / ۱۴ زوج آزمون | دقت آموزش ۱٫۰۰۰ · آزمون **۰٫۹۲۹** · logloss ۰٫۰۵۹ |
+| ۴. ترجیح (DPO) | `rayan/align.py` → `dpo_loss_grads` | β=۰٫۱۲، lr=۵e-۶، بهترین گام ۲۶، توقف وقتی حاشیه از ۳۰ گذشت | حاشیهٔ ترجیح ۹٫۴۴ → ۳۶٫۸۵ · سرگشتگی ۳۲٫۴۳ |
+
+زوج‌های ترجیح با نمونه‌گیری پنج دمایی و داوری خودکار (`rayan/rubric.py`) از
+`data/preferences.jsonl` ساخته می‌شوند (`scripts/make_preferences.py`)؛ ۷۲ زوج از ۱۷۸ پرسش.
+مدل پاداش و گرادیان DPO با تفاضل متناهی آزموده شده‌اند (خطای نسبی ≤ ۱٫۴e-۸).
+
+**کدام مرحله منتشر شود؟** `scripts/compare_stages.py` هر سه عکس را روی ۳۰ پرسش دانشی
+که در هیچ مرحله‌ای دیده نشده و ۲۸ پرسش گفتگویی کنارگذاشته می‌سنجد و با قاعدهٔ
+از پیش تعیین‌شده تصمیم می‌گیرد (`reports/stages.json`):
+
+| مرحله | برخورد کلیدی | امتیاز داور | سرگشتگی گفتگو |
+|---|---|---|---|
+| پیش‌آموزش | ۰٫۲۷ | ۱٫۳۹۳ | ۳۶٫۰۷ |
+| SFT | ۰٫۲۳ | ۱٫۳۹۰ | **۳۱٫۸۸** |
+| SFT+DPO | ۰٫۲۳ | ۱٫۳۹۳ | ۳۲٫۴۳ |
+
+اختلاف «برخورد کلیدی» و «داور» با بوت‌استرپ زوجی تفکیک‌پذیر نبود
+(p = ۰٫۵۷ و ۰٫۴۸)، پس معیار سوم تصمیم گرفت و مدلِ مرحلهٔ SFT منتشر شد.
+همین انتخاب در `checkpoints/last.npz` است و سرور آن را بالا می‌آورد.
+
+**چیزی که کار نکرد (صادقانه):** ۴٬۰۰۰ زوج پرسش–پاسخِ خودکار از سرنخ مقاله‌های
+دانشنامه (`scripts/make_sft_data.py`) با سهم ۲۵٪ و ۵۰٪ در SFT آزموده شد و سرگشتگی
+گفتگو را به ۳۳٫۰۲ و ۳۴٫۹۶ برد؛ یعنی بدتر از ۳۱٫۸۸. آن داده در انتشار به کار نرفت
+(`--extra-ratio 0`) ولی ساخته و نگه داشته می‌شود تا آزمایش تکرارپذیر بماند.
+
+**محدودیت اندازه‌گیری:** داور خودکار در این مقیاس اشباع می‌شود؛ هر سه مرحله به ۲۴ پرسش
+تقریباً همان امتیاز قالب را می‌دهند و به پرسش‌هایی که پاسخشان را نمی‌دانند هم ۱٫۳ می‌دهند
+(یعنی «قالب درست، محتوای نامعلوم»). پس هیچ‌جا ادعا نمی‌کنیم کیفیت پاسخ در مرحلهٔ DPO
+بالا رفته است؛ تنها بهبودِ اثبات‌شده، سرگشتگی روی دادهٔ گفتگوییِ دیده‌نشده است.
 
 ### بنچمارک شفاف
 
@@ -150,7 +207,7 @@ pip install -r requirements.txt
 python web/server.py --host 0.0.0.0 --port 8000
 ```
 
-سپس <http://localhost:8000> را باز کن. مدل از `checkpoints/rayan-1-small.npz` بارگذاری می‌شود و پایگاه‌داده خودکار در `data/rayan.sqlite3` ساخته می‌شود (با `RAYAN_DB` قابل تغییر است).
+سپس <http://localhost:8000> را باز کن. مدل از `checkpoints/last.npz` بارگذاری می‌شود (اگر نبود، `rayan-2-base.npz` و سپس نسخهٔ قبلی) و پایگاه‌داده خودکار در `data/rayan.sqlite3` ساخته می‌شود (با `RAYAN_DB` قابل تغییر است).
 
 گفتگو در ترمینال:
 
@@ -189,7 +246,7 @@ python scripts/chat_cli.py --deep
 | `GET /api/health` | وضعیت مدل و آموزش |
 | `GET /api/model` | مشخصات، سخت‌افزار، پیکره و محدودیت‌ها |
 | `GET /api/models` | فهرست مدل‌ها و وضعیت هرکدام |
-| `GET /api/metrics` | گزارش زندهٔ آموزش (`logs/metrics.jsonl`) |
+| `GET /api/metrics` | گزارش زندهٔ آموزش (`logs/metrics-v2.jsonl`، وگرنه `logs/metrics.jsonl`) |
 | `GET /api/showcase` | نمونه‌های واقعی تولید مدل |
 | `GET /api/stats` | آمار عمومی سرویس |
 | `GET /api/samples` | پیشنهادهای شروع گفتگو |
@@ -226,24 +283,55 @@ curl -s -X POST localhost:8000/api/chat \
 # ۱) دانلود پیکره‌های عمومی فارسی (در پوشهٔ بیرونی)
 bash scripts/fetch_corpora.sh
 
-# ۲) ساخت پیکرهٔ تمیز
-python data/build_corpus.py --sources ../corpora --out data
+# ۲) ویکی‌پدیای فارسی (جریان‌وار، بدون باز کردن کل دامپ)
+python scripts/import_wikipedia.py --source ../corpora/_wiki/repo --max-chars 150000000
 
-# ۳) آموزش توکنایزر BPE با ۱۰٬۰۰۰ توکن
-python data/train_tokenizer.py --vocab-size 10000
+# ۳) ادغام، حذف تکرار و جدا کردن اعتبارسنجی
+python scripts/merge_corpus.py --out-dir data \
+    ../corpora/milad-4274_persian_news:18000000 \
+    ../corpora/wiki.txt:26000000 \
+    ../corpora/mizan/ext/mizan/mizan_fa.txt:40000000 \
+    ../corpora/poems/normalized:25000000 \
+    ../corpora/miras-sample.txt:6600000
 
-# ۴) آموزش پایه (حدود ۱۰۳ دقیقه روی ۲ هستهٔ CPU)
-python -m rayan.train --steps 1800 --batch-size 24 --block-size 256 \
-    --layers 5 --heads 4 --embed 256 --lr 1.2e-3
+# ۴) توکنایزر BPE با ۱۶٬۰۰۰ توکن
+python data/train_tokenizer.py --vocab-size 16000 --sample-chars 24000000
 
-# ۵) ادامهٔ آموزش روی پیکرهٔ گفتگویی بزرگ‌تر
-python -m rayan.train --resume checkpoints/rayan-1-small.npz --steps 2400 \
-    --batch-size 24 --block-size 256 --lr 3.5e-4 --min-lr 3e-5 --warmup 60
+# ۵) توکن‌کردن یک‌بارهٔ پیکره به uint16 (حدود ۲ دقیقه، ~۵۵ مگابایت)
+python scripts/tokenize_corpus.py --tokenizer tokenizer/rayan_bpe_16k.json \
+    --input data/train.txt --out data/train.u16 \
+    --val data/val.txt --val-out data/val.u16
 
-# ۶) ارزیابی و ساخت نمونه‌های نمایش
-python scripts/evaluate.py --checkpoint checkpoints/rayan-1-small.npz
-python scripts/build_showcase.py --evaluation reports/evaluation.json
+# ۶) آموزش مدل ۱۶٫۹ میلیون پارامتری از صفر (memmap، یک دورهٔ کامل)
+python -m rayan.train --tokenizer tokenizer/rayan_bpe_16k.json \
+    --train-ids data/train.u16 --val-ids data/val.u16 \
+    --steps 3400 --batch-size 8 --block-size 256 \
+    --layers 6 --heads 6 --embed 384 --lr 1e-3 --min-lr 1e-4 --warmup 100 \
+    --out checkpoints/rayan-2-base.npz --latest checkpoints/rayan-2-last.npz \
+    --metrics logs/metrics-v2.jsonl --name "رایان ۲"
+
+# ۷) بستن اجرا: ارزیابی مستقل، انتشار checkpoint، نوشتن کارت واقعی
+python scripts/finalize_run.py --checkpoint checkpoints/rayan-2-last.npz
+
+# ۸) مقایسهٔ منصفانه با نسخهٔ قبلی (بیت بر نویسه، مستقل از توکنایزر)
+python scripts/compare_models.py \
+    --old checkpoints/rayan-1-small.npz tokenizer/rayan_bpe.json \
+    --new checkpoints/last.npz tokenizer/rayan_bpe_16k.json
 ```
+
+```bash
+# ۹) زوج‌های ترجیح: پنج دمایی نمونه بگیر، با داور خودکار رتبه بده
+python scripts/make_preferences.py --samples 5 --min-gap 0.12
+
+# ۱۰) خط لولهٔ هم‌ترازسازی: SFT → مدل پاداش → DPO (عکس هر مرحله در checkpoints/stages)
+python scripts/train_align.py --sft-steps 150 --dpo-lr 5e-6 --extra-ratio 0
+
+# ۱۱) انتخاب مرحلهٔ منتشرشده با معیار مستقل و نوشتن checkpoints/last.npz
+python scripts/compare_stages.py
+```
+
+دادهٔ نمایشی خودکار (اختیاری، برای آزمایش مقیاس): `python scripts/make_sft_data.py`.
+
 
 ---
 
@@ -253,13 +341,13 @@ python scripts/build_showcase.py --evaluation reports/evaluation.json
 متن فارسی
    │  نرمال‌سازی: ي→ی، ك→ک، حذف اعراب، یکسان‌سازی ارقام و نشانه‌ها
    ▼
-BPE فارسی (۱۰٬۰۰۰ توکن) ──► دنبالهٔ توکن‌ها
+BPE فارسی (۱۶٬۰۰۰ توکن، شامل توکن شکستن خط) ──► دنبالهٔ توکن‌ها
    ▼
-امبدینگ واژه + امبدینگ موقعیت (۲۵۶ بُعد، زمینهٔ ۲۵۶)
+امبدینگ واژه + امبدینگ موقعیت (۳۸۴ بُعد، زمینهٔ ۲۵۶)
    ▼
-۵ × بلوک ترنسفورمر
-   ├─ LayerNorm → توجه چندسری (۴ سر، ماسک علّی) → اتصال باقی‌مانده
-   └─ LayerNorm → خطی ۲۵۶→۱۰۲۴ → SiLU → خطی ۱۰۲۴→۲۵۶ → اتصال باقی‌مانده
+۶ × بلوک ترنسفورمر
+   ├─ LayerNorm → توجه چندسری (۶ سر، ماسک علّی) → اتصال باقی‌مانده
+   └─ LayerNorm → خطی ۳۸۴→۱۵۳۶ → SiLU → خطی ۱۵۳۶→۳۸۴ → اتصال باقی‌مانده
    ▼
 LayerNorm پایانی ─► پیش‌بینی واژگان (وزن مشترک با امبدینگ)
    ▼
@@ -278,33 +366,48 @@ LayerNorm پایانی ─► پیش‌بینی واژگان (وزن مشترک 
 
 ## نتایج واقعی
 
+**مدل منتشرشده** (`checkpoints/last.npz` — همین که پاسخ می‌دهد):
+
 | سنجه | مقدار |
 |---|---|
 | پارامترهای آموزش‌پذیر | ۶٬۵۷۴٬۸۴۸ |
-| توکن‌های آموزش | ۱۴٬۷۴۵٬۶۰۰ (دو فاز) |
-| طول زمینه | ۲۵۶ توکن |
-| سخت‌افزار | ۲ هستهٔ vCPU · بدون GPU |
-| خطای اعتبارسنجی | ۵٫۳۰ nats/token |
-| Perplexity | ۲۰۱٫۳ |
-| بیت بر نویسه | ۱٫۸۰ |
-| دقت top-1 / top-5 | ۱۷٫۴٪ / ۳۴٫۱٪ |
-| سرعت تولید | ~۸۴ توکن بر ثانیه (CPU) |
+| پیکربندی | ۵ لایه · ۴ سر · بُعد ۲۵۶ · زمینهٔ ۲۵۶ · واژگان ۱۰٬۰۰۰ |
+| مرحله | SFT (تنظیم دستورمحور) روی مدل پایهٔ گام ۲۴۰۰ |
+| خطای اعتبارسنجی | ۵٫۳۰۵ nats/token |
+| بیت بر نویسه | ۱٫۸۰۱ |
+| سرگشتگی گفتگو (دادهٔ کنارگذاشته) | ۳۱٫۸۸ |
+| سرعت پاسخ دانشی | ~۱ ثانیه روی ۲ هستهٔ CPU |
 
-هیچ عددی در رابط کاربری ساختگی نیست؛ همه از `logs/metrics.jsonl`، `reports/evaluation.json` و متادیتای checkpoint خوانده می‌شوند.
+**مدل پایهٔ بزرگ‌تر** (`checkpoints/rayan-2-base.npz` — در مخزن می‌ماند، ولی هنوز برای گفتگو
+آموزش کافی ندیده و منتشر نشده):
 
----
+| سنجه | مقدار |
+|---|---|
+| پارامترها | ۱۶٬۸۸۹٬۸۵۶ |
+| گام آموزش | ۹۰۰ |
+| خطای اعتبارسنجی | ۶٫۷۵۳ nats/token |
+| Perplexity | ۸۵۶٫۶۶ |
+| بیت بر نویسه | ۲٫۶۳۱۵ |
+
+هیچ عددی در رابط کاربری ساختگی نیست؛ همه از متادیتای `checkpoints/last.npz`،
+`reports/alignment.json`، `reports/stages.json` و `reports/qa.json` خوانده می‌شوند. اگر
+گزارش یک اجرای دیگر به مدلِ فعال مربوط نباشد، سرور آن را نشان نمی‌دهد
+(`_run_config_for_active` در `web/server.py`).
 
 ## ساختار مخزن
 
 ```
 rayan/                    موتور مدل: text، tokenizer، model، train، generate، thinking
+rayan/align.py            هم‌ترازسازی: SFT، مدل پاداش، DPO، مثال‌سازی و ارزیابی گفتگو
+rayan/rubric.py           داور خودکار پاسخ‌ها (بازپخش، تکرار، نشت، واژهٔ انتظاری)
 web/server.py             سرور FastAPI: صفحه‌ها، احراز هویت، گفتگو، اشتراک، سهمیه
 web/store.py              پایگاه‌داده SQLite (کاربران، نشست‌ها، گفتگوها، رویدادها)
 web/static/               رابط کاربری: HTML/CSS/JS خالص، RTL، فونت وزیرمتن
 data/                     سازندهٔ پیکره، گفتگوهای آغازین، آمار
 tokenizer/                توکنایزر آموزش‌دیده (JSON)
 checkpoints/              وزن‌های نهایی مدل
-scripts/                  داده، ارزیابی، برند، خروجی سایت استاتیک، تعیین گذرواژهٔ مالک
+scripts/                  داده، هم‌ترازسازی، ارزیابی، برند، خروجی سایت استاتیک، گذرواژهٔ مالک
+reports/                  گزارش‌های خام سنجش (alignment، stages، qa، benchmark، مقایسه‌ها)
 clients/                  کلاینت نازک اندروید (APK) و ویندوز (EXE) + گردش‌کار ساخت
 docs/                     کارت مدل، معماری، استقرار رایگان
 tests/                    گرادیان، KV، توکنایزر، پایگاه‌داده، API و خروجی استاتیک
@@ -324,25 +427,47 @@ cd tests/ui && npm install && node uitest.js       # ۷۶ بررسی رابط ک
 
 ## استقرار
 
-| گزینه | چه می‌گیرید | فایل |
-|---|---|---|
-| **Hugging Face Spaces (Docker)** | سایت کامل + مدل، رایگان | `Dockerfile` |
-| **Render** | همان، با Blueprint آماده | `render.yaml` |
-| **GitHub Pages** | نسخهٔ استاتیک صفحهٔ اصلی، تعرفه، مدل‌ها، مستندات و درباره | `.github/workflows/pages.yml` |
+### ایندکس‌ها روی سرور
 
-برای فعال‌کردن Pages یک‌بار در **Settings → Pages → Source** گزینهٔ **GitHub Actions** را انتخاب کن؛ پس از آن گردش‌کار `pages.yml` در هر push به `main` سایت را به‌روز می‌کند. راهنمای تغییرهای بعدی روی همان دامنه: [docs/GITHUB_PAGES.md](docs/GITHUB_PAGES.md).
+ایندکس‌های بزرگ در مخزن نیستند. یک‌بار منتشرشان کن و روی سرور بکش:
 
-**انتشار یک‌کلیکی سرور:** [Deploy to Render](https://render.com/deploy?repo=https://github.com/Taymaz1391/ai) — Blueprint خودش پرسش گذرواژهٔ مالک را نشان می‌دهد.
+```bash
+bash scripts/publish_index.sh v1-index     # آپلود به GitHub Release
+# روی سرور:
+RAYAN_INDEX_URL=…/index.sqlite3 RAYAN_WIKI_URL=…/wiki.sqlite3 python scripts/fetch_index.py
+```
 
-GitHub Pages فقط فایل‌های ایستا را سرو می‌کند و نمی‌تواند مدل را اجرا کند؛ نسخهٔ Pages به‌صورت خودکار با `python scripts/export_site.py` ساخته می‌شود، مسیرها را نسبی می‌کند و یک نوار «نسخهٔ نمایشی» نشان می‌دهد. برای گفتگوی واقعی، نسخهٔ سرور را روی Render یا HF Spaces بالا بیاور و `apiBase` را در `web/static/config.js` به آن آدرس بده.
+اگر دیسک نداری (پلن رایگان)، همین سرور بدون ایندکس هم کار می‌کند: دانشنامه و پیکره
+نمی‌آیند، ولی لایهٔ **یادگیری آنلاین** پرسش‌ها را از وب می‌خواند و در همان دیسک موقت
+ذخیره می‌کند. برای ایندکس ۸۶۵ مگابایتی به دیسک پایدار نیاز است.
 
-راهنمای گام‌به‌گام: [`docs/DEPLOY_FREE.md`](docs/DEPLOY_FREE.md).
+### آپلود روی هاست اشتراکی
+
+برای بالا آوردن سایت روی هاستِ خودِ پروژه (cPanel/Plesk/DirectAdmin با پایتون):
+
+```bash
+python scripts/build_host_package.py --with-index   # release/rayan-host.zip
+```
+
+بسته شاملِ کد، مدل ۲۴ مگابایتی، دانش‌نامه، صفحه‌ها، `passenger_wsgi.py`،
+`deploy/host_check.py` و راهنمای فارسیِ `README-HOST.md` است. مراحل کامل در
+[`docs/HOSTING.md`](docs/HOSTING.md) آمده است؛ خلاصه:
+
+1. zip را در پوشهٔ برنامه آپلود و Extract کن.
+2. cPanel → **Setup Python App** → startup file: `passenger_wsgi.py`.
+3. **Run Pip Install** با `requirements.txt`.
+4. `RAYAN_OWNER_PASSWORD` و `RAYAN_PUBLIC_URL` را در متغیرهای محیطی بگذار.
+5. `python deploy/host_check.py` باید همه ✓ بدهد، سپس `/api/health` و `/admin`.
+
+هاستِ فقط-PHP این برنامه را اجرا نمی‌کند؛ برای آن `compose.yaml` (Docker) یا
+`render.yaml` را ببین. میزبانی روی سرورِ خودِ مالک مجاز است؛ انتشار عمومی یا
+بالا آوردن روی سرویسِ دیگران بدون اجازهٔ کتبی همچنان ممنوع است (فایل `LICENSE`).
 
 ---
 
 ## محدودیت‌ها (صادقانه)
 
-- **اندازه:** ۶٫۵ میلیون پارامتر در برابر ده‌ها یا صدها میلیارد پارامتر مدل‌های امروزی.
+- **اندازه:** ۱۶٫۹ میلیون پارامتر در برابر ده‌ها یا صدها میلیارد پارامتر مدل‌های امروزی.
 - **دانش:** فقط آنچه در پیکره بوده؛ بدون اینترنت، خبر تازه یا جست‌وجو.
 - **دقت:** ممکن است جمله‌های نادرست، تکراری یا بی‌ربط بسازد. پاسخ‌ها را بررسی کن.
 - **زبان:** پیکره ترکیبی خبر، شعر و گفتگوست؛ سبک خروجی بین این سه نوسان می‌کند.
@@ -353,7 +478,7 @@ GitHub Pages فقط فایل‌های ایستا را سرو می‌کند و ن
 
 ## داده‌ها و مجوز
 
-- **کد:** MIT — [`LICENSE`](LICENSE)
+- **کد و مدل:** اختصاصی — همهٔ حقوق محفوظ ([`LICENSE`](LICENSE)). انتشار، تغییر، بازنشر و میزبانی روی سرویس دیگر مجاز نیست.
 - **داده‌ها:** از منابع عمومی فارسی؛ فهرست، منشأ و شرایط در [`NOTICE.md`](NOTICE.md). پیکرهٔ خام در مخزن نیست و با اسکریپت بازسازی می‌شود.
 - **فونت:** [Vazirmatn](https://github.com/rastikerdar/vazirmatn) با مجوز OFL.
 - **شعرها:** برگرفته از [ganjoor.net](https://ganjoor.net) از طریق مجموعهٔ `namnamir/JSON_of_Classic_Persian_Poems`.

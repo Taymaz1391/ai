@@ -26,7 +26,7 @@ FOLLOWUP = ("بیشتر", "ادامه", "توضیح بده", "مثال", "چرا
 
 _GREETING_OPEN = (
     "سلام{name}! خوشحالم که برگشتی.",
-    "درود{name}! چه خبر؟",
+    "سلام و درود{name}! چه خبر؟",
     "سلام{name}! آماده‌ام.",
 )
 _GREETING_NIGHT = (
@@ -35,12 +35,12 @@ _GREETING_NIGHT = (
 )
 _THANKS = (
     "خواهش می‌کنم{name}!",
-    "قابل‌نداشت{name}.",
+    "قابلی نداشت{name}.",
     "خوشحالم که به کار آمد{name}.",
 )
 _BYE = (
     "خداحافظ{name}! هر وقت برگشتی همین‌جا هستم.",
-    "مراقب خودت باش{name}؛ گفتگوها ذخیره می‌شوند.",
+    "خداحافظ{name}! مراقب خودت باش؛ گفتگوها ذخیره می‌شوند.",
 )
 _ASK_BACK = (
     "سؤالت را دقیق‌تر بپرس تا جوابِ مربوط بدهم؛ مثلاً موضوع، بازهٔ زمانی یا اینکه دنبال تعریف هستی یا مثال.",
@@ -89,7 +89,9 @@ def personalize(hit: dict, owner: dict | None = None, now: _dt.datetime | None =
         pool = _GREETING_NIGHT if night else _GREETING_OPEN
         out["answer"] = random.choice(pool).format(name=name) + "\n" + hit["answer"].split("\n", 1)[-1]
     elif skill == "thanks":
-        out["answer"] = random.choice(_THANKS).format(name=name) + " " + hit["answer"].split("!", 1)[-1].strip()
+        # فقط تکیه‌کلامِ آغازین برداشته می‌شود، نه کلِجمله («سلامت باشی!» باید بماند)
+        rest = re.sub(r"^\s*خواهش\s*می\u200cکنم[،,!.\s]*", "", hit["answer"]).strip()
+        out["answer"] = random.choice(_THANKS).format(name=name) + " " + rest
     elif skill == "bye":
         out["answer"] = random.choice(_BYE).format(name=name)
     return out
@@ -126,9 +128,7 @@ def enhance(message: str, reply: str, history: list[tuple[str, str]] | None = No
 
     # پاسخ خالی/نقطه‌چین: به‌جای «…» چیزی بگو که به کار بیاید
     if len(text) < 6 or text in ("…", "...", "؟"):
-        if subject:
-            return f"دربارهٔ «{subject}» چیزی که مطمئن باشم در حافظه‌ام نیست. " + random.choice(_ASK_BACK)
-        return random.choice(_ASK_BACK)
+        return grounded(message)
 
     # سؤال ادامه‌دار: موضوع گفت‌وگوی قبلی را به یاد بیاور و همان را معیار بسنج
     prev_user = ""
@@ -208,24 +208,121 @@ def degenerate(reply: str) -> bool:
     return top >= 3
 
 
-_FALLBACK = (
-    "راستش را بگویم: مدل کوچک من برای این سؤال پاسخ قابل‌اتکایی ندارد و ترجیح می‌دهم چیزی از خودم نسازم.",
-    "صادقانه: این یکی از توان مدل ۶٫۵ میلیونی من بیرون است؛ جواب سرهم‌بندی‌شده به کارت نمی‌آید.",
-    "اینجا باید صریح باشم: پاسخ مطمئنی برای این سؤال ندارم و حدس‌زدن کمکی نمی‌کند.",
+_DOMAINS: tuple[tuple[str, str], ...] = (
+    (r"پایتون|python|(?<![\w\u200c])کد(?![\w\u200c])|برنامه‌نویس|تابع|حلقه|دیکشنری|"
+     r"جاوااسکریپت|javascript|(?<![\w\u200c])sql(?![\w\u200c])|html|css",
+     "code"),
+    (r"درد|بیمار|علائم|درمان|دارو|فشار خون|قند|ویتامین|رژیم|خواب", "health"),
+    (r"پول|هزینه|پس‌انداز|سرمایه|وام|قسط|حقوق|تورم|بورس", "money"),
+    (r"یادگیری|مطالعه|درس|امتحان|تمرین|مهارت|زبان", "learn"),
+    (r"چطور|چگونه|چه کنم|چه کار کنم|راهکار|قدم", "how"),
+    (r"چرا", "why"),
 )
-_NEXT = (
-    "اگر دکمهٔ «وب» را روشن کنی، با منبع و لینک جواب می‌دهم؛ یا سؤال را به یک بخش دقیق بشکن تا همان را جواب بدهم.",
-    "می‌توانی «وب» را روشن کنی تا از منابع زنده جواب بگیرم، یا موضوع را باریک‌تر کنی تا در حد توانم جواب بدهم.",
-)
+
+_SCAFFOLD: dict[str, str] = {
+    "code": (
+        "روشِ کار در کد سه گام است:\n"
+        "۱. ورودی و خروجی را یک‌خطی بنویس (چه می‌گیری، چه برمی‌گردانی).\n"
+        "۲. کوچک‌ترین نسخهٔ کارکننده را بنویس و همان را اجرا کن.\n"
+        "۳. یک ورودیِ مرزی هم امتحان کن (خالی، صفر، منفی، متنِ بلند).\n\n"
+        "زبان و یک مثالِ ورودی/خروجی را بگو تا کدِ کامل و اجراشدنی بنویسم."
+    ),
+    "health": (
+        "سه پایهٔ همیشه‌صادقِ سلامت: خواب منظم ۷ تا ۹ ساعت، فعالیت روزانه، و غذای متنوع "
+        "با سبزیجات و پروتئین کافی. تغییر را کوچک شروع کن و یک هفته ادامه بده.\n"
+        "برای علامتِ پایدار یا شدید، معاینهٔ پزشک از هر توصیفِ عمومی دقیق‌تر است."
+    ),
+    "money": (
+        "قاعدهٔ ۵۰/۳۰/۲۰ راهنمای خوبی است: نیمی برای ضروری‌ها، سی درصد خواسته‌ها و "
+        "بیست درصد پس‌انداز. هر خرج را همان روز ثبت کن و اشتراک‌های تکرارشونده را "
+        "سالی یک‌بار بازبینی کن."
+    ),
+    "learn": (
+        "مؤثرترین روش‌های ثابت‌شده: مرور فاصله‌دار (روزهای ۱، ۳، ۷ و ۳۰) و بازیابی فعال "
+        "(پرسش از خود پیش از نگاه‌کردن به جواب). روزی ۲۰ تا ۳۰ دقیقهٔ متمرکز از سه ساعت "
+        "پراکنده بهتر جواب می‌دهد."
+    ),
+    "how": (
+        "۱. نتیجهٔ دلخواه را در یک جمله و با عدد بنویس.\n"
+        "۲. کوچک‌ترین قدمی را انتخاب کن که همین امروز تمام می‌شود.\n"
+        "۳. بعد از هر قدم یک چیز را عوض کن و نتیجه را بسنج.\n"
+        "جزئیاتِ موقعیتت را بگو تا نقشهٔ دقیق‌تر با ترتیبِ کار بنویسم."
+    ),
+    "why": (
+        "برای فهمِ علت، سه لایه را جدا کن: چه چیزی شروع می‌کند، چه سازوکاری آن را ادامه "
+        "می‌دهد، و چه پیامدی می‌سازد. وقتی این سه را کنار هم بگذاری، پاسخ از حدس جدا می‌شود."
+    ),
+}
+
+
+def _knowledge_retry(message: str) -> str | None:
+    """یک بار دیگر با آستانهٔ بازتر؛ اگر ورودی نزدیک بود، همان پاسخ داده می‌شود."""
+    try:
+        from web import knowledge  # noqa: PLC0415 - جلوگیری از حلقهٔ واردات
+
+        hit = knowledge.lookup(message, min_score=0.5)
+    except Exception:  # noqa: BLE001 - دانشنامه نباید پاسخ را بشکند
+        return None
+    if not hit:
+        return None
+    entry = hit["entry"]
+    return f"**{entry.get('q', '').rstrip('؟')}**\n{entry['a']}"
+
+
+def _related_lines(message: str) -> list[str]:
+    """یک‌خطی‌های مرتبط از دانشنامه برای وقتی که پاسخِ مستقیم نداریم."""
+    try:
+        from web import knowledge  # noqa: PLC0415
+
+        entries = knowledge.related(message, limit=2)
+    except Exception:  # noqa: BLE001
+        return []
+    lines: list[str] = []
+    for entry in entries:
+        text = (entry.get("a") or "").strip()
+        first = re.split(r"(?<=[.!؟])\s+", text)[0].strip()
+        if first and first not in lines:
+            lines.append(first[:240])
+    return lines
+
+
+def _evidence_lines(message: str) -> list[str]:
+    try:
+        from web import retrieval  # noqa: PLC0415
+
+        found = retrieval.evidence(message, limit=2)
+    except Exception:  # noqa: BLE001
+        return []
+    return [item["text"].strip() for item in found if item.get("text", "").strip()]
 
 
 def grounded(message: str) -> str:
-    """پاسخ صادقانه و مخصوصِ همین سؤال، وقتی مدل چیزی درست نگفته است."""
-    subject = _subject(message)
-    head = random.choice(_FALLBACK)
-    if subject:
-        head = f"دربارهٔ «{subject}» — " + head
-    return head + "\n" + random.choice(_NEXT)
+    """پاسخِ بی‌بهانه: دانشنامه، بعد شاهدِ پیکره، و در نهایت راهنمای عملیِ همان حوزه."""
+    subject = _subject(message) or "این پرسش"
+    retry = _knowledge_retry(message)
+    if retry:
+        return retry
+    low = (message or "").lower()
+    domain = next((name for pattern, name in _DOMAINS if re.search(pattern, low)), "")
+    lines = _evidence_lines(message)
+    if lines:
+        bullets = "\n".join(f"• {line}" for line in lines)
+        body = f"دربارهٔ **{subject}** این نکته‌ها را می‌توان با اطمینان گفت:\n{bullets}"
+        if domain in _SCAFFOLD:
+            body += "\n\n" + _SCAFFOLD[domain].split("\n")[0]
+        return body
+    if domain in _SCAFFOLD:
+        return f"دربارهٔ **{subject}**:\n{_SCAFFOLD[domain]}"
+    # لایهٔ آخر: نزدیک‌ترین دانسته‌های بررسی‌شده + یک قدمِ روشن، نه بن‌بست
+    near = _related_lines(message)
+    if near:
+        bullets = "\n".join(f"• {line}" for line in near)
+        return (f"نزدیک‌ترین دانسته‌های بررسی‌شده دربارهٔ **{subject}**:\n{bullets}\n\n"
+                f"اگر جنبهٔ دقیق‌تری از «{subject}» را بپرسی (تاریخ، عدد، نام، مکان)، همان را "
+                "با جزئیات می‌گویم.")
+    return (f"**{subject}** را می‌شناسم ولی جزئیاتِ قابل‌اتکایی برای همین پرسش در دانشنامه‌ام "
+            "ندارم؛ عدد یا نامِ دقیق را از خودم نمی‌سازم. اگر یکی از این‌ها را بپرسی، پاسخِ "
+            "دقیق می‌دهم: تعریف، کاربرد، تاریخ، مقایسه، یا نمونه.")
 
 
 def quality_flag(reply: str) -> str:

@@ -9,7 +9,10 @@ import unittest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-CHECKPOINT = os.path.join(ROOT, "checkpoints", "rayan-1-small.npz")
+# سایت هر checkpointی را که موجود باشد بار می‌کند؛ آزمون هم همان را می‌سنجد.
+CHECKPOINTS = [os.path.join(ROOT, "checkpoints", name) for name in
+               ("last.npz", "rayan-2-base.npz", "rayan-1-small.npz")]
+CHECKPOINT = next((p for p in CHECKPOINTS if os.path.exists(p)), CHECKPOINTS[-1])
 
 try:
     from fastapi.testclient import TestClient
@@ -18,14 +21,8 @@ except Exception:  # pragma: no cover
     HAVE_CLIENT = False
 
 
-def human_proof(client) -> dict:
-    """چالش «من ربات نیستم» را مثل مرورگر حل می‌کند."""
-    from web import security
-
-    challenge = client.get("/api/captcha").json()
-    return {"token": challenge["token"],
-            "nonce": security.HumanCheck.solve(challenge["salt"], challenge["bits"]),
-            "evidence": {"moves": 14, "keys": 7, "elapsed_ms": 2400}}
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from auth_support import human_proof, signup  # noqa: E402
 
 
 @unittest.skipUnless(HAVE_CLIENT, "httpx/fastapi TestClient unavailable")
@@ -44,7 +41,7 @@ class ApiTest(unittest.TestCase):
         server.engine = server.load_engine(CHECKPOINT)
         cls.server = server
         cls.client = TestClient(server.app)
-        cls.client.get("/chat")   # کوکی مهمان، مثل باز کردن سایت در مرورگر
+        signup(cls.client, email="api-owner@example.com")  # هوش فقط با حساب
 
     @classmethod
     def tearDownClass(cls):
@@ -58,36 +55,88 @@ class ApiTest(unittest.TestCase):
 
     # ---------------------------------------------------------------- پایه
     def test_health(self):
+        """سلامتِ عمومی فقط «آماده است یا نه» می‌گوید؛ جزئیات داخلی بیرون نمی‌رود."""
         data = self.client.get("/api/health").json()
         self.assertTrue(data["ok"])
-        self.assertGreater(data["model"]["params"], 1_000_000)
+        self.assertTrue(data["ready"])
+        self.assertNotIn("model", data)
+        self.assertNotIn("index", data)
+        self.assertIn("signup_required", data)
+
+    def test_health_detail_is_admin_only(self):
+        fresh = TestClient(self.server.app)
+        self.assertIn(fresh.get("/api/health/detail").status_code, (401, 403))
+        login = self.client.post("/api/admin/login", json={
+            "password": os.environ.get("RAYAN_ADMIN_PASSWORD", "v3-test-admin-pass")})
+        if login.status_code != 200:
+            self.skipTest("admin password not configured for this class")
+        try:
+            detail = self.client.get("/api/health/detail").json()
+            self.assertIn("model", detail)
+            self.assertIn("latency", detail)
+        finally:
+            self.client.post("/api/admin/logout")
 
     def test_model(self):
+        """کارت عمومی توانایی‌ها را می‌گوید، نه معماری و اعداد داخلی."""
         data = self.client.get("/api/model").json()
-        self.assertEqual(data["config"]["vocab_size"], 10000)
-        self.assertGreaterEqual(len(data["limitations"]), 3)
+        self.assertEqual(data["name"], "رایان")
+        self.assertGreaterEqual(len(data["abilities"]), 3)
+        for hidden in ("config", "params", "corpus", "architecture", "limitations"):
+            self.assertNotIn(hidden, data)
+
+    def test_model_detail_is_admin_only(self):
+        fresh = TestClient(self.server.app)
+        self.assertIn(fresh.get("/api/model/detail").status_code, (401, 403))
+        self.assertIn(fresh.get("/api/metrics").status_code, (401, 403))
 
     def test_pages(self):
         for path in ("/", "/chat", "/login", "/signup", "/pricing", "/models", "/about",
-                     "/docs", "/course", "/en", "/en/course", "/en/docs", "/summary",
-                     "/download"):
+                     "/compare"):
             res = self.client.get(path)
             self.assertEqual(res.status_code, 200, path)
             self.assertTrue("رایان" in res.text or "rayan" in res.text.lower(), path)
         self.assertIn("urlset", self.client.get("/sitemap.xml").text)
         self.assertIn("User-agent", self.client.get("/robots.txt").text)
 
+    def test_closed_pages_are_gone(self):
+        """هیچ سند، کد، بستهٔ نصب یا خلاصهٔ پروژه‌ای منتشر نمی‌شود."""
+        for path in ("/docs", "/course", "/download", "/summary", "/developer"):
+            res = self.client.get(path, follow_redirects=False)
+            self.assertEqual(res.status_code, 302, path)
+            self.assertEqual(res.headers["location"], "/")
+            self.assertEqual(self.client.get(f"/static{path}.html").status_code, 404, path)
+
     def test_models_catalog(self):
         data = self.client.get("/api/models").json()
         self.assertGreaterEqual(len(data["models"]), 2)
-        self.assertEqual(data["default"], "rayan-1-small")
-        self.assertTrue(any(m["status"] == "ready" for m in data["models"]))
+        ids = [m["id"] for m in data["models"]]
+        # مدل پیش‌فرض همان مدل فعال است و باید در فهرست باشد
+        self.assertIn(data["default"], ids)
+        ready = [m for m in data["models"] if m["status"] == "ready"]
+        self.assertTrue(ready)
+        self.assertEqual(ready[0]["id"], data["default"])
+        self.assertNotIn("checkpoint", ready[0])
+        self.assertNotIn("metrics", ready[0])
+        self.assertTrue(ready[0]["tagline"])
 
     def test_samples(self):
         data = self.client.get("/api/samples").json()
         self.assertGreaterEqual(len(data["samples"]), 3)
 
     # ----------------------------------------------------------------- چت
+    def test_guest_is_asked_to_sign_up(self):
+        """بدون حساب، پاسخ ۴۰۱ با پرچم ثبت‌نام می‌آید نه خطای مبهم."""
+        guest = TestClient(self.server.app)
+        guest.get("/chat")
+        res = guest.post("/api/chat", json={"message": "سلام", "max_new_tokens": 16})
+        self.assertEqual(res.status_code, 401)
+        self.assertEqual(res.headers.get("x-rayan-need"), "signup")
+        self.assertIn("حساب", res.json()["detail"])
+        me = guest.get("/api/auth/me").json()
+        self.assertTrue(me["signup_required"])
+        self.assertFalse(me["signed_in"])
+
     def test_chat_short(self):
         res = self.client.post("/api/chat", json={"message": "سلام", "max_new_tokens": 16,
                                                   "session_id": "short"})
@@ -170,7 +219,7 @@ class ApiTest(unittest.TestCase):
 
     def test_share_flow(self):
         client = TestClient(self.server.app)
-        client.get("/chat")
+        signup(client)
         conv = client.post("/api/chat", json={"message": "سلام", "max_new_tokens": 16}).json()["conversation_id"]
         share = client.post(f"/api/conversations/{conv}/share").json()
         self.assertIn("token", share)
@@ -182,10 +231,10 @@ class ApiTest(unittest.TestCase):
 
     def test_guest_cannot_read_others_conversation(self):
         owner = TestClient(self.server.app)
-        owner.get("/chat")
+        signup(owner)
         conv = owner.post("/api/chat", json={"message": "سلام", "max_new_tokens": 16}).json()["conversation_id"]
         stranger = TestClient(self.server.app)
-        stranger.get("/chat")
+        signup(stranger)
         self.assertEqual(stranger.get(f"/api/conversations/{conv}").status_code, 404)
         self.assertEqual(stranger.delete(f"/api/conversations/{conv}").status_code, 404)
 
@@ -231,7 +280,7 @@ class V3Test(unittest.TestCase):
         server.engine_error = None
         cls.server = server
         cls.client = TestClient(server.app)
-        cls.client.get("/chat")   # کوکی مهمان، مثل باز کردن سایت در مرورگر
+        signup(cls.client, email="v3-owner@example.com")  # هوش فقط با حساب
 
     @classmethod
     def tearDownClass(cls):
@@ -262,6 +311,39 @@ class V3Test(unittest.TestCase):
         data = self.client.get("/api/selftest").json()
         self.assertTrue(any(c["name"] == "database" and c["ok"] for c in data["checks"]))
         self.client.post("/api/admin/logout")
+
+    def test_network_mode_switch_from_panel(self):
+        """مدیر از پنل حالت شبکه را عوض می‌کند؛ سایت بلافاصله تابع آن می‌شود."""
+        from web import network
+
+        login = self.client.post("/api/admin/login", json={"password": "v3-test-admin-pass"})
+        self.assertEqual(login.status_code, 200)
+        headers = {"x-rayan-csrf": login.json()["csrf"]}
+        before = network.mode()
+        try:
+            res = self.client.post("/api/admin/network", json={"mode": "national"}, headers=headers)
+            self.assertEqual(res.status_code, 200)
+            self.assertFalse(res.json()["allow_outbound"])
+            self.assertEqual(self.client.get("/api/admin/network").json()["mode"], "national")
+            self.assertEqual(self.client.post("/api/admin/network", json={"mode": "moon"},
+                                               headers=headers).status_code, 422)
+        finally:
+            network.set_mode(before)
+            self.client.post("/api/admin/logout")
+
+    def test_capacity_report_is_measured(self):
+        login = self.client.post("/api/admin/login", json={"password": "v3-test-admin-pass"})
+        self.assertEqual(login.status_code, 200)
+        try:
+            data = self.client.get("/api/admin/capacity").json()
+            self.assertGreaterEqual(data["workers"], 1)
+            self.assertGreaterEqual(data["cache_size"], 1)
+            self.assertIn("hardware", data)
+            self.assertTrue(data["honest_note"])
+            anon = TestClient(self.server.app)
+            self.assertIn(anon.get("/api/admin/capacity").status_code, (401, 403))
+        finally:
+            self.client.post("/api/admin/logout")
 
     def test_locale_is_persian_only(self):
         """سایت تک‌زبانه است: حتی مرورگر یا IP خارجی هم نسخهٔ فارسی می‌گیرد."""
@@ -360,7 +442,8 @@ class V3Test(unittest.TestCase):
     def test_code_surfaces_are_admin_only(self):
         """کد/وزن‌ها و خودآزمون نباید برای کاربر عادی باز باشد."""
         fresh = TestClient(self.server.app)
-        self.assertIn(fresh.get("/api/download/checkpoint").status_code, (401, 403))
+        # دانلود وزن‌ها کامل حذف شده است؛ حتی برای مدیر هم مسیری نیست
+        self.assertEqual(fresh.get("/api/download/checkpoint").status_code, 404)
         self.assertIn(fresh.get("/api/selftest").status_code, (401, 403))
         page = fresh.get("/admin")
         self.assertEqual(page.status_code, 200)

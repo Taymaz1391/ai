@@ -1,19 +1,44 @@
 {
-  "news_chars": 13410891,
-  "poetry_chars": 3366533,
-  "chat_chars": 15426,
-  "train_docs": 16984,
-  "val_docs": 346,
-  "chat_train_chars": 308520,
-  "train_chars": 16934756,
-  "val_chars": 307142,
-  "train_bytes": 29618572,
-  "val_bytes": 537114,
-  "news_docs": 10159,
-  "poetry_docs": 4371,
-  "chat_docs": 2800,
   "sources": {
-    "news": "Persian News Dataset (milad-4274) + Hamshahri corpus",
-    "poetry": "JSON of Classic Persian Poems (namnamir, from ganjoor.net)"
-  }
+    "train.txt": {
+      "files": 1,
+      "docs": 12794,
+      "chars": 16237113,
+      "cap": 18000000
+    },
+    "wiki.txt": {
+      "files": 1,
+      "docs": 19506,
+      "chars": 25608365,
+      "cap": 26000000
+    },
+    "mizan_fa.txt": {
+      "files": 1,
+      "docs": 19577,
+      "chars": 40000771,
+      "cap": 40000000
+    },
+    "normalized": {
+      "files": 48,
+      "docs": 6234,
+      "chars": 12534317,
+      "cap": 25000000
+    }
+  },
+  "seed": 20261101,
+  "val_ratio": 0.01,
+  "chunk_chars": 2000,
+  "min_chars": 200,
+  "docs_total": 58111,
+  "train.txt": {
+    "docs": 57530,
+    "chars": 93410543,
+    "bytes": 166568714
+  },
+  "val.txt": {
+    "docs": 581,
+    "chars": 970023,
+    "bytes": 1728158
+  },
+  "seconds": 2.4
 }

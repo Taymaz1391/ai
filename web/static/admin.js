@@ -5,7 +5,16 @@
   const { $, $$, nf, faDigits, timeAgo, toast } = R;
   const CSRF_KEY = "x-rayan-csrf";
 
-  const state = { csrf: "", user: null, tab: "overview", overview: null, users: [], ads: [], audit: [] };
+  const state = { csrf: "", user: null, tab: "orders", overview: null, users: [], ads: [],
+                  audit: [], orders: [] };
+
+  // نشستِ مدیر را جدا از کوکی نگه می‌داریم؛ در iframe یا مرورگرِ سخت‌گیر،
+  // کوکیِ SameSite=strict ذخیره نمی‌شود و پنل بی‌دلیل بسته می‌ماند.
+  const SK = window.RAYAN_SESSION || null;
+  function remember(data) {
+    if (!SK || !data) return;
+    if (data.admin_token && SK.save) SK.save({ admin_token: data.admin_token, csrf: data.csrf });
+  }
 
   async function api(path, options = {}) {
     const opts = Object.assign({ credentials: "include", headers: {} }, options);
@@ -40,13 +49,28 @@
     try {
       const info = await api("/api/admin/session");
       if (info.authenticated) {
-        state.csrf = info.csrf;
+        state.csrf = info.csrf || (SK && SK.csrf ? SK.csrf() : "");
         state.user = info.user;
         state.sessionInfo = info;
         enterPanel();
         return;
       }
     } catch { /* ورود لازم است */ }
+    // مالکِ واردشده در سایت، بی‌گذرواژهٔ دوم وارد می‌شود
+    try {
+      const me = await api("/api/auth/me");
+      if (me && me.user && me.user.role === "owner") {
+        const lifted = await api("/api/admin/elevate", { method: "POST" });
+        remember(lifted);
+        state.csrf = lifted.csrf;
+        const info = await api("/api/admin/session");
+        state.user = info.user;
+        state.sessionInfo = info;
+        enterPanel();
+        toast("پنل مدیریت باز شد.", "ok");
+        return;
+      }
+    } catch { /* مهمان است؛ فرم ورود */ }
     $("#admin-login").hidden = false;
   }
 
@@ -61,9 +85,11 @@
   }
 
   function enterPanel() {
+    bindKnowledge();
     $("#admin-login").hidden = true;
     $("#admin-shell").hidden = false;
     applyOwner(state.sessionInfo || { owner: state.owner });
+    loadOrders();
     loadOverview();
     loadSelfTest();
     healthLoop();
@@ -80,6 +106,7 @@
       const data = await api("/api/admin/login", {
         method: "POST", body: { password: $("#admin-password").value },
       });
+      remember(data);
       state.csrf = data.csrf;
       const info = await api("/api/admin/session");
       state.user = info.user;
@@ -126,10 +153,36 @@
     location.reload();
   });
 
+  document.addEventListener("click", (event) => {
+    const chat = event.target.closest("[data-chat-open]");
+    if (chat) openChat(chat.dataset.chatOpen);
+  });
+
+  const qualityRun = document.getElementById("quality-run");
+  if (qualityRun) qualityRun.addEventListener("click", async () => {
+    const set = document.getElementById("quality-set").value;
+    const out = document.getElementById("quality-out");
+    out.textContent = "در حال اجرا…";
+    try {
+      const data = await api(`/api/admin/quality/run?set=${encodeURIComponent(set)}`, { method: "POST" });
+      out.textContent = `درصد: ${data.score}٪  ·  موفق ${data.passed} از ${data.cases}`;
+      loadQuality();
+    } catch (err) {
+      out.textContent = err.message;
+    }
+  });
+
+  const chatsRefresh = document.getElementById("chats-refresh");
+  if (chatsRefresh) chatsRefresh.addEventListener("click", loadChats);
+
   // ------------------------------------------------------------- تب‌ها
   const TITLES = {
+    orders: ["اتاق فرمان", "دستور بده؛ سازنده اجرا می‌کند و همین‌جا پاسخ می‌دهد"],
     overview: ["نمای کلی", "وضعیت زندهٔ سایت، بدون نیاز به کار روزمره"],
     users: ["کاربران", "جست‌وجو، تغییر پلن، مسدودسازی"],
+    knowledge: ["دانشنامه", "پاسخ‌های قطعی را بی‌واسطه ویرایش کن"],
+    quality: ["کیفیت", "سنجشِ مجموعه‌های آزمون روی همین موتور"],
+    chats: ["گفتگوها", "آنچه کاربران می‌پرسند، برای بهبودِ پاسخ‌ها"],
     ads: ["تبلیغات", "جایگاه، نمایش، کلیک و وزن"],
     settings: ["تنظیمات", "پرچم‌های قابلیت، اعلان و گذرواژه"],
     guard: ["سد تهاجم", "فیلتر درخواست‌های ناامن و بستن موقت مهاجم"],
@@ -150,12 +203,259 @@
     const [title, sub] = TITLES[tab] || ["", ""];
     $("#tab-title").textContent = title;
     $("#tab-sub").textContent = sub;
+    if (tab === "orders") loadOrders();
     if (tab === "users") loadUsers();
     if (tab === "ads") loadAds();
     if (tab === "audit") loadAudit();
     if (tab === "guard") loadGuard();
-    if (tab === "settings") loadSettings();
-    if (tab === "system") loadSystem();
+    if (tab === "settings") { loadSettings(); loadMail(); }
+    if (tab === "system") { loadSystem(); loadNetwork(); loadCapacity(); }
+    if (tab === "knowledge") loadKnowledge();
+    if (tab === "quality") loadQuality();
+    if (tab === "chats") loadChats();
+  }
+
+
+  function escapeHtml(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  function kpi(label, value) {
+    return `<div class="kpi"><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b></div>`;
+  }
+
+  // ------------------------------------------------------- دانشنامه
+  const kb = { rows: [], editing: null };
+
+  async function loadKnowledge(query = "") {
+    const body = $("#kb-table tbody");
+    try {
+      const data = await api(`/api/admin/knowledge/entries?limit=200&q=${encodeURIComponent(query)}`);
+      kb.rows = data.rows || [];
+      $("#kb-total").textContent = nf(data.total || 0) + " ردیف";
+      body.innerHTML = kb.rows.map((row) => `
+        <tr>
+          <td class="mono">${escapeHtml(row.id || "")}</td>
+          <td>${escapeHtml(row.q || "")}</td>
+          <td class="hint">${escapeHtml((row.keys || []).join("، "))}</td>
+          <td>${escapeHtml((row.a || "").slice(0, 90))}${(row.a || "").length > 90 ? "…" : ""}</td>
+          <td><button class="btn btn-sm" data-kb-edit="${escapeHtml(row.id || "")}">ویرایش</button></td>
+        </tr>`).join("") || `<tr><td colspan="5" class="hint">ردیفی نیست.</td></tr>`;
+    } catch (err) {
+      body.innerHTML = `<tr><td colspan="5" class="hint">${escapeHtml(err.message)}</td></tr>`;
+    }
+  }
+
+  function openKbForm(row) {
+    kb.editing = row || null;
+    $("#kb-form").hidden = false;
+    $("#kb-id").value = (row && row.id) || "";
+    $("#kb-q").value = (row && row.q) || "";
+    $("#kb-keys").value = ((row && row.keys) || []).join("، ");
+    $("#kb-answer").value = (row && row.a) || "";
+    $("#kb-delete").hidden = !row;
+    $("#kb-ok").hidden = true;
+    $("#kb-id").focus();
+  }
+
+  function bindKnowledge() {
+    const search = $("#kb-search");
+    if (!search) return;
+    $("#kb-refresh").addEventListener("click", () => loadKnowledge(search.value));
+    search.addEventListener("keydown", (e) => { if (e.key === "Enter") loadKnowledge(search.value); });
+    $("#kb-new").addEventListener("click", () => openKbForm(null));
+    $("#kb-cancel").addEventListener("click", () => { $("#kb-form").hidden = true; });
+    $("#kb-table").addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-kb-edit]");
+      if (!btn) return;
+      const row = kb.rows.find((item) => item.id === btn.dataset.kbEdit);
+      if (row) openKbForm(row);
+    });
+    $("#kb-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const keys = $("#kb-keys").value.split(/[،,]/).map((k) => k.trim()).filter(Boolean);
+      try {
+        const res = await api("/api/admin/knowledge/entries", {
+          method: "POST",
+          body: { id: $("#kb-id").value.trim(), q: $("#kb-q").value.trim(),
+                  keys, a: $("#kb-answer").value.trim() },
+        });
+        $("#kb-ok").hidden = false;
+        $("#kb-ok").textContent = `ذخیره شد؛ ${nf(res.total)} ردیف در دانشنامه.`;
+        loadKnowledge($("#kb-search").value);
+      } catch (err) {
+        toast(err.message, "error");
+      }
+    });
+    $("#kb-delete").addEventListener("click", async () => {
+      const id = $("#kb-id").value.trim();
+      if (!id || !confirm("این ردیف حذف شود؟")) return;
+      try {
+        await api(`/api/admin/knowledge/entries/${encodeURIComponent(id)}`, { method: "DELETE" });
+        $("#kb-form").hidden = true;
+        loadKnowledge($("#kb-search").value);
+        toast("حذف شد.", "ok");
+      } catch (err) {
+        toast(err.message, "error");
+      }
+    });
+  }
+
+  // --------------------------------------------------------- گفتگوها
+  async function loadChats() {
+    const body = $("#chats-table tbody");
+    try {
+      const data = await api("/api/admin/conversations?limit=40");
+      const rows = data.conversations || [];
+      body.innerHTML = rows.map((row) => `
+        <tr>
+          <td>${escapeHtml(row.title || "بی‌عنوان")}</td>
+          <td class="hint">${escapeHtml(row.email || "مهمان")}</td>
+          <td>${nf(row.messages || 0)}</td>
+          <td class="hint">${row.updated_at ? timeAgo(row.updated_at) : "—"}</td>
+          <td><button class="btn btn-sm" data-chat-open="${escapeHtml(row.id)}">بازکردن</button></td>
+        </tr>`).join("") || `<tr><td colspan="5" class="hint">گفتگویی نیست.</td></tr>`;
+    } catch (err) {
+      body.innerHTML = `<tr><td colspan="5" class="hint">${escapeHtml(err.message)}</td></tr>`;
+    }
+  }
+
+  async function openChat(convId) {
+    const view = $("#chat-view");
+    view.textContent = "در حال خواندن…";
+    try {
+      const data = await api(`/api/admin/conversations/${encodeURIComponent(convId)}`);
+      const lines = (data.messages || []).slice(-24).map((msg) => {
+        const who = msg.role === "user" ? "کاربر" : "رایان";
+        return `<div class="chat-line"><b>${who}:</b> ${escapeHtml((msg.content || "").slice(0, 400))}</div>`;
+      });
+      view.innerHTML = lines.join("") || "پیامی نیست.";
+    } catch (err) {
+      view.textContent = err.message;
+    }
+  }
+
+  // --------------------------------------------------------- کیفیت
+  async function loadQuality() {
+    try {
+      const data = await api("/api/admin/quality");
+      const sets = data.sets || {};
+      const names = Object.keys(sets);
+      const grid = $("#quality-grid");
+      const best = names.reduce((acc, key) => Math.max(acc, sets[key].score || 0), 0);
+      grid.innerHTML = [
+        kpi("مجموعه‌ها", nf(names.length)),
+        kpi("بهترین درصد", `${nf(Math.round(best * 10) / 10)}٪`),
+        kpi("موارد سنجیده", nf(names.reduce((sum, key) => sum + (sets[key].cases || 0), 0))),
+      ].join("");
+      $("#quality-table tbody").innerHTML = names.map((key) => {
+        const row = sets[key];
+        return `<tr><td>${escapeHtml(key)}</td><td>${nf(row.score)}٪</td>`
+          + `<td>${nf(row.passed)}</td><td>${nf(row.cases)}</td></tr>`;
+      }).join("") || `<tr><td colspan="4" class="hint">گزارشی نیست.</td></tr>`;
+    } catch (err) {
+      toast(err.message, "error");
+    }
+  }
+
+  // ------------------------------------------------------- اتاق فرمان
+  function opsRow(order) {
+    const row = document.createElement("article");
+    row.className = "ops-row";
+    const statusText = { pending: "در انتظار", working: "در حال انجام",
+                         done: "انجام شد", skipped: "رد شد" }[order.status] || order.status;
+    const head = document.createElement("header");
+    const badge = document.createElement("span");
+    badge.className = `pill ops-${order.status}`;
+    badge.textContent = statusText;
+    const when = document.createElement("time");
+    when.textContent = timeAgo ? timeAgo(order.at) : "";
+    head.append(badge, when);
+    const body = document.createElement("p");
+    body.textContent = order.text;
+    row.append(head, body);
+    (order.replies || []).forEach((rep) => {
+      const answer = document.createElement("p");
+      answer.className = "ops-reply";
+      answer.textContent = rep.text || "—";
+      row.append(answer);
+    });
+    return row;
+  }
+
+  async function loadOrders() {
+    const list = $("\#ops-list");
+    try {
+      const data = await api("/api/admin/ops");
+      state.orders = data.orders || [];
+      const pending = (data.stats || {}).pending || 0;
+      const pill = $("\#ops-pending");
+      if (pill) {
+        pill.textContent = pending ? `${nf(pending, 0)} دستور در انتظار اجرا` : "همه اجرا شده";
+        pill.classList.toggle("is-warn", pending > 0);
+      }
+      if (!list) return;
+      list.innerHTML = "";
+      if (!state.orders.length) {
+        list.innerHTML = '<p class="hint">هنوز دستوری ثبت نشده.</p>';
+        return;
+      }
+      state.orders.forEach((order) => list.append(opsRow(order)));
+    } catch (err) {
+      if (list) list.innerHTML = `<p class="hint">${err.message}</p>`;
+    }
+  }
+
+  document.addEventListener("click", async (event) => {
+    const target = event.target.closest("\#ops-refresh, \#ops-reload, \#ops-restart");
+    if (!target) return;
+    const label = target.textContent;
+    target.disabled = true;
+    target.textContent = "…";
+    try {
+      if (target.id === "ops-refresh") {
+        await loadOrders();
+      } else if (target.id === "ops-reload") {
+        const info = await api("/api/admin/reload", { method: "POST" });
+        toast(`مدل دوباره بارگذاری شد (${info.seconds}s)`, "ok");
+      } else {
+        const info = await api("/api/admin/restart", { method: "POST" });
+        toast(info.signalled ? "کارگرها بی‌وقفه نو می‌شوند" : (info.reason || "انجام نشد"), "ok");
+      }
+    } catch (err) {
+      toast(err.message, "error");
+    } finally {
+      target.disabled = false;
+      target.textContent = label;
+    }
+  });
+
+  const opsForm = $("\#ops-form");
+  if (opsForm) {
+    opsForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const box = $("\#ops-text");
+      const ok = $("\#ops-ok");
+      const text = (box.value || "").trim();
+      if (text.length < 2) { toast("دستور خیلی کوتاه است", "error"); return; }
+      const btn = $("\#ops-send");
+      btn.disabled = true;
+      try {
+        await api("/api/admin/ops", { method: "POST", body: { text, kind: "order" } });
+        box.value = "";
+        if (ok) {
+          ok.hidden = false;
+          ok.textContent = "ثبت شد. در نشست بعدی سازنده اجرا می‌شود.";
+        }
+        await loadOrders();
+      } catch (err) {
+        toast(err.message, "error");
+      } finally {
+        btn.disabled = false;
+      }
+    });
   }
 
   // ------------------------------------------------------------- کلی
@@ -369,6 +669,7 @@
     ["deep_enabled", "اندیشهٔ ژرف"],
     ["studio_enabled", "استودیو تصویر"],
     ["web_search", "جست‌وجوی وب"],
+    ["auto_learn", "یادگیری خودکار از وب"],
     ["maintenance", "حالت نگهداری"],
   ];
 
@@ -395,6 +696,80 @@
     } catch (err) {
       toast(err.message, "error");
     }
+  }
+
+  // ------------------------------------------------------------ ایمیل
+  async function loadMail() {
+    const state = $("#mail-state");
+    try {
+      const data = await api("/api/admin/mail");
+      const host = $("#mail-host");
+      if (host && !host.value) host.value = data.host || "";
+      if ($("#mail-from") && !$("#mail-from").value) $("#mail-from").value = data.sender || "";
+      if ($("#mail-port") && !$("#mail-port").value) $("#mail-port").value = 587;
+      const mode = $("#mail-mode");
+      if (mode && data.mode) mode.value = data.mode;
+      if (state) {
+        state.textContent = data.configured
+          ? (data.has_password ? "فعال — آمادهٔ ارسال" : "پیکربندی ناقص")
+          : "پیکربندی نشده";
+      }
+      if (data.from_env) {
+        const note = $("#mail-note");
+        if (note) note.textContent = "این سرور از متغیرهای محیطی تنظیم می‌شود؛ مقادیر زیر فقط نمایشی‌اند.";
+      }
+    } catch (err) {
+      if (state) state.textContent = "خطا: " + err.message;
+    }
+  }
+
+  const saveMailBtn = $("#save-mail");
+  if (saveMailBtn) {
+    saveMailBtn.addEventListener("click", async () => {
+      const note = $("#mail-note");
+      saveMailBtn.disabled = true;
+      try {
+        const data = await api("/api/admin/mail", {
+          method: "POST",
+          body: {
+            host: $("#mail-host").value.trim(),
+            port: Number($("#mail-port").value || 587),
+            user: $("#mail-user").value.trim(),
+            password: $("#mail-pass").value,
+            sender: $("#mail-from").value.trim(),
+            mode: $("#mail-mode").value,
+          },
+        });
+        $("#mail-pass").value = "";
+        if (note) note.textContent = "ذخیره شد. حالا یک ایمیل آزمایشی بفرست.";
+        const state = $("#mail-state");
+        if (state) state.textContent = data.status && data.status.configured ? "فعال" : "پیکربندی ناقص";
+        toast("پیکربندی ایمیل ذخیره شد.", "ok");
+      } catch (err) {
+        if (note) note.textContent = err.message;
+      } finally {
+        saveMailBtn.disabled = false;
+      }
+    });
+  }
+
+  const testMailBtn = $("#test-mail");
+  if (testMailBtn) {
+    testMailBtn.addEventListener("click", async () => {
+      const note = $("#mail-note");
+      const address = ($("#mail-user").value || "").trim() || (state.user && state.user.email) || "";
+      testMailBtn.disabled = true;
+      if (note) note.textContent = "در حال ارسال…";
+      try {
+        await api("/api/admin/mail/test", { method: "POST", body: { to: address } });
+        if (note) note.textContent = "ایمیل آزمایشی به " + address + " فرستاده شد.";
+        toast("ارسال انجام شد.", "ok");
+      } catch (err) {
+        if (note) note.textContent = err.message;
+      } finally {
+        testMailBtn.disabled = false;
+      }
+    });
   }
 
   $("#save-flags").addEventListener("click", async () => {
@@ -496,6 +871,61 @@
   $("#guard-refresh").addEventListener("click", loadGuard);
 
   // ------------------------------------------------------------- سامانه
+  // -------------------------------------------------- شبکه و ظرفیت
+  async function loadNetwork() {
+    try {
+      const data = await api("/api/admin/network");
+      $$("#network-mode button").forEach((btn) => {
+        btn.classList.toggle("is-active", btn.dataset.mode === data.mode);
+      });
+      $("#network-info").innerHTML = Object.entries({
+        "حالت فعلی": { auto: "خودکار", national: "فقط ملی", global: "بین‌المللی" }[data.mode] || data.mode,
+        "تماس بیرونی": data.outbound_allowed ? "آزاد" : "بسته",
+        "آخرین موفقیت": data.last_success_s ? `${nf(Math.round(data.last_success_s))} ثانیه پیش` : "—",
+        "آخرین خطا": data.last_error || "—",
+        "فایل‌های سایت": data.assets_local ? "همه محلی" : "بیرونی",
+      }).map(([k, v]) => `<div class="check-row"><span>${k}</span><span class="hint">${v ?? "—"}</span></div>`).join("");
+    } catch (err) {
+      $("#network-info").textContent = err.message;
+    }
+  }
+
+  async function loadCapacity() {
+    try {
+      const data = await api("/api/admin/capacity");
+      const hw = data.hardware || {};
+      $("#capacity-info").innerHTML = Object.entries({
+        "کارگرهای فعال": nf(data.workers, 0),
+        "صف فعلی": nf(data.queue_depth, 0),
+        "سقف هم‌زمانی": nf(data.concurrency_limit, 0),
+        "کش پاسخ": `${nf(data.cache_used, 0)} از ${nf(data.cache_size, 0)}`,
+        "درخواست این نشست": nf(data.requests_served, 0),
+        "پردازنده": hw.cpu || "—",
+        "هسته‌ها": nf(hw.cores, 0),
+        "حافظه": hw.memory_gb ? `${nf(hw.memory_gb, 1)} گیگابایت` : "—",
+        "پایگاه کاربران": `${nf((data.database || {}).users_db_bytes, 0)} بایت`,
+        "دانش نمایه‌شده": `${nf(Math.round(((data.database || {}).index_bytes || 0) / 1048576), 0)} مگابایت`,
+      }).map(([k, v]) => `<div class="check-row"><span>${k}</span><span class="hint">${v ?? "—"}</span></div>`).join("");
+      $("#capacity-note").textContent = data.honest_note || "";
+    } catch (err) {
+      $("#capacity-info").textContent = err.message;
+    }
+  }
+
+  document.addEventListener("click", async (event) => {
+    const btn = event.target.closest("#network-mode button");
+    if (!btn || !state.csrf) return;
+    try {
+      const data = await api("/api/admin/network", { method: "POST", body: { mode: btn.dataset.mode } });
+      $("#network-result").textContent = data.outbound_allowed
+        ? "حالت ذخیره شد؛ تماس بیرونی آزاد است."
+        : "حالت ذخیره شد؛ سایت کاملاً ملی کار می‌کند.";
+      loadNetwork();
+    } catch (err) {
+      $("#network-result").textContent = err.message;
+    }
+  });
+
   async function loadSystem() {
     try {
       const data = await api("/api/admin/overview?days=3");

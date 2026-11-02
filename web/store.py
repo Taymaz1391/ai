@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS users (
     pw_hash     TEXT NOT NULL,
     pw_salt     TEXT NOT NULL,
     plan        TEXT NOT NULL DEFAULT 'free',
+    role        TEXT NOT NULL DEFAULT 'user',
+    verified    INTEGER NOT NULL DEFAULT 0,
     created_at  REAL NOT NULL,
     last_seen   REAL NOT NULL DEFAULT 0
 );
@@ -175,7 +177,20 @@ class Store:
         self._conn = _connect(path)
         with self._lock:
             self._conn.executescript(_SCHEMA)
+            self._migrate()
             self._conn.commit()
+
+    def _migrate(self) -> None:
+        """ستون‌هایی که در نسخه‌های پیشین نبودند، بی‌آنکه داده‌ای از دست برود."""
+        have = {row["name"] for row in self._conn.execute("PRAGMA table_info(users)")}
+        for name, ddl in (("role", "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'"),
+                          ("verified", "ALTER TABLE users ADD COLUMN verified INTEGER NOT NULL DEFAULT 0")):
+            if name not in have:
+                self._conn.execute(ddl)
+        self._conn.execute("CREATE TABLE IF NOT EXISTS email_codes ("
+                           "email TEXT PRIMARY KEY, code_hash TEXT NOT NULL, salt TEXT NOT NULL,"
+                           " expires_at REAL NOT NULL, sent_at REAL NOT NULL, tries INTEGER NOT NULL DEFAULT 0)")
+        self._conn.commit()
 
     # ---------------------------------------------------------------- ابزار
     def _exec(self, sql: str, params: Iterable[Any] = ()) -> sqlite3.Cursor:
@@ -205,13 +220,48 @@ class Store:
         now = time.time()
         try:
             cur = self._exec(
-                "INSERT INTO users(email, name, pw_hash, pw_salt, plan, created_at, last_seen)"
-                " VALUES(?,?,?,?, 'free', ?, ?)",
+                "INSERT INTO users(email, name, pw_hash, pw_salt, plan, role, created_at, last_seen)"
+                " VALUES(?,?,?,?, 'free', 'user', ?, ?)",
                 (email, name.strip()[:60], pw_hash, salt, now, now),
             )
         except sqlite3.IntegrityError:
             return None
         return self.get_user(int(cur.lastrowid))
+
+    def set_owner(self, user_id: int) -> None:
+        """یک کاربر را مالک می‌کند (فقط یکی در کل سامانه)."""
+        self._exec("UPDATE users SET role='user' WHERE role='owner' AND id<>?", (user_id,))
+        self._exec("UPDATE users SET role='owner' WHERE id=?", (user_id,))
+
+    def user_by_email(self, email: str) -> dict | None:
+        row = self._one("SELECT id,email,name,plan,role,verified,created_at FROM users "
+                        "WHERE email=?", ((email or "").strip().lower(),))
+        return dict(row) if row else None
+
+    # ------------------------------------------------------- کد تأیید ایمیل
+    def save_code(self, email: str, code_hash: str, salt: str, expires_at: float) -> None:
+        self._exec(
+            "INSERT INTO email_codes(email, code_hash, salt, expires_at, sent_at, tries)"
+            " VALUES(?,?,?,?,?,0)"
+            " ON CONFLICT(email) DO UPDATE SET code_hash=excluded.code_hash, salt=excluded.salt,"
+            " expires_at=excluded.expires_at, sent_at=excluded.sent_at, tries=0",
+            ((email or "").strip().lower(), code_hash, salt, expires_at, time.time()))
+
+    def get_code(self, email: str) -> dict | None:
+        row = self._one("SELECT * FROM email_codes WHERE email=?", ((email or "").strip().lower(),))
+        return dict(row) if row else None
+
+    def bump_code_tries(self, email: str) -> int:
+        self._exec("UPDATE email_codes SET tries=tries+1 WHERE email=?",
+                   ((email or "").strip().lower(),))
+        row = self.get_code(email)
+        return int(row["tries"]) if row else 0
+
+    def clear_code(self, email: str) -> None:
+        self._exec("DELETE FROM email_codes WHERE email=?", ((email or "").strip().lower(),))
+
+    def mark_verified(self, email: str) -> None:
+        self._exec("UPDATE users SET verified=1 WHERE email=?", ((email or "").strip().lower(),))
 
     def email_exists(self, email: str) -> bool:
         """آیا با این ایمیل حسابی ساخته شده است؟ (برای هدایت به ثبت‌نام)"""
@@ -230,7 +280,8 @@ class Store:
         return self.get_user(int(row["id"]))
 
     def get_user(self, user_id: int) -> dict | None:
-        row = self._one("SELECT id,email,name,plan,created_at,last_seen FROM users WHERE id=?", (user_id,))
+        row = self._one("SELECT id,email,name,plan,role,verified,created_at,last_seen "
+                        "FROM users WHERE id=?", (user_id,))
         return dict(row) if row else None
 
     def update_user(self, user_id: int, name: str | None = None, plan: str | None = None) -> None:

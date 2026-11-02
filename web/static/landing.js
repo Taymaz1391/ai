@@ -8,18 +8,27 @@
       const health = await request("/api/health");
       const status = $("#hero-status");
       if (status) {
-        status.textContent = health.ok
-          ? `مدل آماده است · ${health.training_active ? "در حال آموزش" : "پایدار"}`
-          : "مدل در حال بارگذاری است…";
+        status.textContent = health.ok ? "آماده و پایدار" : "در حال آماده‌سازی…";
       }
-      if (health.model?.params) {
-        const params = $("#stat-params");
-        if (params) params.textContent = `${nf(health.model.params / 1e6, 2)} میلیون`;
-        const speed = $("#stat-speed");
-        if (speed && health.latest_train?.tokens_per_second) {
-          speed.textContent = nf(health.latest_train.tokens_per_second, 0);
+      try {
+        const cmp = await request("/api/compare");
+        if (cmp && cmp.speed && cmp.speed.median_s) {
+          const latency = $("#stat-latency");
+          if (latency) latency.textContent = nf(cmp.speed.median_s, 2);
+          const row = $("#arena-latency");
+          if (row) row.textContent = `${nf(cmp.speed.median_s, 2)} ثانیه (میانه)`;
         }
-      }
+        if (cmp && cmp.arena && cmp.arena.score) {
+          const score = $("#arena-score");
+          if (score) score.textContent = `${nf(cmp.arena.score, 0)}٪ از ${nf(cmp.arena.tasks, 0)} پرسش`;
+          const note = $("#arena-note");
+          if (note) {
+            note.textContent = `آزمون فارسی ${nf(cmp.arena.tasks, 0)} پرسشی با ` +
+              `${nf(cmp.arena.score, 0)}٪ امتیاز و میانهٔ پاسخ ` +
+              `${nf((cmp.speed || {}).median_s || 0, 2)} ثانیه — سنجش واقعی روی همین سرویس.`;
+          }
+        }
+      } catch { /* عدد پیش‌فرض می‌ماند */ }
     } catch {
       const banner = $("#demo-banner");
       if (banner) banner.hidden = false;

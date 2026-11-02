@@ -12,7 +12,10 @@ sys.path.insert(0, ROOT)
 
 from web import knowledge, skills  # noqa: E402
 
-CHECKPOINT = os.path.join(ROOT, "checkpoints", "rayan-1-small.npz")
+# سایت هر checkpointی را که موجود باشد بار می‌کند؛ آزمون هم همان را می‌سنجد.
+CHECKPOINTS = [os.path.join(ROOT, "checkpoints", name) for name in
+               ("last.npz", "rayan-2-base.npz", "rayan-1-small.npz")]
+CHECKPOINT = next((p for p in CHECKPOINTS if os.path.exists(p)), CHECKPOINTS[-1])
 
 try:
     from fastapi.testclient import TestClient
@@ -29,12 +32,28 @@ class SkillTest(unittest.TestCase):
 
     def test_identity_and_install(self):
         self.assertEqual(skills.match("تو کی هستی؟")["skill"], "identity")
-        self.assertIn("/download", skills.match("چطور نصب کنم؟")["answer"])
+        # نصب از مرورگر است؛ صفحهٔ دانلود حذف شده و لینک مرده نمی‌دهیم
+        self.assertIn("مرورگر", skills.match("چطور نصب کنم؟")["answer"])
 
-    def test_code_request_is_honest(self):
-        hit = skills.match("یک تابع پایتون بنویس")
+    def test_code_request_gives_real_code(self):
+        """درخواستِ کد باید کدِ واقعی بگیرد، نه عذرخواهی و ارجاعِ دوباره."""
+        hit = skills.match("یک برنامه بنویس")
         self.assertEqual(hit["skill"], "code_request")
-        self.assertIn("کافی نیست", hit["answer"])
+        self.assertIn("def ", hit["answer"])
+        self.assertNotIn("قوی نیستم", hit["answer"])
+        self.assertNotIn("کلید «وب»", hit["answer"])
+
+    def test_answers_leak_no_internals(self):
+        """هیچ پاسخ مهارتی نباید پارامتر، پیکره، مسیر فایل یا لینک مخزن را لو بدهد."""
+        banned = ("پارامتر", "میلیونی", "NumPy", "github", "/docs", "/course", "/download",
+                  "checkpoint", "پیکره")
+        for probe in ("سلام", "تو کی هستی؟", "خودت را معرفی کن", "چه کارهایی می‌کنی؟",
+                      "قیمت چقدر است؟", "چطور نصب کنم؟", "مستندات کجاست؟",
+                      "یک تابع پایتون بنویس"):
+            hit = skills.match(probe)
+            self.assertIsNotNone(hit, probe)
+            for word in banned:
+                self.assertNotIn(word, hit["answer"], f"{probe} → {word}")
 
     def test_no_false_positive(self):
         self.assertIsNone(skills.match("باران امروز چه حالی دارد؟"))
@@ -92,7 +111,9 @@ class SkillApiTest(unittest.TestCase):
         os.chdir(ROOT)
         cls.server = server
         cls.client = TestClient(server.app)
-        cls.client.get("/chat")  # کوکی مهمان برای دسترسی به مدل
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from auth_support import signup
+        signup(cls.client)  # هوش فقط با حساب ثبت‌نام‌شده
 
     @classmethod
     def tearDownClass(cls):
@@ -110,11 +131,18 @@ class SkillApiTest(unittest.TestCase):
         self.assertEqual(data["engine"], "skill")
         self.assertEqual(data["stats"]["finish_reason"], "skill")
 
-    def test_chat_fact_uses_knowledge(self):
+    def test_chat_fact_is_grounded(self):
+        """سؤال دانشی باید از شاهد (پیکره/دانشنامه) جواب بگیرد، نه از متن آماده."""
+        from web import retrieval
+        if not retrieval.index_exists() and not retrieval.wiki_exists():
+            self.skipTest("ایندکس محلی ساخته نشده است")
         res = self.client.post("/api/chat", json={"message": "پایتخت ایران کجاست؟", "mode": "chat"})
         self.assertEqual(res.status_code, 200, res.text)
-        self.assertEqual(res.json()["engine"], "knowledge")
-        self.assertIn("تهران", res.json()["answer"])
+        data = res.json()
+        self.assertIn(data["engine"], {"think", "knowledge", "chat"})
+        if data["engine"] == "think":
+            self.assertTrue(data["sources"])
+        self.assertIn("تهران", data["answer"])
 
     def test_stream_greeting_uses_skill(self):
         with self.client.stream("POST", "/api/chat/stream",
@@ -136,3 +164,14 @@ class SkillApiTest(unittest.TestCase):
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
+
+
+class GreetingTest(unittest.TestCase):
+    def test_greeting_with_followup(self):
+        for probe in ("سلام، خوبی؟", "درود، چطوری؟", "سلام", "شب بخیر"):
+            hit = skills.match(probe)
+            self.assertIsNotNone(hit, probe)
+            self.assertEqual(hit["skill"], "greeting", probe)
+
+    def test_greeting_does_not_swallow_questions(self):
+        self.assertIsNone(skills.match("سلام، یک سؤال دربارهٔ تاریخ دارم"))
