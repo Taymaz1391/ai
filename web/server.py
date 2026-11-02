@@ -63,10 +63,14 @@ from web import reason as reason_module  # noqa: E402
 
 STATIC_DIR = os.path.join(ROOT, "web", "static")
 # هر checkpoint توکنایزر خودش را دارد؛ جفت‌ها به‌ترتیب اولویت آمده‌اند.
+# ترتیب = اولویت. مدلِ آموزش‌دیدهٔ SFT اول می‌آید؛ «last.npz» فقط نسخهٔ موقتِ
+# حلقهٔ آموزش است و نباید مدلِ سرویس شود (باگِ واقعی: سایت مدلِ ۶.۶M را سرو می‌کرد
+# در حالی که مدلِ ۱۶.۹M با lossِ بهتر موجود بود).
 CHECKPOINT_CANDIDATES = [
-    (os.path.join(ROOT, "checkpoints", "last.npz"), os.path.join(ROOT, "tokenizer", "rayan_bpe_16k.json")),
+    (os.path.join(ROOT, "checkpoints", "rayan-3-sft.npz"), os.path.join(ROOT, "tokenizer", "rayan_bpe_16k.json")),
     (os.path.join(ROOT, "checkpoints", "rayan-2-base.npz"), os.path.join(ROOT, "tokenizer", "rayan_bpe_16k.json")),
     (os.path.join(ROOT, "checkpoints", "rayan-1-small.npz"), os.path.join(ROOT, "tokenizer", "rayan_bpe.json")),
+    (os.path.join(ROOT, "checkpoints", "last.npz"), os.path.join(ROOT, "tokenizer", "rayan_bpe.json")),
 ]
 CHECKPOINTS = [path for path, _ in CHECKPOINT_CANDIDATES]
 TOKENIZER_BY_VOCAB = {16000: os.path.join(ROOT, "tokenizer", "rayan_bpe_16k.json"),
