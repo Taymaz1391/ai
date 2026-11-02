@@ -299,6 +299,17 @@ def _evidence_lines(message: str) -> list[str]:
     return [item["text"].strip() for item in found if item.get("text", "").strip()]
 
 
+_ADVICE = re.compile(r"چطور|چگونه|چه کار|چی کار|چه کنم|راهکار|پیشنهاد|توصیه|روش")
+_FACTUAL = re.compile(r"چیست|چیه|چقدر|کجاست|کیست|کیه|کدام|چه سال|در چه سال|چندمین|"
+                      r"چه کسی|چه نام|نامِ|چند\s*(?:متر|کیلو|لیتر|درصد|گرم|سال|روز|بار)")
+
+
+def _wants_advice(message: str) -> bool:
+    """پرسشِ دانشی («فشار خون طبیعی چقدر است») نصیحتِ عمومی نمی‌خواهد."""
+    text = message or ""
+    return bool(_ADVICE.search(text)) and not bool(_FACTUAL.search(text))
+
+
 def grounded(message: str) -> str:
     """پاسخِ بی‌بهانه: دانشنامه، بعد شاهدِ پیکره، و در نهایت راهنمای عملیِ همان حوزه."""
     subject = _subject(message) or "این پرسش"
@@ -314,18 +325,21 @@ def grounded(message: str) -> str:
         if domain in _SCAFFOLD:
             body += "\n\n" + _SCAFFOLD[domain].split("\n")[0]
         return body
-    if domain in _SCAFFOLD:
+    if domain in _SCAFFOLD and _wants_advice(message):
         return f"**{subject}** —\n{_SCAFFOLD[domain]}"
-    # لایهٔ آخر: نزدیک‌ترین دانسته‌های بررسی‌شده + یک قدمِ روشن، نه بن‌بست
+    # پاسخِ جزئیِ صادقانه: فقط چیزی که واقعاً دربارهٔ همین موضوع است
     near = _related_lines(message)
     if near:
         bullets = "\n".join(f"• {line}" for line in near)
-        return (f"**{subject}** — نزدیک‌ترین دانسته‌های بررسی‌شده:\n{bullets}\n\n"
-                f"اگر جنبهٔ دقیق‌تری از «{subject}» را بپرسی (تاریخ، عدد، نام، مکان)، همان را "
-                "با جزئیات می‌گویم.")
-    return (f"پرسشِ **{subject}** را روشن گرفتم؛ برای پاسخِ قطعی (عدد، نام، تاریخ) به یک نکتهٔ "
-            "دقیق‌تر نیاز دارم: منظورت تعریف، مقایسه، تاریخچه یا کاربرد است؟ "
-            "همان را بگو تا پاسخِ مستقیم و کوتاه بدهم.")
+        return (f"**{subject}** — دربارهٔ همین موضوع این را با اطمینان می‌دانم:\n{bullets}\n\n"
+                "اگر جنبهٔ دیگری منظورت است، همان را بگو (مثلاً نامِ کامل، سال یا کشور) تا "
+                "دقیق جواب بدهم.")
+    # جای بن‌بست: صریح می‌گویم نمی‌دانم و مسیرِ جایگزین می‌دهم؛ حدس نمی‌زنم
+    return (f"این یکی را با اطمینان نمی‌دانم: پاسخِ بررسی‌شده‌ای برای «{subject}» ندارم و حدس "
+            "هم نمی‌زنم.\n"
+            "یکی از این‌ها کمک می‌کند: نامِ کامل یا سالِ دقیق، یا همان پرسش را در قالبِ "
+            "«چطور…» بپرس. از این بخش‌ها مطمئنم: حساب و تبدیلِ واحد، ترجمهٔ واژه، نوشتن و "
+            "بازنویسی، و کدِ کوتاه.")
 
 
 def quality_flag(reply: str) -> str:

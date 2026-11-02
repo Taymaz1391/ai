@@ -1,3 +1,14 @@
 {"step": 900, "loss": 6.805, "lr": 1.4999999999999999e-05, "grad_norm": 0.816, "tokens": 1845248, "elapsed_s": 2.7, "tok_s": 745.7, "kind": "train"}
 {"step": 925, "loss": 6.4978, "lr": 0.00029997283526720725, "grad_norm": 0.757, "tokens": 1896448, "elapsed_s": 70.7, "tok_s": 752.8, "kind": "train"}
 {"step": 950, "loss": 6.4848, "lr": 0.00029902321700657426, "grad_norm": 0.95, "tokens": 1947648, "elapsed_s": 130.1, "tok_s": 802.9, "kind": "train"}
+{"step": 1000, "loss": 6.5361, "lr": 0.0003, "grad_norm": 1.272, "tokens": 2050048, "elapsed_s": 2.5, "tok_s": 805.4, "kind": "train"}
+{"step": 1050, "loss": 6.2364, "lr": 0.0002966439746503489, "grad_norm": 0.702, "tokens": 2152448, "elapsed_s": 107.6, "tok_s": 970.8, "kind": "train"}
+{"step": 1100, "loss": 6.4959, "lr": 0.0002867427564702475, "grad_norm": 0.805, "tokens": 2254848, "elapsed_s": 287.6, "tok_s": 719.2, "kind": "train"}
+{"step": 1150, "loss": 6.3079, "lr": 0.00027078862307754534, "grad_norm": 0.715, "tokens": 2357248, "elapsed_s": 417.3, "tok_s": 741.0, "kind": "train"}
+{"step": 1200, "loss": 6.3889, "lr": 0.0002495747963403554, "grad_norm": 0.73, "tokens": 2459648, "elapsed_s": 521.3, "tok_s": 789.6, "kind": "train"}
+{"step": 1250, "val_loss": 5.7363, "ppl": 309.91, "bits_per_char": 2.2397, "kind": "eval", "tokens": 2560000, "elapsed_s": 672.3}
+{"step": 1250, "loss": 6.0428, "lr": 0.00022415600426302018, "grad_norm": 0.78, "tokens": 2562048, "elapsed_s": 679.8, "tok_s": 756.2, "kind": "train"}
+{"step": 1300, "loss": 6.2419, "lr": 0.0001957960410761921, "grad_norm": 0.716, "tokens": 2664448, "elapsed_s": 791.2, "tok_s": 779.1, "kind": "train"}
+{"step": 1350, "loss": 6.315, "lr": 0.0001659049327853552, "grad_norm": 0.766, "tokens": 2766848, "elapsed_s": 925.4, "tok_s": 776.8, "kind": "train"}
+{"step": 1400, "loss": 6.0902, "lr": 0.00013596883223722375, "grad_norm": 0.795, "tokens": 2869248, "elapsed_s": 1049.2, "tok_s": 782.7, "kind": "train"}
+{"step": 1450, "loss": 6.1309, "lr": 0.00010747612924378642, "grad_norm": 0.733, "tokens": 2971648, "elapsed_s": 1173.9, "tok_s": 786.8, "kind": "train"}

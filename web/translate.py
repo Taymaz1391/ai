@@ -677,9 +677,23 @@ def answer(question: str) -> dict | None:
                     "engine": "translate", "source": "واژه‌نامه"}
         return None
 
+    # «کلمهٔ کتاب به انگلیسی چیست؟» — «کلمهٔ/واژهٔ» پیش از واژه می‌آید
+    labeled = re.search(r"(?:کلم(?:ه|هٔ|ه‌ی)|واژ(?:ه|هٔ|ه‌ی))\s*[«\"']?(?P<w>[\w\u200c]{2,30})"
+                        r"[»\"']?\s*(?:را\s+)?به\s*(?:انگلیسی|فارسی)\s*"
+                        r"(?:چیست|چیه|چه\s*است|چی\s*است|(?:چی|چه)\s*می\s*(?:شود|شه))", text)
+    if labeled:
+        hit = gloss(labeled.group("w"))
+        if hit:
+            kind = _KIND_FA.get(hit["kind"], "")
+            target = "انگلیسی" if hit["to"] == "en" else "فارسی"
+            return {"answer": f"«{hit['word']}» به {target} **{hit['meaning']}** است"
+                              + (f" ({kind})" if kind else "") + ".",
+                    "engine": "translate", "source": "واژه‌نامه"}
+
     # «امید به انگلیسی چی می‌شه؟»
-    word_ask = re.search(r"^(?P<w>[\w\u200c]{2,30})\s+(?:را\s+)?به\s+(?:انگلیسی|فارسی)\s+"
-                         r"(?:چی|چه)\s*(?:می‌شود|می‌شه|می‌گن|می‌گویند|است|هست)?", text)
+    word_ask = re.search(r"^(?P<w>[\w\u200c]{2,30}(?:\s+[\w\u200c]{2,30}){0,3})\s+(?:را\s+)?"
+                         r"به\s+(?:انگلیسی|فارسی)\s+"
+                         r"(?:چی|چه)\s*(?:می\s*شود|می\s*شه|می\s*گن|می\s*گویند|است|هست)?", text)
     if word_ask:
         hit = gloss(word_ask.group("w"))
         if hit:

@@ -730,6 +730,19 @@ def _eval_hint(op: str) -> str:
 def _sql_answer(text: str) -> str:
     """پاسخِ SQL بر اساسِ نیتِ پرسش، با دستورِ کامل و قابل اجرا."""
     low = text.lower()
+    if re.search(r"count|تعداد|بشمار|شمارش|چند (رکورد|ردیف|سطر)|تعدادِ?", low):
+        return ("شمارشِ رکوردها با `COUNT`:\n\n"
+                "```sql\n"
+                "SELECT COUNT(*) AS total FROM users;\n"
+                "\n"
+                "-- با شرط\n"
+                "SELECT COUNT(*) AS active FROM users WHERE active = 1;\n"
+                "\n"
+                "-- تعدادِ یکتا (بدونِ تکرار)\n"
+                "SELECT COUNT(DISTINCT email) FROM users;\n"
+                "```\n\n"
+                "`COUNT(*)` همهٔ ردیف‌ها را می‌شمارد و `COUNT(column)` فقط ردیف‌هایی را که آن "
+                "ستون `NULL` نیست؛ برای جدول‌های بزرگ `COUNT` روی ایندکس اجرا کن.")
     if re.search(r"insert|اضافه|افزودن|درج|رکورد تازه|ثبت", low):
         return ("افزودنِ رکورد با `INSERT INTO`:\n\n"
                 "```sql\n"
@@ -804,7 +817,16 @@ def _js_answer(text: str) -> str:
                 "  console.log('کلیک شد');\n"
                 "});\n```\n\n"
                 "`addEventListener` بهتر از `onclick` است: چند شنونده را هم‌زمان می‌پذیرد.")
-    if re.search(r"جمع|تابع|function|بنویس", low):
+    if re.search(r"(متن|نوشته|عبارت|text).*(صفحه|بنویسم|نمایش|بگذار|گذار|وارد)|"
+                 r"textContent|innerHTML|innerText|querySelector.*(text|متن)", low):
+        return ("نوشتنِ متن در صفحه با جاوااسکریپت:\n\n"
+                "```html\n<p id=\"out\">متنِ اولیه</p>\n```\n\n"
+                "```javascript\nconst el = document.querySelector('#out');\n"
+                "el.textContent = 'سلام دنیا';   // فقط متن، امن\n"
+                "// el.innerHTML = '<b>سلام</b>';  // اگر HTML لازم داری\n```\n\n"
+                "`textContent` متن را بی‌خطر می‌نویسد؛ `innerHTML` رشته را به‌عنوان HTML "
+                "تفسیر می‌کند و برای ورودیِ کاربر خطرِ تزریق دارد.")
+    if re.search(r"جمع|تابع|function", low):
         return ("تابع در جاوااسکریپت:\n\n"
                 "```javascript\nfunction add(a, b) {\n  return a + b;\n}\n\n"
                 "// یا کوتاه‌تر:\nconst add = (a, b) => a + b;\n\n"

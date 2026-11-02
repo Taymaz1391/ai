@@ -124,10 +124,35 @@ def _note_latency(seconds: float | None) -> None:
         _recent_times.append(time.time())
 
 # --------------------------------------------------------------- محدودیت‌ها
-LIMITS = {
+DEFAULT_LIMITS = {
     "guest": {"chat": 25, "deep": 10},
     "free": {"chat": 200, "deep": 80},
     "pro": {"chat": 3000, "deep": 1200},
+}
+
+
+def _limit(plan: str, kind: str) -> int:
+    """سقفِ سهمیه؛ پیش‌فرض همان مقدارِ تولیدی است.
+
+    سنجشِ کیفیت با ۴۰ پرسش از سهمیهٔ ۲۵تاییِ مهمان می‌گذرد و بقیهٔ نمونه‌ها
+    ۴۲۹ می‌شوند؛ آن‌وقت عددِ سنجش بی‌معنی است. پس فقط برای اجرای محلی و
+    آزمون‌ها می‌توان با RAYAN_LIMIT_GUEST_CHAT بالا بردش. مقدارِ تولیدی دست
+    نمی‌خورد مگر کسی خودش متغیر را ست کند.
+    """
+    default = DEFAULT_LIMITS.get(plan, DEFAULT_LIMITS["guest"])[kind]
+    raw = os.environ.get(f"RAYAN_LIMIT_{plan.upper()}_{kind.upper()}")
+    if raw is None or not raw.strip():
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
+LIMITS = {
+    plan: {kind: _limit(plan, kind) for kind in kinds}
+    for plan, kinds in DEFAULT_LIMITS.items()
 }
 
 # مدل‌های آرشیوی/آینده ثابت‌اند؛ مدل فعالِ فهرست از خودِ checkpoint ساخته می‌شود

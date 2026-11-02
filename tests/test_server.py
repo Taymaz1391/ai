@@ -526,3 +526,16 @@ class V3Test(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_limit_env_override(monkeypatch):
+    """سقفِ سهمیه در آزمون/local با متغیر محیطی بالا می‌رود و پیش‌فرض دست‌نخورده است."""
+    from web import server
+    monkeypatch.delenv("RAYAN_LIMIT_GUEST_CHAT", raising=False)
+    assert server._limit("guest", "chat") == server.DEFAULT_LIMITS["guest"]["chat"]
+    monkeypatch.setenv("RAYAN_LIMIT_GUEST_CHAT", "10000")
+    assert server._limit("guest", "chat") == 10000
+    monkeypatch.setenv("RAYAN_LIMIT_GUEST_CHAT", "0")
+    assert server._limit("guest", "chat") == server.DEFAULT_LIMITS["guest"]["chat"]
+    monkeypatch.setenv("RAYAN_LIMIT_GUEST_CHAT", "abc")
+    assert server._limit("guest", "chat") == server.DEFAULT_LIMITS["guest"]["chat"]

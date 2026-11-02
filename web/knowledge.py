@@ -17,6 +17,10 @@ ROOT = Path(__file__).resolve().parent.parent
 FILE = Path(__import__("os").environ.get("RAYAN_KNOWLEDGE_FILE") or ROOT / "data" / "knowledge.jsonl")
 # بستهٔ دانشِ عمومی جدا نگه داشته می‌شود تا ویرایشِ مدیر در پنل آن را بازنویسی نکند
 PACK = Path(__import__("os").environ.get("RAYAN_KNOWLEDGE_PACK") or FILE.with_name("knowledge-pack.jsonl"))
+# بستهٔ ساختاریافته (پایتخت‌ها، قله‌ها، مرجع‌های سلامت…) که با
+# scripts/build_knowledge_facts.py از جدول ساخته می‌شود؛ جدا نگه داشته می‌شود تا
+# ویرایشِ دستیِ دو فایلِ دیگر آن را پاک نکند.
+FACTS = Path(__import__("os").environ.get("RAYAN_KNOWLEDGE_FACTS") or FILE.with_name("knowledge-facts.jsonl"))
 
 _STOP = {"از", "به", "در", "را", "که", "و", "یا", "با", "برای", "چه", "چی", "چیست",
          "کجاست", "کجا", "کی", "کیست", "است", "هست", "می", "شود", "کن", "کنم", "بگو",
@@ -24,6 +28,8 @@ _STOP = {"از", "به", "در", "را", "که", "و", "یا", "با", "برای
          # صورت‌های فعلی و پسوندهایی که موضوع را نمی‌سازند
          "بود", "بودند", "شد", "شده", "کرد", "کرده", "کند", "کنند", "دارد", "دارند",
          "کاری", "کارها", "هایی", "های", "نوشت", "گفت", "داریم", "کنیم", "بده",
+         # واژه‌های رابطه که موضوع نمی‌سازند («بوف کور اثر کیست»)
+         "اثر", "آثار", "خلق", "پدیدآورنده", "پدیدآور",
          # واژه‌های پرسشی که موضوع نمی‌سازند
          "کسی", "کسانی", "آیا", "چرا", "چگونه", "چطور", "چند", "چندمین", "کدام", "ترین",
          # واژه‌های «جنبه» که موضوع نمی‌سازند («اسید چه ویژگی‌ای دارد»)
@@ -43,8 +49,28 @@ def _norm(text: str) -> str:
     return re.sub(r"[^\w\s]", " ", text.casefold()).strip()
 
 
+# هم‌معنی‌ها: پرسشِ آدم «کوه» و «قله» را یکی می‌بیند، واژه‌نامه هم باید.
+_SYNONYMS = {
+    "قله": "کوه", "قلل": "کوه", "قله‌ها": "کوه", "ارتفاع": "بلندی",
+    "درگذشت": "فوت", "وفات": "فوت", "مرگ": "فوت", "درگذشته": "فوت",
+    "برج": "ساختمان", "آسمان‌خراش": "ساختمان",
+    "همسایگان": "همسایه", "همسایه‌های": "همسایه",
+    "مصرع": "مصراع", "مصرع‌ها": "مصراع",
+    "ساسانیان": "ساسانی", "هخامنشیان": "هخامنشی", "صفویان": "صفوی",
+    "اشکانیان": "اشکانی", "سلجوقیان": "سلجوقی", "قاجاریه": "قاجار",
+    "اعراب": "عرب", "روس‌ها": "روس", "مغول‌ها": "مغول",
+    "پرتغالی‌ها": "پرتغال", "عثمانیان": "عثمانی",
+    "بزرگسال": "بالغ", "بزرگسالان": "بالغ",
+    "دریا": "دریاچه", "دریای": "دریاچه",
+}
+
+
+def _canon(token: str) -> str:
+    return _SYNONYMS.get(token, token)
+
+
 def _tokens(text: str) -> set[str]:
-    return {t for t in _norm(text).split() if t not in _STOP and len(t) > 1}
+    return {_canon(t) for t in _norm(text).split() if t not in _STOP and len(t) > 1}
 
 
 def load() -> list[dict]:
@@ -53,7 +79,7 @@ def load() -> list[dict]:
         return _ENTRIES
     entries: list[dict] = []
     seen: set[str] = set()
-    for path in (FILE, PACK):
+    for path in (FILE, PACK, FACTS):
         try:
             lines = path.read_text(encoding="utf-8").splitlines()
         except OSError:
@@ -94,14 +120,20 @@ def _subjects(message: str) -> set[str]:
 _SUFFIXES = ("هایی", "های", "ها", "ای", "ی", "ش", "اش")
 
 
-_AUTHOR_ASK = re.compile(r"نویسنده|مولف|مؤلف|سراینده|"
-                         r"(?:چه کسی|کی|چه کسانی)\s+(?:نوشت|سرود|ساخت|کشف|فرمول|"
-                         r"ارائه|بنیان)|(?:چه کسی|چه کسانی)\s+.*(?:نوشت|سرود|کشف|فرمول)")
-_AUTHOR_KEY = re.compile(r"نوشت|سرود|نویسند|مولف|مؤلف|چه کسی|سراینده|"
+_AUTHOR_ASK = re.compile(
+    r"نویسنده|مولف|مؤلف|سراینده|اثر\s*(?:کیست|کی\s*است|چه\s*کسی|چه\s*کس)|"
+    r"(?:چه\s*کسی|کی|چه\s*کسانی)\s+(?:نوشت|سرود|ساخت|کشف|فرمول|ارائه|بنیان)|"
+    r"(?:سروده|نوشته|ساخته|کشفِ?|کارِ?)\s*(?:کیست|کی\s*است|چه\s*کسی)|"
+    r"از\s*(?:کی|چه\s*کسی)\s*(?:است|بود)"
+)
+
+_AUTHOR_KEY = re.compile(r"نوشت|سرود|نویسند|مولف|مؤلف|چه کسی|سراینده|اثر|"
                          r"کشف|فرمول|ارائه داد|بنیان")
 _SUMMARY_KEY = re.compile(r"درباره|خلاصه|چیست$")
 # پرسشِ سال/تاریخ، پاسخِ تاریخی می‌خواهد؛ نه اینکه «کجاست» را جواب بدهیم
-_YEAR_ASK = re.compile(r"(?:در\s*)?چه\s*سالی?|سالِ?\s*چند|کدام\s*سال|چندمین\s*سال")
+# مرزِ واژه لازم است: «بزرگسال چند دندان» نباید «سال چند» خوانده شود
+_YEAR_ASK = re.compile(r"(?<![\w\u200c])(?:(?:در\s*)?چه\s*سالی?|سالِ?\s*چند|کدام\s*سال|" 
+                       r"چندمین\s*سال|چه\s*سالی)")
 # گفت‌وگوی کوتاه، پرسش دانشی نیست
 # «شروع» یا «پایان»: دو پاسخِ متفاوت برای یک موضوع
 _SUMMARY_ASK = re.compile(r"درباره|موضوع|حکایت|داستان|قصه|محتوای|دربارهٔ")
@@ -181,7 +213,7 @@ def lookup(message: str, min_score: float = 0.62) -> dict | None:
         elif year_intent:
             # «در چه سالی پایتخت شد» سال می‌خواهد، نه نامِ پایتخت
             body = " ".join(keys) + " " + entry.get("q", "")
-            if not re.search(r"سال|تاریخ|قرن", body):
+            if not re.search(r"سال|تاریخ|قرن|پیش از میلاد|هجری|میلادی|پ\.م", body):
                 continue
             score += 0.4
         if place_intent:
@@ -224,20 +256,51 @@ def lookup(message: str, min_score: float = 0.62) -> dict | None:
     return None
 
 
+# واژه‌های حوزه که موضوع را مشخص نمی‌کنند؛ «بلندترین کوه» + «جهان» موضوع نیست
+_DOMAIN = {"کوه", "پایتخت", "کشور", "شهر", "کتاب", "آبشار", "رود", "دریاچه", "برج",
+           "ساختمان", "ورزش", "غذا", "حیوان", "درخت", "میوه", "فیلم", "شاعر", "نویسنده",
+           "سازمان", "شرکت", "دارو", "بیماری", "استان", "قاره", "اقیانوس", "جزیره"}
+
+
+def _distinctive(subjects: set[str]) -> set[str]:
+    """واژه‌هایی که موضوع را واقعاً مشخص می‌کنند.
+
+    «پایتخت»، «کشور» و «کتاب» در صدها مدخل آمده‌اند؛ اگر آن‌ها را معیار بگیریم،
+    «پایتخت آفریقای جنوبی» به مدخلِ «پایتخت کرهٔ جنوبی» می‌چسبد. پس واژه‌های
+    پربسامد کنار گذاشته می‌شوند و فقط واژه‌های کم‌بسامد معیار می‌مانند.
+    """
+    entries = load()
+    gate = max(6, len(entries) // 25)
+    kept = {token for token in subjects
+            if token not in _DOMAIN
+            and sum(1 for entry in entries if token in entry["_tokens"]) <= gate}
+    return kept
+
+
 def related(message: str, limit: int = 2) -> list[dict]:
-    """نزدیک‌ترین ورودی‌هایی که موضوعِ پرسش را در متنشان دارند (برای پاسخِ بی‌بن‌بست)."""
-    subjects = _subjects(message)
+    """ورودی‌هایی که دربارهٔ *همان* موضوعِ پرسش‌اند، نه موضوعِ هم‌خانواده.
+
+    فقط برای پاسخِ صادقانهٔ جزئی به کار می‌رود؛ اگر ورودی موضوع را نداشته باشد،
+    چیزی برنمی‌گردد تا پاسخ به موضوعِ دیگری نرود.
+    """
+    subjects = _distinctive(_subjects(message))
     if not subjects:
         return []
     out: list[dict] = []
+    seen: set[str] = set()
     for entry in load():
-        body = _norm(f"{entry.get('a', '')} {' '.join(entry.get('keys') or [])} {entry.get('q', '')}")
-        tokens = set(body.split())
-        if not (subjects & tokens):
+        body = f"{entry.get('a', '')} {' '.join(entry.get('keys') or [])} {entry.get('q', '')}"
+        tokens = _tokens(body)
+        # واژهٔ شناسا باید در *عنوان/کلید* مدخل باشد، نه یک اشارهٔ گذرا در متن؛
+        # «صحرای آفریقا» نباید پاسخِ «بلندترین کوه آفریقا» شود.
+        headline = _tokens(f"{' '.join(entry.get('keys') or [])} {entry.get('q', '')}")
+        if not subjects <= headline:
             continue
-        # دست‌کم نیمی از واژه‌های موضوعی باید در متن باشد تا پاسخ به موضوعِ دیگری نرود
-        if len(subjects & tokens) / len(subjects) < 0.5:
+        if len(subjects & tokens) / len(subjects) < 0.8:
             continue
+        if entry.get("q") in seen:
+            continue
+        seen.add(entry.get("q", ""))
         out.append(entry)
         if len(out) >= limit:
             break
