@@ -446,7 +446,7 @@ RAYAN_INDEX_URL=…/index.sqlite3 RAYAN_WIKI_URL=…/wiki.sqlite3 python scripts
 برای بالا آوردن سایت روی هاستِ خودِ پروژه (cPanel/Plesk/DirectAdmin با پایتون):
 
 ```bash
-python scripts/build_host_package.py --with-index   # dist/rayan-host.zip
+python scripts/build_host_package.py --with-index   # release/rayan-host.zip
 ```
 
 بسته شاملِ کد، مدل ۲۴ مگابایتی، دانش‌نامه، صفحه‌ها، `passenger_wsgi.py`،

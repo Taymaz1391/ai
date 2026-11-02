@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """ساختِ بستهٔ آپلود روی هاست اشتراکی.
 
-    python scripts/build_host_package.py                 # dist/rayan-host.zip
+    python scripts/build_host_package.py                 # release/rayan-host.zip
     python scripts/build_host_package.py --with-index    # همراه با ایندکسِ شاهد
     python scripts/build_host_package.py --out /tmp/pkg  # پوشهٔ خروجیِ دیگر
 
@@ -89,7 +89,7 @@ def manifest(entries: list[str]) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--out", default=str(ROOT / "dist"))
+    parser.add_argument("--out", default=str(ROOT / "release"))
     parser.add_argument("--name", default="rayan-host")
     parser.add_argument("--with-index", action="store_true",
                         help="ایندکسِ شاهد از دانشنامه هم ساخته و اضافه شود")

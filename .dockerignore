@@ -6,3 +6,5 @@ data/val.txt
 logs/*.log
 checkpoints/last.npz
 **/__pycache__
+dist
+release

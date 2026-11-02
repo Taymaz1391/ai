@@ -72,3 +72,4 @@ data/ops/
 
 # بستهٔ آپلود روی هاست (با scripts/build_host_package.py ساخته می‌شود)
 dist/
+release/

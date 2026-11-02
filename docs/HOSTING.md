@@ -6,7 +6,7 @@
 ## ۱) ساخت بسته
 
 ```bash
-python scripts/build_host_package.py              # dist/rayan-host.zip  (~۲۵ مگابایت)
+python scripts/build_host_package.py              # release/rayan-host.zip  (~۲۵ مگابایت)
 python scripts/build_host_package.py --with-index # همراه با ایندکسِ شاهد دانشنامه
 ```
 
