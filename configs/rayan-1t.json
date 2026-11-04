@@ -1,0 +1,12 @@
+{
+  "status": "architecture_plan_only_not_trained",
+  "model": {
+    "vocab_size": 64000,
+    "block_size": 4096,
+    "n_layer": 128,
+    "n_head": 128,
+    "n_embd": 25600
+  },
+  "tokens_per_parameter": 20,
+  "note": "Dense architecture capacity plan only. No weights, distributed trainer, training run or measured quality improvement is provided. Not connected to the live model registry."
+}

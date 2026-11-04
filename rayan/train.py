@@ -146,6 +146,13 @@ def main() -> None:
         cfg, params, meta = load_checkpoint(args.resume)
         start_step = int(meta.get("step", 0))
         print(f"resumed from {args.resume} at step {start_step}", flush=True)
+        # نگهبان: توکنایزرِ ناهمخوان بی‌صدا داده را به شناسه‌های بی‌معنی تبدیل می‌کند
+        # و آموزش «موفق» ولی بی‌فایده می‌شود (خطای واقعیِ رایان ۳).
+        if cfg.vocab_size != tokenizer.vocab_size:
+            raise SystemExit(
+                f"tokenizer/checkpoint mismatch: tokenizer vocab={tokenizer.vocab_size} "
+                f"but {args.resume} expects {cfg.vocab_size}. "
+                f"Pass the tokenizer recorded in the checkpoint meta: {meta.get('tokenizer')!r}")
     else:
         params = init_params(cfg, seed=args.seed)
     opt = AdamW(params, lr=args.lr, weight_decay=args.weight_decay, grad_clip=1.0)

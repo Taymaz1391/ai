@@ -110,9 +110,16 @@ class HumanCheckTest(unittest.TestCase):
         self.assertEqual(self.hc.assess(ch1["token"], n1,
                                         {"moves": 8, "keys": 2, "elapsed_ms": 1800,
                                          "honeypot": "http://spam"}, "fp"), (False, "honeypot"))
+        # webdriver با تعاملِ انسانی رد نمی‌شود (مرورگرهای حریم‌خصوصی هم آن را
+        # روشن می‌کنند)؛ ولی رباتِ بی‌تعامل رد می‌شود.
         ch2, n2 = self.proof("fp")
-        self.assertEqual(self.hc.assess(ch2["token"], n2,
-                                        {"moves": 8, "keys": 2, "elapsed_ms": 1800,
+        ok, _reason = self.hc.assess(ch2["token"], n2,
+                                     {"moves": 8, "keys": 2, "elapsed_ms": 1800,
+                                      "webdriver": True}, "fp")
+        self.assertTrue(ok)
+        ch3, n3 = self.proof("fp")
+        self.assertEqual(self.hc.assess(ch3["token"], n3,
+                                        {"moves": 0, "keys": 0, "elapsed_ms": 1800,
                                          "webdriver": True}, "fp"), (False, "automation"))
 
     def test_fingerprint_is_coarse_and_stable(self):

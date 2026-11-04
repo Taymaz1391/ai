@@ -455,7 +455,7 @@ _CODEISH = re.compile(r"پایتون|python|جاوااسکریپت|(?<![\w\u200c
                       r"فایل|تابع|اسکریپت|دیباگ|خطا")
 
 
-def _topic_match(text: str):
+def _topic_match(text: str, with_score: bool = False):
     """موضوعی که بهترین امتیاز را دارد؛ واژهٔ داخلِ واژهٔ دیگر امتیازِ کمتری دارد."""
     text = _MARKS.sub("", _normalize(text)).lower()
     codeish = bool(_CODEISH.search(text))
@@ -478,7 +478,7 @@ def _topic_match(text: str):
         score = key_score + need_score - order * 0.001
         if score > best_score:
             best, best_score = topic, score
-    return best
+    return (best, best_score) if with_score else best
 
 
 # ------------------------------------------------------- روشِ عمومیِ چهارگامی
@@ -508,6 +508,22 @@ def topics() -> list[str]:
     return [t["id"] for t in _TOPICS]
 
 
+# پرسشِ دانشی (عدد، نام، تاریخ، مکان) راهنمای زندگی نمی‌خواهد؛ اگر دانشنامه
+# جوابش را نداشت، پاسخِ صادقانه از توصیهٔ بی‌ربط بهتر است. این نگهبان جلوی
+# همان خطایی را می‌گیرد که «معاهدهٔ ترکمانچای» را به «ساختنِ عادت» می‌برد.
+_FACTUAL_ASK = re.compile(
+    r"چیست|چیه|چقدر|چند(?:\s|$|\D)|چندمین|کجاست|کجای|کیست|کیه|کدام|کدوم|"
+    r"چه\s*سالی|در\s*چه\s*سال|چه\s*کسی|چه\s*نام|نامِ|نام\s|چرا|چند\s*(?:متر|کیلو|"
+    r"لیتر|درصد|گرم|سال|روز|بار|مصراع|بیت)|"
+    # «شاهنامه در چه وزنی…»، «در کدام دوره…»: پرسشِ دانشی، نه توصیهٔ کاهش وزن
+    r"در\s*چه|به\s*چه|چه\s*وزن|چه\s*زمان|چه\s*دوره|چه\s*شهری|در\s*کدام|"
+    r"کدام\s*شهر|کدام\s*دوره")
+
+
+def _is_factual(text: str) -> bool:
+    return bool(_FACTUAL_ASK.search(_MARKS.sub("", _normalize(text))))
+
+
 def answer(question: str) -> dict | None:
     """پاسخِ راهنمایی برای پرسش؛ اگر موضوعی نبود ``None``."""
     raw = (question or "").strip()
@@ -519,8 +535,14 @@ def answer(question: str) -> dict | None:
                                           r"چطور یک|چگونه یک", raw):
         return None
     text = _normalize(raw)
-    topic = _topic_match(text)
+    topic, topic_score = _topic_match(text, with_score=True)
     if topic:
+        # پرسشِ دانشی (عدد/نام/تاریخ) فقط وقتی راهنما می‌گیرد که خودِ کاربر
+        # «چطور/چگونه» خواسته باشد؛ «فشار خون طبیعی چقدر است» توصیهٔ سبکِ زندگی
+        # نمی‌خواهد، پاسخِ عددی می‌خواهد.
+        advice = _has(text, "چطور", "چگونه", "چه کار", "چی کار", "راهکار", "چجوری")
+        if _is_factual(raw) and not advice:
+            return None
         return {"answer": topic["build"](), "engine": "guide", "source": f"guide:{topic['id']}"}
     # پرسش‌های روش‌محورِ بی‌موضوع: «چطور X را انجام بدهم؟»
     if _has(text, "چطور", "چگونه") and len(re.findall(r"\w+", text)) >= 4:

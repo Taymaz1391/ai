@@ -28,8 +28,27 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+# نقطهٔ شروع فقط برای عقب‌نشینی؛ جفتِ واقعی از همان رجیستریِ سرور خوانده
+# می‌شود تا بنچمارکِ منتشرشده مالِ همان مدلی باشد که پاسخ می‌دهد (باگِ واقعی:
+# عددهای نسخهٔ بازنشسته روی مدلِ فعال می‌نشست).
 CHECKPOINT = ROOT / "checkpoints" / "rayan-1-small.npz"
 TOKENIZER = ROOT / "tokenizer" / "rayan_bpe.json"
+
+
+def released_pair() -> tuple[Path, Path]:
+    """اولین جفتِ (چک‌پوینت، توکنایزر) که سرور هم سرویس می‌دهد."""
+    try:
+        from web.server import (  # noqa: PLC0415 - فقط برای همین انتخاب
+            CHECKPOINT_CANDIDATES, TOKENIZER_BY_VOCAB, checkpoint_vocab,
+        )
+
+        for path, tokenizer in CHECKPOINT_CANDIDATES:
+            if os.path.exists(path):
+                vocab = checkpoint_vocab(path)
+                return Path(path), Path(TOKENIZER_BY_VOCAB.get(vocab, tokenizer))
+    except Exception:  # noqa: BLE001 - بدون سرور هم باید اجرا شود
+        pass
+    return CHECKPOINT, TOKENIZER
 DATA = ROOT / "data" / "benchmark.jsonl"
 REPORTS = ROOT / "reports"
 DOCS = ROOT / "docs"
@@ -128,7 +147,8 @@ def main() -> int:
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args()
 
-    if not CHECKPOINT.exists():
+    checkpoint, tokenizer = released_pair()
+    if not checkpoint.exists():
         print("checkpoint پیدا نشد؛ ابتدا مدل را آموزش بده.")
         return 1
 
@@ -146,7 +166,7 @@ def main() -> int:
             if engine is None:
                 from rayan.generate import Engine
 
-                engine = Engine(str(CHECKPOINT), str(TOKENIZER))
+                engine = Engine(str(checkpoint), str(tokenizer))
                 engine.warmup() if hasattr(engine, "warmup") else None
             results.append(run_generation(engine, item))
 
@@ -160,10 +180,11 @@ def main() -> int:
     latencies = [r["seconds"] for r in gen_rows] or [0.0]
     speeds = [r["tok_per_s"] for r in gen_rows] or [0.0]
 
+    info = engine.info() if engine is not None else {}
     summary = {
-        "model": "rayan-1-small",
-        "params": 6_574_848,
-        "checkpoint": CHECKPOINT.name,
+        "model": info.get("name") or checkpoint.stem,
+        "params": int(info.get("params") or 0),
+        "checkpoint": checkpoint.name,
         "run_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "wall_seconds": round(time.time() - started, 1),
         "tasks": len(results),
@@ -184,7 +205,7 @@ def main() -> int:
             "model": sum(1 for r in gen_rows if r.get("via") == "model"),
         },
         "cost_usd_per_million_tokens": 0.0,
-        "context_tokens": 256,
+        "context_tokens": (info.get("config") or {}).get("block_size") or 256,
         "opus_reference": OPUS,
         "results": results,
     }

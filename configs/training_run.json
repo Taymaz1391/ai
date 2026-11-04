@@ -74,5 +74,6 @@
     ]
   },
   "note": "خبر + ویکی‌پدیا + کتاب + شعر کلاسیک + تنظیم گفتگو",
-  "finished_at": "2026-10-31T23:28:24Z"
+  "finished_at": "2026-10-31T23:28:24Z",
+  "checkpoint": "checkpoints/rayan-2-base.npz"
 }

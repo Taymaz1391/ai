@@ -168,8 +168,6 @@ class HumanCheck:
         ev = evidence or {}
         if str(ev.get("honeypot") or "").strip():
             return False, "honeypot"
-        if ev.get("webdriver") is True:
-            return False, "automation"
         try:
             elapsed = float(ev.get("elapsed_ms") or 0)
         except (TypeError, ValueError):
@@ -181,6 +179,12 @@ class HumanCheck:
             moves = keys = 0
         if elapsed < MIN_FILL_TIME * 1000:
             return False, "too_fast"
+        # «webdriver» تنها یک نشانه است، نه حکم: برخی مرورگرهای حریم‌خصوصی و
+        # مرورگرهای درون‌برنامه‌ای هم آن را روشن می‌کنند و آدمِ واقعی پشتشان
+        # نشسته است. فقط وقتی ربات‌بودن محتمل است که هیچ تعامل انسانی هم نباشد
+        # (باگِ واقعی: ثبت‌نامِ کاربر واقعی با «مرورگر خودکار» رد می‌شد).
+        if ev.get("webdriver") is True and moves == 0 and keys == 0:
+            return False, "automation"
         if moves + keys < 2 and elapsed < 3000:
             return False, "no_interaction"
         return True, ""

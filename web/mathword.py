@@ -194,6 +194,51 @@ def _work_days(text: str) -> dict | None:
             "engine": "mathword", "source": "مسئلهٔ کلامی"}
 
 
+_UNIT_NAME = (r"(?:کیلو(?:گرم)?|گرم|عدد|تا|متر|سانتی‌متر|لیتر|بسته|دفتر|کتاب|نفر|ساعت|"
+              r"روز|ماه|هکتار|متر\s*مربع)")
+_UNIT = "(?:" + _UNIT_NAME + ")"
+_UNIT_GROUP = "(?:" + _UNIT_NAME + ")?"
+
+
+def _proportion(text: str) -> dict | None:
+    """قیمتِ چند واحد از قیمتِ چند واحدِ دیگر: «اگر ۳ کیلو ۱۸۰ هزار تومان است، ۵ کیلو چند؟»
+
+    قاعدهٔ سه‌تایی است و به ازای هر واحد حساب می‌شود؛ هیچ عددی حدس زده نمی‌شود.
+    """
+    norm = _plain(text)
+    question = re.search(r"(چند|چقدر|چه\s*مقدار)", norm)
+    if not question:
+        return None
+    match = re.search(
+        r"(\d+(?:\.\d+)?)\s*(?P<u1>" + _UNIT_NAME + r")?\s*[^\d]{0,18}?"
+        r"(\d+(?:\.\d+)?)\s*(هزار|میلیون|میلیارد)?\s*(تومان|ریال|دلار|یورو)?\s*"
+        r"(?:است|بود|باشد|می‌شود|می‌شه|باشه)?\s*[،,]?\s*"
+        r"(\d+(?:\.\d+)?)\s*(?P<u2>" + _UNIT_NAME + r")?\s*[^\d]{0,10}?"
+        r"(?:چند|چقدر|چه\s*مقدار)", norm)
+    if not match:
+        return None
+    n, u1, amount, scale, currency, m, u2 = match.groups()
+    unit = (u1 or u2 or "واحد").replace("کیلوگرم", "کیلو")
+    if not (scale or currency) or float(n) <= 0:
+        return None
+    parsed = parse_amount(" ".join(part for part in (amount, scale, currency or "") if part))
+    if not parsed:
+        return None
+    price, cur = parsed
+    if price <= 0:
+        return None
+    unit_price = price / float(n)
+    total = unit_price * float(m)
+    cur_text = f" {cur}" if cur else ""
+    return {
+        "answer": (f"**قاعدهٔ سه‌تایی:** {_fa(float(n))} {unit} {_fa(price)}{cur_text} است، پس هر {unit} "
+                   f"{_fa(unit_price)}{cur_text}.\n"
+                   f"**{_fa(float(m))} {unit} = {_fa(unit_price)} × {_fa(float(m))} = "
+                   f"{_fa(total)}{cur_text}**"),
+        "engine": "mathword", "tool": "mathword", "source": "مسئلهٔ کلامی",
+    }
+
+
 def _money_problem(text: str) -> dict | None:
     """خرید چند قلم و باقی‌ماندهٔ پول."""
     norm = _plain(text)
@@ -620,7 +665,8 @@ def answer(question: str) -> dict | None:
         return None
     if not re.search(r"\d", text):
         return None
-    for handler in (_triangle, _triangle_perimeter, _shape, _geometry, _discount, _workers_inverse,
+    for handler in (_proportion, _triangle, _triangle_perimeter, _shape, _geometry, _discount,
+                    _workers_inverse,
                     _rate, _work_days, _even_prime, _percent, _root,
                     _average, _fraction, _ratio,
                     _money_problem, _consecutive, _share, _primes, _age):

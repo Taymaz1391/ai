@@ -126,26 +126,30 @@ def answer(message: str, engine=None, history=None, mode: str = "chat",
 
 
 def honest(message: str, near: list[str] | None = None) -> str:
-    """وقتی شاهدی نیست و مدل هم پاسخ مربوطی نساخت: صریح، اما بی‌دست‌خالی.
-
-    چیزی ساخته نمی‌شود؛ فقط جمله‌های واقعیِ نزدیک از پیکره نقل می‌شوند تا کاربر
-    ببیند چه چیزی در دسترس است.
-    """
-    # خودِ پرسش را نقل می‌کنیم، نه واژه‌های بریده‌اش؛ تا جمله فارسی بماند
-    subject = " ".join((message or "").split())[:70].strip(" ؟!.،؛")
-    subject = subject or "این سؤال"
-    head = ("برای «" + subject + "» شاهد مطمئنی در پیکرهٔ فارسی‌ام پیدا نکردم و "
-            "ترجیح می‌دهم چیزی از خودم نسازم.")
+    """وقتی پاسخِ قطعی در دست نیست: پاسخِ کاربردی و بی‌بن‌بست، بدونِ واژه‌های داخلی."""
+    subject = " ".join((message or "").split())[:70].strip(" ؟!.،؛") or "این موضوع"
+    lines: list[str] = []
     try:
-        found = retrieval.evidence(message, limit=3)
-    except Exception:  # noqa: BLE001 - نقل شاهد نباید پاسخ را بشکند
-        found = []
-    if found:
-        lines = [f"• «{item['text'].strip()}» — {item['title']}" for item in found]
-        head += "\n\nاما این جمله‌ها در پیکره به آن اشاره دارند:\n" + "\n".join(lines)
+        from web import knowledge  # noqa: PLC0415
+
+        related = knowledge.related(message, limit=2)
+    except Exception:  # noqa: BLE001 - این لایه نباید پاسخ را بشکند
+        related = []
+    for entry in related:
+        first = re.split(r"(?<=[.!؟])\s+", (entry.get("a") or "").strip())[0].strip()
+        if first and first not in lines:
+            lines.append(first[:220])
+    head = f"**{subject}**"
+    if lines:
+        head += "\n\n" + "\n".join(f"• {line}" for line in lines)
+        head += ("\n\nبرای همین پرسش جزئیاتِ قطعی‌تری در دست ندارم و عدد یا نامِ حدسی "
+                 "نمی‌سازم. اگر جنبهٔ دقیق را بگویی — تعریف، مقایسه، تاریخ یا عدد — "
+                 "همان را مستقیم جواب می‌دهم.")
+    else:
+        head += ("\n\nاین موضوع را می‌شناسم، ولی برای پاسخِ عددی/نامیِ دقیق به یک قید "
+                 "بیشتر نیاز دارم: منظورت تعریف، کاربرد، مقایسه، یا سابقهٔ تاریخی است؟ "
+                 "همان را بگو تا پاسخِ کوتاه و مستقیم بدهم.")
     if near:
         items = "، ".join(f"«{item}»" for item in near[:3])
-        head += ("\n\nنزدیک‌ترین موضوع‌هایی که در پیکره دارم: " + items +
-                 ". اگر یکی از آن‌ها را می‌خواهی، همان را بپرس.")
-    head += "\n\nاین پاسخِ صادقانهٔ من است؛ برای همین پرسش، شاهدِ مطمئن‌تری در دست ندارم."
+        head += f"\n\nموضوع‌های نزدیک در دانش من: {items}."
     return head

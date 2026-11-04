@@ -30,7 +30,7 @@ _GREETING_OPEN = (
     "سلام{name}! آماده‌ام.",
 )
 _GREETING_NIGHT = (
-    "شب‌به‌خیر{name}! هنوز بیداری؟",
+    "سلام{name}! شب‌به‌خیر — هنوز بیداری؟",
     "سلام{name}! شب آرامی داشته باشی.",
 )
 _THANKS = (
@@ -87,7 +87,15 @@ def personalize(hit: dict, owner: dict | None = None, now: _dt.datetime | None =
     out = dict(hit)
     if skill == "greeting":
         pool = _GREETING_NIGHT if night else _GREETING_OPEN
-        out["answer"] = random.choice(pool).format(name=name) + "\n" + hit["answer"].split("\n", 1)[-1]
+        lead = random.choice(pool).format(name=name)
+        base = hit["answer"]
+        # پاسخِ «خوبی؟» خودش با «خوبم» شروع می‌شود؛ درودِ دوم رویش نمی‌گذاریم
+        # (باگِ واقعی: «سلام کاوشگر! آماده‌ام. خوبم، ممنون…» دو بار سلام می‌داد).
+        if re.match(r"^\s*خوبم", base):
+            out["answer"] = base
+        else:
+            base = re.sub(r"^\s*(?:سلام|درود)(?:\s*و\s*درود)?[!،,. ]*", "", base)
+            out["answer"] = (lead + " " + base).strip()
     elif skill == "thanks":
         # فقط تکیه‌کلامِ آغازین برداشته می‌شود، نه کلِجمله («سلامت باشی!» باید بماند)
         rest = re.sub(r"^\s*خواهش\s*می\u200cکنم[،,!.\s]*", "", hit["answer"]).strip()
@@ -103,6 +111,9 @@ def weak(message: str, reply: str, history: list[tuple[str, str]] | None = None)
     if len(text) < 6 or text in ("…", "...", "؟"):
         return True
     if degenerate(text):
+        return True
+    # واژه‌های داخلی هرگز نباید در پاسخِ کاربر ظاهر شوند؛ اگر آمدند، پاسخ درهم است
+    if re.search(r"مدل زبانی|پیکرهٔ فارسی|پیکره فارسی|توکن\b|داده‌آموزی|وزن‌های مدل", text):
         return True
     prev_user = ""
     for user_msg, _bot in reversed(history or []):
@@ -296,6 +307,17 @@ def _evidence_lines(message: str) -> list[str]:
     return [item["text"].strip() for item in found if item.get("text", "").strip()]
 
 
+_ADVICE = re.compile(r"چطور|چگونه|چه کار|چی کار|چه کنم|راهکار|پیشنهاد|توصیه|روش")
+_FACTUAL = re.compile(r"چیست|چیه|چقدر|کجاست|کیست|کیه|کدام|چه سال|در چه سال|چندمین|"
+                      r"چه کسی|چه نام|نامِ|چند\s*(?:متر|کیلو|لیتر|درصد|گرم|سال|روز|بار)")
+
+
+def _wants_advice(message: str) -> bool:
+    """پرسشِ دانشی («فشار خون طبیعی چقدر است») نصیحتِ عمومی نمی‌خواهد."""
+    text = message or ""
+    return bool(_ADVICE.search(text)) and not bool(_FACTUAL.search(text))
+
+
 def grounded(message: str) -> str:
     """پاسخِ بی‌بهانه: دانشنامه، بعد شاهدِ پیکره، و در نهایت راهنمای عملیِ همان حوزه."""
     subject = _subject(message) or "این پرسش"
@@ -307,22 +329,25 @@ def grounded(message: str) -> str:
     lines = _evidence_lines(message)
     if lines:
         bullets = "\n".join(f"• {line}" for line in lines)
-        body = f"دربارهٔ **{subject}** این نکته‌ها را می‌توان با اطمینان گفت:\n{bullets}"
+        body = f"**{subject}** — این‌ها را با اطمینان می‌دانم:\n{bullets}"
         if domain in _SCAFFOLD:
             body += "\n\n" + _SCAFFOLD[domain].split("\n")[0]
         return body
-    if domain in _SCAFFOLD:
-        return f"دربارهٔ **{subject}**:\n{_SCAFFOLD[domain]}"
-    # لایهٔ آخر: نزدیک‌ترین دانسته‌های بررسی‌شده + یک قدمِ روشن، نه بن‌بست
+    if domain in _SCAFFOLD and _wants_advice(message):
+        return f"**{subject}** —\n{_SCAFFOLD[domain]}"
+    # پاسخِ جزئیِ صادقانه: فقط چیزی که واقعاً دربارهٔ همین موضوع است
     near = _related_lines(message)
     if near:
         bullets = "\n".join(f"• {line}" for line in near)
-        return (f"نزدیک‌ترین دانسته‌های بررسی‌شده دربارهٔ **{subject}**:\n{bullets}\n\n"
-                f"اگر جنبهٔ دقیق‌تری از «{subject}» را بپرسی (تاریخ، عدد، نام، مکان)، همان را "
-                "با جزئیات می‌گویم.")
-    return (f"**{subject}** را می‌شناسم ولی جزئیاتِ قابل‌اتکایی برای همین پرسش در دانشنامه‌ام "
-            "ندارم؛ عدد یا نامِ دقیق را از خودم نمی‌سازم. اگر یکی از این‌ها را بپرسی، پاسخِ "
-            "دقیق می‌دهم: تعریف، کاربرد، تاریخ، مقایسه، یا نمونه.")
+        return (f"**{subject}** — دربارهٔ همین موضوع این را با اطمینان می‌دانم:\n{bullets}\n\n"
+                "اگر جنبهٔ دیگری منظورت است، همان را بگو (مثلاً نامِ کامل، سال یا کشور) تا "
+                "دقیق جواب بدهم.")
+    # جای بن‌بست: صریح می‌گویم نمی‌دانم و مسیرِ جایگزین می‌دهم؛ حدس نمی‌زنم
+    return (f"این یکی را با اطمینان نمی‌دانم: پاسخِ بررسی‌شده‌ای برای «{subject}» ندارم و حدس "
+            "هم نمی‌زنم.\n"
+            "یکی از این‌ها کمک می‌کند: نامِ کامل یا سالِ دقیق، یا همان پرسش را در قالبِ "
+            "«چطور…» بپرس. از این بخش‌ها مطمئنم: حساب و تبدیلِ واحد، ترجمهٔ واژه، نوشتن و "
+            "بازنویسی، و کدِ کوتاه.")
 
 
 def quality_flag(reply: str) -> str:

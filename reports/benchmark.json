@@ -1,20 +1,20 @@
 {
-  "model": "rayan-1-small",
-  "params": 6574848,
-  "checkpoint": "rayan-1-small.npz",
-  "run_at": "2026-10-31T15:11:21Z",
-  "wall_seconds": 0.5,
+  "model": "رایان ۳",
+  "params": 16889856,
+  "checkpoint": "rayan-3-sft.npz",
+  "run_at": "2026-11-02T18:34:19Z",
+  "wall_seconds": 0.9,
   "tasks": 20,
   "accuracy": {
-    "tools_percent": 100.0,
+    "tools_percent": 80.0,
     "clock_percent": 100.0,
     "normalize_percent": 100.0,
-    "generation_percent": 62.5
+    "generation_percent": 50.0
   },
   "latency": {
-    "generation_p50_s": 0.04,
-    "generation_max_s": 0.09,
-    "tokens_per_second_p50": 375.4
+    "generation_p50_s": 0.06,
+    "generation_max_s": 0.11,
+    "tokens_per_second_p50": 130.9
   },
   "engine_mix": {
     "skill": 1,
@@ -72,8 +72,8 @@
     {
       "id": "tool-calc-5",
       "kind": "tool",
-      "ok": true,
-      "got": 1
+      "ok": false,
+      "got": 8.1
     },
     {
       "id": "tool-now-1",
@@ -125,7 +125,7 @@
         "chars": true,
         "keyword": true
       },
-      "answer": "سلام! من رایان هستم — دستیار فارسیِ خودت، که روی همین سرور اجرا می‌شود.\nمی‌توانم گفتگو کنم، متن را ادامه بدهم، شعر بگویم، حساب کنم، تاریخ شمسی بدهم، و اگر دکمهٔ «وب» را روشن کنی، با منبع و لینک جواب بدهم. چه کاری شروع کنیم؟",
+      "answer": "سلام! من رایان هستم — دستیار فارسی‌ات.\nپرسش دانشی را جواب می‌دهم، متن می‌نویسم و بازنویسی می‌کنم، حساب و تاریخ شمسی را دقیق انجام می‌دهم و کد می‌نویسم. همین‌جا بپرس؛ شروع کنیم.",
       "seconds": 0.0,
       "tokens": 0,
       "tok_per_s": 0.0,
@@ -153,24 +153,24 @@
         "chars": true,
         "persian": true
       },
-      "answer": "من رایان که از صفر آغاز شد، ادامه داد: هر کاری کوتاه مدت چند روز جمعه در کشور انجام می‌شود و در خانه کار و با این کار به روی کار می‌آید.",
-      "seconds": 0.09,
-      "tokens": 34,
-      "tok_per_s": 398.45636034948603,
+      "answer": "دوتا از آن یک دهانه های اقر در این روستا به صورت بزرگ شده است.",
+      "seconds": 0.11,
+      "tokens": 18,
+      "tok_per_s": 171.7647358602175,
       "via": "model"
     },
     {
       "id": "gen-4",
       "kind": "generation",
-      "ok": true,
+      "ok": false,
       "checks": {
-        "chars": true,
+        "chars": false,
         "persian": true
       },
-      "answer": "ریاضی چیست؟ یک سال گذشته به انگلیسی و سبک انگلیسی است که به فارسی و «سلامت، زندگی خود را ترک کرده است.",
+      "answer": "المژن، نام های ز.",
       "seconds": 0.06,
-      "tokens": 24,
-      "tok_per_s": 412.6153694807431,
+      "tokens": 9,
+      "tok_per_s": 153.1500718105176,
       "via": "model"
     },
     {
@@ -181,10 +181,10 @@
         "chars": true,
         "keyword": false
       },
-      "answer": "من هم تو را به دنبال می‌خواهد. از دو طرف یک زن چه می‌گرداند.",
-      "seconds": 0.05,
-      "tokens": 18,
-      "tok_per_s": 377.92197026580567,
+      "answer": "تموالاز شهرهای شهرستان ** که برای این شهر واقع شده است.",
+      "seconds": 0.11,
+      "tokens": 16,
+      "tok_per_s": 143.69283343682417,
       "via": "model"
     },
     {
@@ -195,10 +195,10 @@
         "chars": true,
         "persian": true
       },
-      "answer": "از تو بیدار می‌شوی تا به زمین و شب رمضان را کنار نمی‌بینیم.",
-      "seconds": 0.03,
-      "tokens": 15,
-      "tok_per_s": 443.0977265684424,
+      "answer": "حسن بن محمد حسن و شهرستان در دهستان استبتوضیح بده.",
+      "seconds": 0.06,
+      "tokens": 12,
+      "tok_per_s": 209.77113897039212,
       "via": "model"
     },
     {
@@ -209,10 +209,10 @@
         "chars": true,
         "keyword": false
       },
-      "answer": "مدل زبانی فارسی که برای من از صفر ساخته شده‌اند؟ چه بسا یک مدل کوچک از صفر آموزش دیده نمی‌دانم.",
+      "answer": "دولا (زاده شد.",
       "seconds": 0.06,
-      "tokens": 24,
-      "tok_per_s": 372.79250439774097,
+      "tokens": 7,
+      "tok_per_s": 115.61381374286277,
       "via": "model"
     },
     {
@@ -223,10 +223,10 @@
         "chars": true,
         "keyword": false
       },
-      "answer": "یادگیری ماشین روشی است که از صفر ساخته شده است.",
-      "seconds": 0.03,
-      "tokens": 10,
-      "tok_per_s": 323.06123392128166,
+      "answer": "از شهرهای استان هرمزگان است.",
+      "seconds": 0.05,
+      "tokens": 6,
+      "tok_per_s": 118.07291050868452,
       "via": "model"
     }
   ]
