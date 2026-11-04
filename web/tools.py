@@ -227,11 +227,13 @@ _DIGITS = str.maketrans(
     "01234567890123456789*/-.-",
 )
 _MATH_WORDS = [
-    (r"\s*(?:ضربدر|ضرب در|×|✕)\s*", "*"),
+    (r"[\s\u200c]*(?:ضربدر|ضرب در|×|✕)[\s\u200c]*", "*"),
     (r"\s*(?:تقسیم بر|تقسیمدر|÷)\s*", "/"),
-    (r"\s*(?:به\s*علاوهٔ?|بهعلاوه|بعلاوه|جمع)\s*", "+"),
-    (r"\s*(?:منهای|منها|تفریق)\s*", "-"),
-    (r"\s*(?:به\s*توان|توان)\s*", "^"),
+    (r"[\s\u200c]*(?:به[\s\u200c]*علاوهٔ?|بعلاوه|جمع)[\s\u200c]*", "+"),
+    (r"[\s\u200c]*(?:منهای|منها|تفریق)[\s\u200c]*", "-"),
+    (r"[\s\u200c]*(?:به[\s\u200c]*توان|توان)[\s\u200c]*", "^"),
+    # باقی‌مانده: «۸۱ mod ۱۰» و «۸۱ مود ۱۰» همان «%» است
+    (r"[\s\u200c]*(?:\bmod\b|مود|باقی[\s\u200c]*ماندهٔ?)[\s\u200c]*", " % "),
 ]
 
 
@@ -244,11 +246,20 @@ def normalize_math(text: str) -> str:
 
 
 _PERCENT = re.compile(r"(\d+(?:\.\d+)?)\s*(?:٪|%|درصد)\s*(?:از|از مبلغ|از عدد)?\s*(\d+(?:\.\d+)?)")
+# «۸۱ % ۱۰» باقی‌مانده است، نه درصد؛ درصدِ بی‌واژه («۲۵% از ۸۰») جدا می‌شود.
+_MODULO = re.compile(r"(?:^|[^\d.])(\d+)\s*%\s*(\d+)(?![\d.]*\s*(?:از|درصد|٪|%))")
 
 
 def detect(text: str) -> dict | None:
     """تشخیص خودکار ابزار از متن کاربر (بدون هزینه و بدون مدل)."""
     raw = text.strip()
+    # باقی‌مانده: «۸۱ % ۱۰» یا «۸۱ mod ۱۰» — دو عددِ صحیح با فاصله در دو طرف ٪
+    mod = _MODULO.search(raw.translate(_DIGITS))
+    if mod:
+        left, right = int(mod.group(1)), int(mod.group(2))
+        if right:
+            return {"ok": True, "tool": "calc", "expression": f"{left} % {right}",
+                    "value": left % right}
     # درصد: «۲۵ ٪ از ۸۰» یا «۲۵ درصد ۸۰»
     pct = _PERCENT.search(raw.translate(_DIGITS))
     if pct:
@@ -268,7 +279,9 @@ def detect(text: str) -> dict | None:
             out["tool"] = "calc"
             return out
     asks_time = re.search(r"(ساعت چند|تاریخ امروز|چه روزی|امروز چندم|امروز چندمه)", raw)
-    unrelated = re.search(r"کیلومتر|متر|تومان|درصد|٪|مسافت|سرعت|ضرب|تقسیم", raw)
+    # پرسشِ برنامه‌نویسی («در پایتون چطور تاریخِ امروز را بگیرم؟») تاریخِ امروز نمی‌خواهد
+    codey = re.search(r"پایتون|پایتون|python|کد|تابع|اسکریپت|برنامه ?نویسی", raw, re.I)
+    unrelated = re.search(r"کیلومتر|متر|تومان|درصد|٪|مسافت|سرعت|ضرب|تقسیم", raw) or codey
     if asks_time and not unrelated:
         out = now_tool()
         if out.get("ok"):
@@ -278,3 +291,74 @@ def detect(text: str) -> dict | None:
     if conv:
         return None
     return None
+
+
+# ── روزِ هفته پس از چند روز ────────────────────────────────────────────────
+_FA_WEEK = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"]
+_WEEK_ALIASES = {
+    "شنبه": 0, "یکشنبه": 1, "یک شنبه": 1, "یک‌شنبه": 1, "دوشنبه": 2, "دو شنبه": 2,
+    "دو‌شنبه": 2, "سه‌شنبه": 3, "سه شنبه": 3, "سه‌ شنبه": 3, "چهارشنبه": 4,
+    "چهار شنبه": 4, "پنجشنبه": 5, "پنج شنبه": 5, "پنج‌شنبه": 5, "جمعه": 6,
+}
+_DAY_WORDS = {"یک": 1, "دو": 2, "سه": 3, "چهار": 4, "پنج": 5, "شش": 6, "شیش": 6,
+              "هفت": 7, "هشت": 8, "نه": 9, "ده": 10, "یازده": 11, "دوازده": 12}
+
+
+def weekday_shift(question: str) -> dict | None:
+    """«اگر امروز سه‌شنبه باشد، پنج روز بعد چه روزی است؟» → پاسخِ دقیق با محاسبه."""
+    text = (question or "").translate(_FA_DIGIT_MAP) if "_FA_DIGIT_MAP" in globals() else (question or "")
+    text = text.replace("\u200c", "")
+    names = "|".join(sorted((n.replace("\u200c", "") for n in _WEEK_ALIASES), key=len, reverse=True))
+    hit = re.search(rf"(?P<start>{names})\s*(?:باشد|است|بود|هست)?[،,]?\s*"
+                    rf"(?P<count>[\d]+|{'|'.join(_DAY_WORDS)})\s*روز\s*"
+                    rf"(?P<dir>بعد|دیگر|بعدتر|قبل|پیش)", text)
+    if not hit or not re.search(r"روز|هفته", text) or "چه روز" not in text and "کدام روز" not in text:
+        return None
+    start_word = hit.group("start").strip()
+    start = next((idx for word, idx in _WEEK_ALIASES.items()
+                  if word.replace("\u200c", "") == start_word), None)
+    if start is None:
+        return None
+    raw = hit.group("count")
+    count = int(raw) if raw.isdigit() else _DAY_WORDS.get(raw)
+    if not count:
+        return None
+    step = -count if hit.group("dir") in ("قبل", "پیش") else count
+    target = (start + step) % 7
+    direction = "بعد" if step > 0 else "قبل"
+    return {
+        "engine": "tool",
+        "answer": (f"اگر امروز **{_FA_WEEK[start]}** باشد، {_fa_number(count)} روز {direction} "
+                   f"می‌شود **{_FA_WEEK[target]}**.\n\n"
+                   f"({_FA_WEEK[start]} + {_fa_number(count)} روز = {_FA_WEEK[target]})"),
+    }
+
+
+def _fa_number(value: int) -> str:
+    return str(value).translate(str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹"))
+
+
+# ── نرخِ ارز: عددِ حدسی ممنوع ───────────────────────────────────────────────
+_CURRENCY = re.compile(r"(دلار|یورو|درهم|لیر|پوند|تومان|ریال|ارز)")
+_PORTION = re.compile(r"(چند|قیمت|نرخ|برابر|معادل|چقدر)")
+
+
+def currency_hint(text: str) -> dict | None:
+    """پرسشِ نرخِ ارز را صادقانه و کاربردی جواب می‌دهد، نه با عددِ حدسی.
+
+    نرخِ ارز روزانه عوض می‌شود؛ این سرویس فیدِ زندهٔ نرخ ندارد و گفتنِ عددِ
+    قدیمی یا تخیلی، بدتر از نگفتن است.
+    """
+    raw = (text or "").strip()
+    if len(raw) > 120:
+        return None
+    if not (_CURRENCY.search(raw) and _PORTION.search(raw)):
+        return None
+    if re.search(r"تاریخچه|چرا|علت|تأثیر|قانون|تحریم", raw):
+        return None
+    return {"answer": "نرخِ لحظه‌ایِ ارز را ندارم و عددِ حدسی هم نمی‌گویم؛ نرخ هر روز "
+                      "عوض می‌شود و پاسخِ قدیمی گمراه‌کننده است.\n\n"
+                      "دو راه: کلید «وب» را روشن کن تا از منبعِ زنده بخوانم، یا همین‌جا "
+                      "نرخِ روز را بنویس (مثلاً «دلار ۹۰ هزار تومان») تا تبدیل و "
+                      "درصدها را دقیق حساب کنم.",
+            "engine": "hint"}

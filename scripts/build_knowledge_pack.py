@@ -9,11 +9,14 @@
 """
 from __future__ import annotations
 
+import argparse
 import json
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "knowledge-pack.jsonl"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 ROWS: list[tuple[str, str, str]] = [
     # ── جغرافیا و کشورها ────────────────────────────────────────────────
@@ -347,6 +350,11 @@ ROWS += [
      "پرتکرارترین دلیل‌ها: روشنایی زیاد صفحه، برنامه‌های پس‌زمینه، اعلان‌های پی‌درپی، بلوتوث و GPS همیشه‌روشن، و باتریِ کهنه. روشنایی خودکار و شارژ بین ۲۰ تا ۸۰ درصد عمر باتری را می‌کشد."),
 ]
 
+# ردیف‌های تازه در فایلِ جدا نگه داشته می‌شوند تا دیفِ منطقِ ساخت کوچک بماند
+from knowledge_extra import ROWS as EXTRA_ROWS  # noqa: E402
+
+ROWS.extend(EXTRA_ROWS)
+
 # ── پایتخت‌ها: به‌جای نوشتنِ دستی، از یک نقشه ساخته می‌شوند ──────────────
 CAPITALS = {
     "ایران": "تهران", "فرانسه": "پاریس", "آلمان": "برلین", "انگلستان": "لندن",
@@ -373,24 +381,95 @@ for country, city in CAPITALS.items():
                  f"پایتخت {country} **{city}** است."))
 
 
+REFRESH = False
+
+
 def main() -> None:
-    seen: set[str] = set()
-    rows: list[dict] = []
+    global REFRESH
+    parser = argparse.ArgumentParser(description="ساخت/ادغام بستهٔ دانش")
+    parser.add_argument("--out", default=str(OUT), help="مسیر خروجی (پیش‌فرض: بستهٔ پروژه)")
+    parser.add_argument("--refresh", action="store_true",
+                        help="متنِ ردیف‌های موجود را با متنِ این اسکریپت هم‌سان کن")
+    args = parser.parse_args()
+    REFRESH = args.refresh
+    """بسته را **می‌سازد و با فایلِ موجود ادغام می‌کند**، نه بازنویسی.
+
+    ردیف‌هایی که در این اسکریپت نیستند (افزوده‌های دستی/پنلِ مدیر) حفظ می‌شوند؛
+    وگرنه یک بار اجرا صدها ردیفِ داده‌شده را بی‌صدا پاک می‌کرد — همین اتفاق
+    واقعاً رخ داد. نسخهٔ قبلی هم اگر در ROWS باشد با نسخهٔ تازه جایگزین می‌شود.
+    """
+    out_path = Path(args.out)
+    curated: list[dict] = []
+    if out_path.exists():
+        for line in out_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            if row.get("q"):
+                curated.append(row)
+
+    built: list[dict] = []
     for question, keys, answer in ROWS:
         question = question.strip()
-        if not question or question in seen:
+        if not question:
             continue
-        seen.add(question)
-        rows.append({
-            "id": f"pack-{len(rows) + 1:03d}",
+        built.append({
             "q": question,
             "keys": [key.strip() for key in keys.split("/") if key.strip()],
             "a": answer.strip(),
             "source": None,
         })
-    OUT.write_text("\n".join(json.dumps(row, ensure_ascii=False) for row in rows) + "\n",
-                   encoding="utf-8")
-    print(f"{len(rows)} ردیف در {OUT}")
+
+    # ترتیب پایدار: ردیف‌های موجود سرِ جای خود می‌مانند (تا id و دیف عوض نشود)؛
+    # اگر همان پرسش در ROWS به‌روز شده باشد، متنِ تازه جایش می‌نشیند.
+    fresh = {row["q"]: row for row in built}
+    merged: list[dict] = []
+    seen: set[str] = set()
+    for row in curated:
+        q = row.get("q", "").strip()
+        if not q or q in seen:
+            continue
+        seen.add(q)
+        if q in fresh and REFRESH:
+            # فقط با --refresh متنِ موجود با متنِ اسکریپت جایگزین می‌شود؛
+            # پیش‌فرض این است که ویرایش‌های دستی/پنل دست‌نخورده بمانند.
+            updated = fresh[q]
+            updated["id"] = row.get("id")
+            merged.append(updated)
+        else:
+            merged.append(row)
+    added = 0
+    used_ids = {row.get("id") for row in merged}
+    next_id = len(merged) + 1
+    for row in built:
+        if row["q"] in seen:
+            continue
+        seen.add(row["q"])
+        # شناسهٔ یکتا: شناسهٔ تکراری در load() باعث می‌شد ردیفِ تازه دور ریخته شود
+        while f"pack-{next_id:03d}" in used_ids:
+            next_id += 1
+        row["id"] = f"pack-{next_id:03d}"
+        used_ids.add(row["id"])
+        merged.append(row)
+        added += 1
+
+    # ترتیبِ کلیدها مثل فایلِ موجود تا دیفِ هر بار اجرا فقط تغییرهای واقعی باشد
+    ordered = []
+    for index, row in enumerate(merged, start=1):
+        ordered.append({
+            "id": row.get("id") or f"pack-{index:03d}",
+            "q": row.get("q", ""),
+            "keys": row.get("keys") or [],
+            "a": row.get("a", ""),
+            "source": row.get("source"),
+        })
+    out_path.write_text("\n".join(json.dumps(row, ensure_ascii=False) for row in ordered) + "\n",
+                        encoding="utf-8")
+    print(f"{len(built)} ردیفِ ساخته‌شده، {added} ردیفِ تازه → {len(merged)} ردیف در {out_path}")
 
 
 if __name__ == "__main__":

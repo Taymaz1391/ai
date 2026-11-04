@@ -1,0 +1,12 @@
+{
+  "status": "architecture_plan_only_not_trained",
+  "model": {
+    "vocab_size": 64000,
+    "block_size": 4096,
+    "n_layer": 80,
+    "n_head": 80,
+    "n_embd": 10240
+  },
+  "tokens_per_parameter": 20,
+  "note": "Shape-compatible with rayan.model; not a checkpoint or a distributed training implementation. The current NumPy trainer is not suitable for training at this scale."
+}

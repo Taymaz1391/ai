@@ -160,8 +160,11 @@ class ApiTest(unittest.TestCase):
     def test_multi_turn_history(self):
         first = self.client.post("/api/chat", json={"message": "سلام", "max_new_tokens": 16,
                                                     "session_id": "mt-1"}).json()
+        # پیامِ دوم باید به خودِ مدل برسد (نه لایهٔ مهارت)، وگرنه تاریخچه اصلاً
+        # به مدل داده نمی‌شود و آزمون چیزی را که می‌سنجد نمی‌بیند.
         second = self.client.post("/api/chat", json={
-            "message": "خوبی؟", "conversation_id": first["conversation_id"], "max_new_tokens": 16,
+            "message": "یک کتاب خوب چه ویژگی‌هایی دارد؟",
+            "conversation_id": first["conversation_id"], "max_new_tokens": 16,
         }).json()
         self.assertGreater(second["stats"]["prompt_tokens"], first["stats"]["prompt_tokens"])
 
@@ -526,3 +529,16 @@ class V3Test(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_limit_env_override(monkeypatch):
+    """سقفِ سهمیه در آزمون/local با متغیر محیطی بالا می‌رود و پیش‌فرض دست‌نخورده است."""
+    from web import server
+    monkeypatch.delenv("RAYAN_LIMIT_GUEST_CHAT", raising=False)
+    assert server._limit("guest", "chat") == server.DEFAULT_LIMITS["guest"]["chat"]
+    monkeypatch.setenv("RAYAN_LIMIT_GUEST_CHAT", "10000")
+    assert server._limit("guest", "chat") == 10000
+    monkeypatch.setenv("RAYAN_LIMIT_GUEST_CHAT", "0")
+    assert server._limit("guest", "chat") == server.DEFAULT_LIMITS["guest"]["chat"]
+    monkeypatch.setenv("RAYAN_LIMIT_GUEST_CHAT", "abc")
+    assert server._limit("guest", "chat") == server.DEFAULT_LIMITS["guest"]["chat"]

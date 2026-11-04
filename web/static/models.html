@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>قدرت‌ها · رایان</title>
-  <meta name="description" content="پلن‌های رایان: مهمان، رایگان و حرفه‌ای. همه روی همین سرور و با مدل فارسی خودمان.">
+  <title>مدل‌ها و قدرت‌ها · رایان</title>
+  <meta name="description" content="مدل فارسی رایان و کارهایی که انجام می‌دهد؛ مشخصات و اعدادِ واقعیِ همان مدلی که در حال گفتگوست.">
   <meta name="theme-color" content="#ffffff">
   <link rel="icon" href="/static/assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/static/assets/icons/apple-touch-icon.png">
@@ -28,7 +28,9 @@
       <nav class="nav-links" aria-label="پیمایش اصلی">
         <a class="nav-link" href="/#features">قابلیت‌ها</a>
         <a class="nav-link" href="/#why">تفاوت رایان</a>
-        <a class="nav-link" href="/models">مدل‌ها</a>
+        <a class="nav-link" href="/models" aria-current="page">مدل‌ها</a>
+        <a class="nav-link" href="/compare">میزان</a>
+        <a class="nav-link" href="/pricing">قیمت‌ها</a>
         <a class="nav-link" href="/support">پشتیبانی</a>
       </nav>
       <div class="nav-actions">
@@ -78,6 +80,64 @@
       </div>
     </section>
 
+
+    <section class="section" id="model" aria-labelledby="model-title">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">شفاف</span>
+          <h2 class="section-title" id="model-title">همین مدلی که با شما حرف می‌زند</h2>
+          <p class="section-sub">
+            این اعداد از خودِ فایلِ مدلِ در حال اجرا خوانده می‌شوند، نه از یک گزارش قدیمی.
+            اگر مدل عوض شود، این جدول هم عوض می‌شود.
+          </p>
+        </div>
+
+        <div class="model-grid" id="model-grid">
+          <article class="card model-card" data-role="active">
+            <div class="model-card-head">
+              <span class="tag tag-blue" id="model-badge">در حال خواندن…</span>
+              <h3 id="model-name">—</h3>
+            </div>
+            <p class="model-card-desc" id="model-desc">در حال خواندن مشخصات مدل…</p>
+            <dl class="model-facts" id="model-facts"></dl>
+          </article>
+          <article class="card model-card" data-role="archive" hidden>
+            <div class="model-card-head">
+              <span class="tag" id="archive-badge">قبلی</span>
+              <h3 id="archive-name">—</h3>
+            </div>
+            <p class="model-card-desc" id="archive-desc">—</p>
+            <dl class="model-facts" id="archive-facts"></dl>
+          </article>
+        </div>
+
+        <div class="eval-wrap card card-glow">
+          <h3>سنجش روی دادهٔ نگه‌داشته‌شده</h3>
+          <p class="muted eval-note">
+            متنِ نگه‌داشته‌شده هیچ‌وقت در آموزش نبوده است. عددهای پایین از همان
+            چک‌پوینتی می‌آید که پاسخ می‌دهد.
+          </p>
+          <table class="table eval-table" id="eval-table">
+            <thead><tr><th>سنجه</th><th>مقدار</th><th>معنی</th></tr></thead>
+            <tbody>
+              <tr><td>خطای نگه‌داشته</td><td data-eval="val_loss">—</td><td>کمتر بهتر است</td></tr>
+              <tr><td>سرگشتگی</td><td data-eval="ppl">—</td><td>نسخهٔ نماییِ همان خطا</td></tr>
+              <tr><td>بیت بر نویسه</td><td data-eval="bpc">—</td><td>مستقل از واژگان</td></tr>
+              <tr><td>توکن‌های دیده‌شده</td><td data-eval="tokens">—</td><td>در همین مرحلهٔ آموزش</td></tr>
+              <tr><td>گام‌های آموزش</td><td data-eval="steps">—</td><td>—</td></tr>
+              <tr><td>پنجرهٔ متن</td><td data-eval="context">—</td><td>توکن در هر نوبت</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="showcase-note">
+          <span class="dot-live"></span>
+          <span>مقایسهٔ کامل و سرعتِ واقعی در صفحهٔ «میزان» است.</span>
+          <a href="/compare" class="link-arrow">دیدن میزان ←</a>
+        </div>
+      </div>
+    </section>
+
     <section class="section-sm">
       <div class="wrap" style="text-align:center">
         <a class="btn btn-primary btn-lg" href="/chat">شروع گفتگو</a>
@@ -89,5 +149,6 @@
   <script src="/static/session.js"></script>
   <script src="/static/config.js"></script>
   <script src="/static/ui.js"></script>
+  <script src="/static/models.js"></script>
 </body>
 </html>

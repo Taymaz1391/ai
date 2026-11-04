@@ -30,7 +30,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse, RedirectResponse,
                                StreamingResponse)
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # وقتی این فایل مستقیم اجرا می‌شود، پوشهٔ web اول sys.path است و ماژول‌های خودی
@@ -51,6 +51,7 @@ from web import owner as owner_module  # noqa: E402
 from web import search as search_module  # noqa: E402
 from web import skills as skills_module
 from web import tutor as tutor_module  # noqa: E402
+from web import howto as howto_module  # noqa: E402
 from web import writer as writer_module  # noqa: E402
 from web import mailer as mailer_module  # noqa: E402
 from web import knowledge as knowledge_module  # noqa: E402
@@ -63,19 +64,32 @@ from web import reason as reason_module  # noqa: E402
 
 STATIC_DIR = os.path.join(ROOT, "web", "static")
 # هر checkpoint توکنایزر خودش را دارد؛ جفت‌ها به‌ترتیب اولویت آمده‌اند.
+# ترتیب = اولویت. مدلِ آموزش‌دیدهٔ SFT اول می‌آید؛ «last.npz» فقط نسخهٔ موقتِ
+# حلقهٔ آموزش است و نباید مدلِ سرویس شود (باگِ واقعی: سایت مدلِ ۶.۶M را سرو می‌کرد
+# در حالی که مدلِ ۱۶.۹M با lossِ بهتر موجود بود).
 CHECKPOINT_CANDIDATES = [
-    (os.path.join(ROOT, "checkpoints", "last.npz"), os.path.join(ROOT, "tokenizer", "rayan_bpe_16k.json")),
+    (os.path.join(ROOT, "checkpoints", "rayan-3-sft.npz"), os.path.join(ROOT, "tokenizer", "rayan_bpe_16k.json")),
     (os.path.join(ROOT, "checkpoints", "rayan-2-base.npz"), os.path.join(ROOT, "tokenizer", "rayan_bpe_16k.json")),
     (os.path.join(ROOT, "checkpoints", "rayan-1-small.npz"), os.path.join(ROOT, "tokenizer", "rayan_bpe.json")),
+    (os.path.join(ROOT, "checkpoints", "last.npz"), os.path.join(ROOT, "tokenizer", "rayan_bpe.json")),
 ]
 CHECKPOINTS = [path for path, _ in CHECKPOINT_CANDIDATES]
 TOKENIZER_BY_VOCAB = {16000: os.path.join(ROOT, "tokenizer", "rayan_bpe_16k.json"),
                       10000: os.path.join(ROOT, "tokenizer", "rayan_bpe.json")}
 TOKENIZER_PATH = CHECKPOINT_CANDIDATES[0][1]
-METRICS_CANDIDATES = [
-    os.path.join(ROOT, "logs", "metrics-v2.jsonl"),
-    os.path.join(ROOT, "logs", "metrics.jsonl"),
-]
+# هر چک‌پوینت گزارشِ آموزشِ خودش را دارد؛ نمایشِ گزارشِ یک اجرای دیگر روی
+# کارتِ مدلِ فعال، عددِ نادرست است (باگِ واقعی: کارتِ رایان ۳ عددهای رایان ۲ را
+# نشان می‌داد چون هر دو همان تعداد پارامتر را دارند).
+METRICS_BY_CHECKPOINT = {
+    "rayan-3-sft.npz": os.path.join(ROOT, "logs", "rayan3-sft.jsonl"),
+    "rayan-2-base.npz": os.path.join(ROOT, "logs", "metrics-v2.jsonl"),
+    "rayan-2-last.npz": os.path.join(ROOT, "logs", "metrics-v2.jsonl"),
+    "rayan-1-small.npz": os.path.join(ROOT, "logs", "metrics.jsonl"),
+    "last.npz": os.path.join(ROOT, "logs", "metrics.jsonl"),
+}
+METRICS_CANDIDATES = [*METRICS_BY_CHECKPOINT.values(),
+                      os.path.join(ROOT, "logs", "metrics-v2.jsonl"),
+                      os.path.join(ROOT, "logs", "metrics.jsonl")]
 METRICS_PATH = next((p for p in METRICS_CANDIDATES if os.path.exists(p)), METRICS_CANDIDATES[0])
 RUN_CONFIG_PATH = os.path.join(ROOT, "configs", "training_run.json")
 CORPUS_STATS_PATH = os.path.join(ROOT, "data", "corpus_stats.json")
@@ -119,10 +133,35 @@ def _note_latency(seconds: float | None) -> None:
         _recent_times.append(time.time())
 
 # --------------------------------------------------------------- محدودیت‌ها
-LIMITS = {
+DEFAULT_LIMITS = {
     "guest": {"chat": 25, "deep": 10},
     "free": {"chat": 200, "deep": 80},
     "pro": {"chat": 3000, "deep": 1200},
+}
+
+
+def _limit(plan: str, kind: str) -> int:
+    """سقفِ سهمیه؛ پیش‌فرض همان مقدارِ تولیدی است.
+
+    سنجشِ کیفیت با ۴۰ پرسش از سهمیهٔ ۲۵تاییِ مهمان می‌گذرد و بقیهٔ نمونه‌ها
+    ۴۲۹ می‌شوند؛ آن‌وقت عددِ سنجش بی‌معنی است. پس فقط برای اجرای محلی و
+    آزمون‌ها می‌توان با RAYAN_LIMIT_GUEST_CHAT بالا بردش. مقدارِ تولیدی دست
+    نمی‌خورد مگر کسی خودش متغیر را ست کند.
+    """
+    default = DEFAULT_LIMITS.get(plan, DEFAULT_LIMITS["guest"])[kind]
+    raw = os.environ.get(f"RAYAN_LIMIT_{plan.upper()}_{kind.upper()}")
+    if raw is None or not raw.strip():
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
+LIMITS = {
+    plan: {kind: _limit(plan, kind) for kind in kinds}
+    for plan, kinds in DEFAULT_LIMITS.items()
 }
 
 # مدل‌های آرشیوی/آینده ثابت‌اند؛ مدل فعالِ فهرست از خودِ checkpoint ساخته می‌شود
@@ -141,18 +180,26 @@ ARCHIVE_MODELS = [
         "strengths": ["گفتگوی کوتاه فارسی", "ادامهٔ متن", "بیت کلاسیک"],
     },
     {
-        "id": "rayan-3",
-        "name": "رایان ۳",
-        "tagline": "در نقشهٔ راه",
-        "params": 0,
-        "context": 1024,
-        "status": "planned",
-        "badge": "نقشهٔ راه",
-        "desc": "نسخهٔ بعدی با آموزش دستوری و ارزیابی استاندارد فارسی؛ روی GPU، نه CPU.",
+        "id": "rayan-2",
+        "name": "رایان ۲ — پایه",
+        "tagline": "پیش‌آموزش، بدون تنظیم دستور",
+        "params": 16_889_856,
+        "context": 256,
+        "status": "archived",
+        "badge": "قبلی",
+        "desc": "پایهٔ ۱۶٫۹ میلیون پارامتری پیش از مرحلهٔ تنظیم دستورمحور؛ همان معماری مدل فعال.",
         "latency": "—",
-        "strengths": ["پیروی از دستور", "ارزیابی استاندارد", "گفتگوی چندنوبتی"],
+        "strengths": ["ادامهٔ متن", "بیت کلاسیک", "متن آزاد"],
     },
 ]
+
+
+def _bind_metrics_to(checkpoint: str) -> None:
+    """گزارشِ آموزشِ همان چک‌پوینتی که سرویس می‌شود را انتخاب کن."""
+    global METRICS_PATH
+    mapped = METRICS_BY_CHECKPOINT.get(os.path.basename(str(checkpoint or "")))
+    if mapped and os.path.exists(mapped):
+        METRICS_PATH = mapped
 
 
 def _run_config() -> dict:
@@ -188,7 +235,29 @@ def _run_config_for_active() -> dict:
     active = _active_params()
     if owned and active and owned != active:
         return {}
+    # پارامترِ برابر کافی نیست (رایان ۳ و رایان ۲ هر دو ۱۶٫۹M هستند)؛ نامِ
+    # چک‌پوینت هم باید بخواند.
+    run_ckpt = os.path.basename(str(run.get("checkpoint") or ""))
+    if run_ckpt and engine is not None:
+        if run_ckpt != os.path.basename(engine.checkpoint):
+            return {}
     return run
+
+
+def _model_id(checkpoint: str) -> str:
+    """شناسهٔ مدل از نامِ چک‌پوینت، نه از گزارشِ یک اجرای دیگر.
+
+    «rayan-3-sft.npz» → «rayan-3»؛ اگر نام ناشناس بود رشتهٔ خالی برمی‌گردد تا
+    فراخوان از تنظیماتِ اجرا استفاده کند.
+    """
+    name = os.path.basename(str(checkpoint or "")).lower()
+    if name.startswith("rayan-3"):
+        return "rayan-3"
+    if name.startswith("rayan-2"):
+        return "rayan-2"
+    if name.startswith("rayan-1") or name == "last.npz":
+        return "rayan-1-small"
+    return ""
 
 
 def active_model_card() -> dict:
@@ -202,9 +271,14 @@ def active_model_card() -> dict:
     heads = cfg.get("n_head") or run.get("heads")
     embed = cfg.get("n_embd") or run.get("embed")
     vocab = cfg.get("vocab_size") or run.get("vocab")
-    tokens_seen = run.get("tokens_seen")
-    val_loss = run.get("val_loss") or (info.get("meta") or {}).get("val_loss")
-    bpc = run.get("bits_per_char") or (info.get("meta") or {}).get("bits_per_char")
+    # اعدادِ چک‌پوینتِ خودِ مدل اولویت دارند؛ گزارشِ اجرا فقط وقتی می‌آید که
+    # به همین چک‌پوینت تعلق داشته باشد (وگرنه عددِ نادرست است).
+    tokens_seen = meta.get("tokens_seen") or run.get("tokens_seen")
+    steps = meta.get("step") or run.get("steps")
+    val_loss = meta.get("val_loss") or run.get("val_loss")
+    bpc = meta.get("bits_per_char") or run.get("bits_per_char")
+    ppl = meta.get("ppl") or run.get("ppl")
+    trained = meta.get("trained_seconds") or run.get("train_seconds")
     stage_labels = {"sft": "تنظیم دستورمحور", "dpo": "بهینه‌سازی ترجیح",
                     "base": "پیش‌آموزش"}
     parts = []
@@ -222,7 +296,7 @@ def active_model_card() -> dict:
     if bpc:
         desc += f" خطای نگه‌داشته {_fa_number(bpc, 3)} بیت بر نویسه است."
     return {
-        "id": run.get("id") or "active",
+        "id": _model_id(engine.checkpoint if engine is not None else "") or run.get("id") or "active",
         "name": info.get("name") or run.get("name") or "رایان",
         "tagline": "مدل از صفر، روی CPU",
         "params": params,
@@ -231,9 +305,14 @@ def active_model_card() -> dict:
         "badge": "فعال" if engine is not None else "در حال بارگذاری",
         "desc": desc,
         "checkpoint": os.path.relpath(engine.checkpoint, ROOT) if engine is not None else None,
-        "metrics": {"val_loss": val_loss, "bits_per_char": bpc, "ppl": run.get("ppl"),
+        "metrics": {"val_loss": val_loss, "bits_per_char": bpc, "ppl": ppl,
                     "chat_ppl": meta.get("chat_ppl"),
-                    "rubric_mean": meta.get("rubric_mean")},
+                    "rubric_mean": meta.get("rubric_mean"),
+                    "tokens_seen": tokens_seen, "steps": steps,
+                    "trained_seconds": trained},
+        "shape": {"layers": layers, "heads": heads, "embed": embed, "vocab": vocab,
+                  "block_size": cfg.get("block_size") or run.get("block_size")},
+        "stage": meta.get("stage") or run.get("stage"),
         "latency": (f"~{_fa_number(run['inference_tokens_per_second'], 0)} توکن/ثانیه"
                     if run.get("inference_tokens_per_second") else "—"),
         "strengths": ["گفتگوی کوتاه فارسی", "ادامهٔ متن", "بیت کلاسیک"],
@@ -280,6 +359,7 @@ def boot() -> None:
             try:
                 engine = load_engine()
                 engine_error = None
+                _bind_metrics_to(engine.checkpoint)
                 print(f"[rayan] loaded {engine.checkpoint} | step={engine.meta.get('step')}", flush=True)
             except Exception as exc:
                 engine_error = str(exc)
@@ -336,7 +416,9 @@ class ChatRequest(BaseModel):
     message: str = Field(default="", max_length=2000)
     history: list[HistoryTurn] = Field(default_factory=list, max_length=6)
     session_id: str = Field(default="default", max_length=80)
-    conversation_id: str | None = Field(default=None, max_length=64)
+    # کلاینت شناسهٔ گفتگو را عدد می‌فرستد و پایگاه‌داده هم عددی است؛ پیش‌تر
+    # str اعلان شده بود و هر پیامِ دوم در همان گفتگو با 422 رد می‌شد (باگِ واقعی).
+    conversation_id: int | str | None = None
     model: str = Field(default="rayan-1-small", max_length=40)
     mode: Literal["chat", "continue", "poetry"] = "chat"
     deep: bool = False
@@ -347,6 +429,16 @@ class ChatRequest(BaseModel):
     max_new_tokens: int | None = Field(default=None, ge=16, le=220)
     seed: int | None = Field(default=None, ge=0, le=2**31 - 1)
     web: bool = False
+
+    @field_validator("conversation_id", mode="after")
+    @classmethod
+    def _numeric_conversation(cls, value):
+        if value is None or value == "":
+            return None
+        try:
+            return int(str(value).strip())
+        except (TypeError, ValueError):
+            return None
 
 
 class HumanEvidence(BaseModel):
@@ -605,6 +697,15 @@ class RateLimiter:
         self.per_minute = per_minute
         self.hits: dict[str, deque] = {}
         self.lock = threading.Lock()
+
+    def retry_after(self, key: str) -> int:
+        """چند ثانیه تا آزادشدنِ یک جای خالی در پنجره."""
+        with self.lock:
+            bucket = self.hits.get(key)
+            if not bucket:
+                return 1
+            oldest = bucket[0]
+        return max(1, int(60 - (time.time() - oldest)) + 1)
 
     def allow(self, key: str) -> bool:
         now = time.time()
@@ -1243,16 +1344,52 @@ def model_detail(request: Request) -> dict:
             "limitations": _limitations(info.get("params") or 0)}
 
 
+@app.get("/api/model/card")
+def model_card_public() -> dict:
+    """کارتِ عمومیِ مدلِ فعال با اعدادِ واقعیِ همان چک‌پوینت.
+
+    برخلاف `/api/model/detail` که فقط مدیر می‌بیند، این‌جا هیچ مسیر فایل، نام
+    پیکره یا تنظیم داخلی برنمی‌گردد؛ فقط همان چند عددی که روی صفحهٔ «مدل‌ها»
+    نمایش داده می‌شود و کاربر می‌تواند خودش بسنجد.
+    """
+    card = active_model_card()
+    shape = card.get("shape") or {}
+    metrics = card.get("metrics") or {}
+    return {
+        "model": {
+            "id": card.get("id"), "name": card.get("name"),
+            "tagline": card.get("tagline"), "status": card.get("status"),
+            "badge": card.get("badge"), "desc": card.get("desc"),
+            "params": card.get("params"), "context": card.get("context"),
+            "stage": card.get("stage"),
+            "shape": {k: shape.get(k) for k in ("layers", "heads", "embed", "vocab", "block_size")},
+            "metrics": {k: metrics.get(k) for k in
+                        ("val_loss", "ppl", "bits_per_char", "tokens_seen", "steps",
+                         "trained_seconds")},
+        },
+        "archive": [
+            {"id": m.get("id"), "name": m.get("name"), "tagline": m.get("tagline"),
+             "status": m.get("status"), "params": m.get("params"),
+             "context": m.get("context"), "desc": m.get("desc")}
+            for m in ARCHIVE_MODELS
+        ],
+    }
+
+
 @app.get("/api/models")
 def models_catalog() -> dict:
     """فهرست عمومی نسخه‌ها؛ بدون مسیر فایل، بدون اعداد داخلی."""
     card = active_model_card()
     public = {"id": card.get("id"), "name": card.get("name"),
               "tagline": card.get("tagline"), "status": card.get("status"),
-              "badge": card.get("badge")}
+              "badge": card.get("badge"), "context": card.get("context"),
+              "desc": card.get("desc"), "params": card.get("params")}
     others = [{"id": m.get("id"), "name": m.get("name"), "tagline": m.get("tagline"),
-               "status": m.get("status")} for m in ARCHIVE_MODELS]
-    return {"models": [public, *others], "default": public["id"]}
+               "status": m.get("status"), "badge": m.get("badge"),
+               "context": m.get("context"), "desc": m.get("desc"),
+               "params": m.get("params")} for m in ARCHIVE_MODELS]
+    return {"models": [public, *[o for o in others if o["id"] != public["id"]]],
+            "default": public["id"]}
 
 
 _EVAL_FIELDS = ("step", "val_loss", "ppl", "bits_per_char", "top1", "top5", "at")
@@ -1753,8 +1890,22 @@ def _prepare(req: ChatRequest, owner: dict, ip: str) -> tuple[Engine, str, list[
     _guard_flags(deep=req.deep)
     # دسترسی به هوش فقط از داخل سایت و فقط با حساب ثبت‌نام‌شده؛ هیچ کلید API نیست.
     _require_account(owner)
-    if not limiter.allow(f"chat:{ip}"):
-        raise HTTPException(429, "درخواست‌های پیاپی زیاد است؛ چند لحظه صبر کنید.")
+    # سقفِ درخواست برای کاربرِ واردشده بالاتر است و به شناسهٔ حساب بسته می‌شود،
+    # نه فقط به IP؛ چند نفر پشتِ یک شبکه (دانشگاه، اپراتور موبایل) نباید هم‌دیگر
+    # را از سرویس بیرون بیندازند.
+    user_id = (owner or {}).get("user_id")
+    key = f"chat:u{user_id}" if user_id else f"chat:{ip}"
+    allowed = limiter.allow(key)
+    if not allowed:
+        allowed = limiter.allow(f"chat:ip:{ip}")
+    if not allowed:
+        retry = limiter.retry_after(key)
+        raise HTTPException(
+            429,
+            f"درخواست‌های پیاپی زیاد شد؛ {retry} ثانیهٔ دیگر دوباره بفرست. "
+            "گفتگوهای قبلی‌ات محفوظ‌اند.",
+            headers={"Retry-After": str(retry)},
+        )
     model = _engine()
     _check_quota(owner, ip, "deep" if req.deep else "chat")
     history: list[tuple[str, str]] = []
@@ -1863,6 +2014,7 @@ def api_benchmark() -> dict:
     return {
         "model": data.get("model"),
         "params": data.get("params"),
+        "checkpoint": data.get("checkpoint"),
         "run_at": data.get("run_at"),
         "tasks": data.get("tasks"),
         "accuracy": data.get("accuracy"),
@@ -1960,13 +2112,49 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
     started = time.time()
     kwargs = _generation_kwargs(req)
 
+    if req.mode == "poetry":
+        try:
+            from web import poet as poet_module  # noqa: PLC0415
+
+            poem = poet_module.compose("شعر دربارهٔ " + (message or "دل"))
+            if poem:
+                return _instant_turn(owner, ip, req, response, conv_id, message,
+                                     poet_module.render(poem), None, started, "poet")
+        except Exception:  # noqa: BLE001
+            pass
+
     if req.mode == "chat":
+        # روزِ هفته پس از چند روز: پیش از ابزارِ تاریخ انجام می‌شود، چون واژهٔ «روز»
+        # ابزارِ تاریخ را هم فعال می‌کند.
+        try:
+            shifted_day = tools_module.weekday_shift(message)
+        except Exception:  # noqa: BLE001
+            shifted_day = None
+        if shifted_day:
+            return _instant_turn(owner, ip, req, response, conv_id, message,
+                                 shifted_day["answer"], None, started, "tool")
         # ابزار اول: هر محاسبه یا تاریخ، بدون مدل و بدون تأخیر پاسخ می‌گیرد.
         if tool_result and tool_result.get("ok"):
             spoken = tools_module.phrase(tool_result)
             if spoken:
                 return _instant_turn(owner, ip, req, response, conv_id, message, spoken,
                                      tool_result, started, "tool")
+        # نرخِ ارز: صادقانه و بی‌عددِ حدسی، پیش از آنکه به مدل برسد
+        currency_hint = tools_module.currency_hint(message)
+        if currency_hint:
+            return _instant_turn(owner, ip, req, response, conv_id, message,
+                                 currency_hint["answer"], None, started, "hint")
+        # شعر: پیش از هر لایهٔ دیگر. مدلِ کوچک در شعر به هم می‌ریزد، ولی
+        # بیت‌ساز با قاعدهٔ قافیه و وزن، بیتِ تازه و بی‌نقلِ‌قول می‌سازد.
+        try:
+            from web import poet as poet_module  # noqa: PLC0415
+
+            poem = poet_module.compose(message) if req.mode == "chat" else None
+            if poem:
+                return _instant_turn(owner, ip, req, response, conv_id, message,
+                                     poet_module.render(poem), None, started, "poet")
+        except Exception:  # noqa: BLE001 - شعر نباید چت را بشکند
+            pass
         # ترجمه و مسائل کلامی پیش از مهارت‌های عمومی؛ پاسخِ مستقیم می‌دهند
         for module_name in ("translate", "mathword"):
             try:
@@ -1978,6 +2166,19 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
                 return _instant_turn(owner, ip, req, response, conv_id, message,
                                      solved["answer"], tool_result, started,
                                      solved.get("engine", module_name))
+        # خلاصه‌سازی پیش از دانش‌نامه: «این سه نکته را خلاصه کن» نباید به یک مدخلِ
+        # دانشی دربارهٔ یکی از آن نکته‌ها تبدیل شود.
+        formal = (None if (tool_result and tool_result.get("ok")) or req.mode != "chat" or req.web
+                  else writer_module.formalize(message))
+        if formal:
+            return _instant_turn(owner, ip, req, response, conv_id, message, formal,
+                                 tool_result, started, "write")
+
+        summary = writer_module.summarize(message)
+        if summary:
+            return _instant_turn(owner, ip, req, response, conv_id, message, summary,
+                                 tool_result, started, "write")
+
         # دانشنامهٔ بررسی‌شده پیش از لایه‌های نوشتاری و آموزشی: اگر پاسخِ قطعی
         # داریم، نباید لایهٔ دیگری موضوع را به خودش بگیرد.
         knowledge_hit = knowledge_module.answer(message)
@@ -1991,6 +2192,23 @@ def chat(req: ChatRequest, request: Request, response: Response) -> dict:
         # پرسشِ برنامه‌نویسی متن نمی‌خواهد؛ «چطور فایل بنویسم» کد می‌خواهد
         programming = re.search(r"پایتون|python|جاوااسکریپت|javascript|"
                                 r"(?<![\w\u200c])کد(?![\w\u200c])|\bsql\b", message, re.I)
+        # راهنمای عملی پیش از نویسنده: «چطور…» متن نمی‌خواهد، قدم می‌خواهد
+        guided = None if programming else howto_module.answer(message)
+        if guided:
+            return _instant_turn(owner, ip, req, response, conv_id, message, guided["answer"],
+                                 tool_result, started, guided["engine"],
+                                 {"guide": guided.get("guide"),
+                                  "sources": [{"title": "راهنمای رایان",
+                                               "source": "رایان", "score": 1.0}]})
+        # راهنمای موضوعی پیش از نویسندهٔ عمومی: «چطور انگلیسی یاد بگیرم؟» راهنمای
+        # زبان می‌خواهد، نه راهنمای درس‌خواندن برای امتحان (باگِ واقعی).
+        from web import guide as guide_module  # noqa: PLC0415
+
+        deep_guide = None if programming else guide_module.answer(message)
+        if deep_guide:
+            return _instant_turn(owner, ip, req, response, conv_id, message,
+                                 deep_guide["answer"], tool_result, started,
+                                 deep_guide.get("engine", "guide"))
         written = None if programming else writer_module.answer(message)
         if written:
             return _instant_turn(owner, ip, req, response, conv_id, message, written["answer"],
@@ -2125,17 +2343,27 @@ def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     if tool_result and tool_result.get("ok"):
         tool_answer = tools_module.phrase(tool_result)
     kb = None if (tool_answer or req.mode != "chat" or req.web) else knowledge_module.answer(message)
-    written = None if tool_answer or kb or req.mode != "chat" else writer_module.answer(message)
+    formal = (None if (tool_answer or req.mode != "chat" or req.web)
+              else writer_module.formalize(message))
+    summary = (None if (tool_answer or formal or req.mode != "chat" or req.web)
+               else writer_module.summarize(message))
+    guide = (None if (tool_answer or formal or summary or kb or req.mode != "chat" or req.web)
+             else howto_module.answer(message))
+    written = (None if (tool_answer or kb or guide or req.mode != "chat")
+               else writer_module.answer(message))
     taught = None if (tool_answer or kb or written or req.mode != "chat") else tutor_module.answer(message)
     skill = None if (tool_answer or kb or taught or written) else (
         skills_module.match(message) if req.mode == "chat" else None)
     thought = None
     if req.mode == "chat" and not skill and not taught and not kb:
         thought = _think(message, req, history)
-    instant_answer = (tool_answer or (written or {}).get("answer") or (taught or {}).get("answer")
+    instant_answer = (tool_answer or formal or summary or (guide or {}).get("answer")
+                      or (written or {}).get("answer") or (taught or {}).get("answer")
                       or (skill or {}).get("answer")
                       or (thought or {}).get("answer") or (kb or {}).get("answer") or "")
-    instant_engine = ("tool" if tool_answer else (written or {}).get("engine") or
+    instant_engine = ("tool" if tool_answer else ("write" if (formal or summary) else None)
+                      or (guide or {}).get("engine")
+                      or (written or {}).get("engine") or
                       (taught or {}).get("engine") or
                       "skill" if skill else "think" if thought else
                       "knowledge" if kb else "")
@@ -2172,6 +2400,7 @@ def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
                 "conversation_id": new_conv, "message_id": msg_id,
                 "usage": {"used": used, "limit": limit}, "tool": tool_result,
                 "engine": instant_engine,
+                "guide": (guide or {}).get("guide"),
                 "skill": (skill or {}).get("skill"),
                 "knowledge": (kb or {}).get("knowledge"),
                 "thought": {"steps": (thought or {}).get("trace", []),

@@ -7,9 +7,21 @@
     try {
       const health = await request("/api/health");
       const status = $("#hero-status");
-      if (status) {
-        status.textContent = health.ok ? "آماده و پایدار" : "در حال آماده‌سازی…";
+      let line = health.ok ? "آماده به گفتگو" : "در حال آماده‌سازی…";
+      if (health.ok) {
+        // نام و اندازهٔ همان مدلی که واقعاً در حال پاسخ‌دادن است، نه جملهٔ کلی
+        try {
+          const card = await request("/api/model/card");
+          const model = (card && card.model) || {};
+          const params = Number(model.params || 0);
+          if (model.name) {
+            line = `مدل ${model.name}` +
+              (params ? ` · ${compact(params)} پارامتر` : "") +
+              " · آماده";
+          }
+        } catch { /* کارتِ مدل در دسترس نیست؛ جملهٔ کلی می‌ماند */ }
       }
+      if (status) status.textContent = line;
       try {
         const cmp = await request("/api/compare");
         if (cmp && cmp.speed && cmp.speed.median_s) {
@@ -56,40 +68,53 @@
   async function loadShowcase() {
     try {
       const data = await request("/api/showcase");
-      const examples = (data.examples || []).slice(0, 3);
+      // فقط پاسخ‌هایی که سرویس خودش تأیید کرده (verified) روی صفحه می‌آیند؛
+      // خروجیِ خام و درهمِ مدل هرگز جای نمونهٔ واقعی نمی‌نشیند.
+      const examples = (data.examples || []).filter((ex) => ex.verified && ex.text);
       if (!examples.length) return;
+
+      const labels = { chat: "پاسخ دانشی", poem: "شعر", poetry: "شعر",
+                       continue: "ادامهٔ متن", health: "سلامت", math: "حساب",
+                       code: "کد", translate: "ترجمه", guide: "راهنما" };
+      const first = examples[0];
+      const answer = $("#preview-answer");
+      if (answer && first.text) {
+        answer.textContent = first.text;
+        const prompt = document.querySelector(".preview-msg.user .bubble");
+        if (prompt) prompt.textContent = first.prompt;
+      }
+
       const list = $("#showcase-list");
       if (!list) return;
-      const labels = { chat: "گفتگو", poetry: "شعر", continue: "ادامهٔ متن" };
       list.innerHTML = "";
-      examples.forEach((ex) => {
+      examples.slice(0, 3).forEach((ex) => {
         const card = document.createElement("article");
         card.className = "showcase-item";
         const q = document.createElement("span");
         q.className = "q";
-        q.textContent = `${labels[ex.mode] || ex.mode} · «${ex.prompt || "—"}»`;
+        q.textContent = labels[ex.mode] || labels.chat;
+        const p = document.createElement("p");
+        p.className = "pq";
+        p.textContent = ex.prompt || "";
         const a = document.createElement("p");
         a.className = "a";
-        a.textContent = ex.text || "—";
+        a.textContent = ex.text || "";
         const meta = document.createElement("div");
         meta.className = "m";
-        const t = document.createElement("span");
-        t.textContent = `${nf(ex.tokens || 0)} توکن`;
-        meta.append(t);
-        if (ex.deep) {
-          const badge = document.createElement("span");
-          badge.className = "tag tag-blue";
-          badge.textContent = "اندیشهٔ ژرف";
-          meta.append(badge);
+        const badge = document.createElement("span");
+        badge.className = "tag tag-blue";
+        badge.textContent = "پاسخ واقعی";
+        meta.append(badge);
+        if (ex.seconds) {
+          const t = document.createElement("span");
+          t.textContent = `${nf(ex.seconds, 2)} ثانیه`;
+          meta.append(t);
         }
-        card.append(q, a, meta);
+        card.append(q, p, a, meta);
         list.append(card);
       });
-      const first = examples.find((e) => e.mode === "chat" && (e.text || "").length > 30);
-      if (first) {
-        const answer = $("#preview-answer");
-        if (answer) answer.textContent = first.text;
-      }
+      const section = $("#showcase");
+      if (section) section.hidden = false;
     } catch { /* نسخهٔ استاتیک */ }
   }
 

@@ -14,7 +14,10 @@ function check(name, ok, detail = "") {
   if (!ok) errors.push(`${name} ${detail}`);
 }
 
-async function loadPage(pagePath, { runScripts = true } = {}) {
+// سبدِ کوکیِ مشترک: پس از ساختِ حسابِ واقعی، صفحه‌های بعدی با همان نشست باز می‌شوند
+let SHARED_JAR = null;
+
+async function loadPage(pagePath, { runScripts = true, jar: reuse } = {}) {
   const res = await fetch(`${BASE}${pagePath}`, { headers: { accept: "text/html" } });
   let html = await res.text();
   // کوکی مهمان از همان پاسخ اولیه؛ بدون آن /api/chat اجازهٔ دسترسی نمی‌دهد
@@ -33,7 +36,7 @@ async function loadPage(pagePath, { runScripts = true } = {}) {
   const { window } = dom;
 
   // سبد کوکی ساده (jsdom کوکی fetch را نگه نمی‌دارد)
-  const jar = new Map();
+  const jar = reuse || new Map();
   const absorb = (raw) => {
     const [pair] = String(raw).split(";");
     const idx = pair.indexOf("=");
@@ -43,7 +46,13 @@ async function loadPage(pagePath, { runScripts = true } = {}) {
   const cookieHeader = () => [...jar.entries()].map(([k, v]) => `${k}=${v}`).join("; ");
   window.fetch = async (url, opts = {}) => {
     const absolute = url.startsWith("http") ? url : `${BASE}${url}`;
-    const headers = Object.assign({}, opts.headers || {});
+    const rawHeaders = opts.headers || {};
+    const headers = {};
+    if (typeof rawHeaders.forEach === "function" && typeof rawHeaders.get === "function") {
+      rawHeaders.forEach((value, key) => { headers[key] = value; });   // Headers → شیءِ ساده
+    } else {
+      Object.assign(headers, rawHeaders);
+    }
     if (jar.size) headers.cookie = cookieHeader();
     const response = await fetch(absolute, { ...opts, headers });
     const setCookies = typeof response.headers.getSetCookie === "function"
@@ -111,7 +120,7 @@ async function loadPage(pagePath, { runScripts = true } = {}) {
     window.document.dispatchEvent(new window.Event("DOMContentLoaded"));
   }
   await new Promise((r) => setTimeout(r, 350));
-  return { dom, window };
+  return { dom, window, jar };
 }
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -200,8 +209,37 @@ async function testSignupReel() {
   window.close();
 }
 
+async function signedInJar() {
+  // حسابِ واقعی از مسیرِ واقعیِ ثبت‌نام می‌سازیم تا صفحه‌های بعدی مثلِ کاربرِ واردشده باشند
+  if (SHARED_JAR) return SHARED_JAR;
+  const { window, jar } = await loadPage("/signup");
+  const doc = window.document;
+  await wait(900);
+  doc.dispatchEvent(new window.Event("pointermove", { bubbles: true }));
+  doc.dispatchEvent(new window.Event("pointermove", { bubbles: true }));
+  doc.querySelector(".human-box")?.click();
+  for (let i = 0; i < 80; i++) {
+    if (doc.querySelector("#human-slot input[name='captcha']")?.value) break;
+    await wait(100);
+  }
+  window.RAYAN_REEL_MS = 120000;
+  doc.querySelector("#name").value = "کاربر آزمون";
+  doc.querySelector("#email").value = `ui${Date.now()}@example.com`;
+  doc.querySelector("#password").value = "Secret12345";
+  doc.querySelector("#auth-form").dispatchEvent(new window.Event("submit", { cancelable: true, bubbles: true }));
+  await wait(1800);
+  const ok = [...jar.keys()].some((k) => /session/i.test(k));
+  check("chat: real account session", ok, `${[...jar.keys()].join(",")} | `
+    + `${(doc.querySelector("#auth-error")?.textContent || "").slice(0, 80)} | `
+    + `${(doc.querySelector(".human-note")?.textContent || "").slice(0, 80)}`);
+  window.close();
+  SHARED_JAR = jar;
+  return jar;
+}
+
 async function testChat() {
-  const { window } = await loadPage("/chat");
+  const jar = await signedInJar();
+  const { window } = await loadPage("/chat", { jar });
   const doc = window.document;
   const R = window.RAYAN;
   check("chat: empty state", doc.querySelector("#empty-state")?.hidden === false);
@@ -360,7 +398,8 @@ async function testOfflinePage() {
 }
 
 async function testToolChip() {
-  const { window } = await loadPage("/chat");
+  const jar = await signedInJar();
+  const { window } = await loadPage("/chat", { jar });
   const doc = window.document;
   const prompt = doc.querySelector("#prompt");
   prompt.value = "۷*۶ چند است؟";

@@ -73,3 +73,9 @@ data/ops/
 # بستهٔ آپلود روی هاست (با scripts/build_host_package.py ساخته می‌شود)
 dist/
 release/
+
+# پیکرهٔ ساخته‌شدهٔ رایان ۳ (بازتولید با scripts/build_rayan3_corpus.py)
+data/rayan3/
+
+# چک‌پوینت‌های موقتِ آموزش
+checkpoints/*.tmp.npz

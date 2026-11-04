@@ -275,6 +275,11 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .brand-name b { font-size: 19px; font-weight: 900; letter-spacing: -0.02em; }
 .brand-name span { font-size: 10px; letter-spacing: 0.22em; color: var(--text-3); font-weight: 600; }
 .nav-links { display: flex; align-items: center; gap: 10px; margin-inline-start: 16px; }
+.nav-link[aria-current="page"] { color: var(--blue-2); }
+.nav-link[aria-current="page"]::after {
+  content: ""; display: block; height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--blue), var(--cyan, #3ad0ff));
+}
 .nav-link {
   padding: 9px 16px;
   white-space: nowrap;
@@ -541,8 +546,14 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   background: var(--panel-2);
   display: flex; flex-direction: column; gap: 12px;
 }
-.showcase-item .q { font-size: 12.5px; color: var(--text-3); }
-.showcase-item .a { font-size: 14.5px; line-height: 1.95; white-space: pre-wrap; }
+.showcase-item .q { font-size: 11.5px; font-weight: 700; color: var(--blue-2); letter-spacing: 0.01em; }
+.showcase-item .pq { font-size: 14px; font-weight: 700; line-height: 1.8; color: var(--text); }
+.showcase-item .a {
+  font-size: 14px; line-height: 1.95; white-space: pre-wrap; color: var(--text-2);
+  border-inline-start: 2px solid color-mix(in srgb, var(--blue) 22%, transparent);
+  padding-inline-start: 12px;
+  display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden;
+}
 .showcase-item .m { margin-top: auto; font-size: 11.5px; color: var(--text-3); display: flex; gap: 10px; flex-wrap: wrap; }
 
 /* --------------------------------------------------------------- قیمت */

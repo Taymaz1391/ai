@@ -16,7 +16,7 @@
     currentId: null,
     messages: [],
     models: [],
-    model: "rayan-1-small",
+    model: localStorage.getItem("rayan.model") || "",
     deep: false,
     web: localStorage.getItem("rayan.web") === "1",
     mode: "chat",
@@ -294,12 +294,17 @@
     try {
       const data = await request("/api/models");
       state.models = data.models || [];
-      renderModelMenu();
-      const active = state.models.find((m) => m.id === state.model) || state.models[0];
-      if (active) {
-        el.modelLabel.innerHTML = modelNameHtml(active.name);
-        el.modelTag.textContent = active.badge;
+      // مدلِ انتخابی فقط وقتی معتبر است که خودِ سرور همان را سرو کند؛ وگرنه
+      // برچسبِ گفتگو چیزی می‌گفت که پاسخ‌ها از آن نبود (باگِ صداقت).
+      const ready = state.models.filter((m) => m.status === "ready");
+      const chosen = ready.find((m) => m.id === state.model)
+        || ready.find((m) => m.id === data.default) || ready[0];
+      if (chosen) {
+        state.model = chosen.id;
+        el.modelLabel.innerHTML = modelNameHtml(chosen.name);
+        el.modelTag.textContent = chosen.badge;
       }
+      renderModelMenu();
     } catch { /* از پیش‌فرض استفاده می‌کنیم */ }
   }
 
@@ -327,6 +332,7 @@
           return;
         }
         state.model = model.id;
+        try { localStorage.setItem("rayan.model", model.id); } catch { /* حالت خصوصی */ }
         el.modelLabel.innerHTML = modelNameHtml(model.name);
         el.modelTag.textContent = model.badge;
         el.modelMenu.hidden = true;
@@ -1074,8 +1080,10 @@
       </div>`;
     gate.querySelector(".signup-gate-text").textContent =
       message || "هوش رایان فقط از داخل سایت و با حساب کاربری در دسترس است.";
+    // پرده باید بالای نوارِ نوشتن بنشیند تا گفتگو و ورودی هر دو در دسترس بمانند
+    // (باگِ واقعی: پرده وسطِ پیام‌ها می‌افتاد و آخرین پاسخ‌ها پنهان می‌شد).
     const host = el.composer?.closest(".composer-wrap") || el.composer;
-    if (host) host.parentElement.insertBefore(gate, host);
+    if (host && host.parentElement) host.parentElement.insertBefore(gate, host);
     else el.messages.append(gate);
     gate.scrollIntoView({ block: "center", behavior: "smooth" });
     try { localStorage.setItem("rayan.pending", el.prompt.value || ""); } catch { /* حالت خصوصی */ }
